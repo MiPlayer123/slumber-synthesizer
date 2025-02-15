@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import type { User } from '@supabase/supabase-js';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import type { Profile } from '@/lib/types';
 
 interface AuthContextType {
@@ -35,6 +35,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session);
       setUser(session?.user ?? null);
       if (session?.user) {
         await fetchProfile(session.user.id);
@@ -118,16 +119,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
+      console.log('Signing out...');
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
+      if (error) {
+        console.error('Error signing out:', error);
+        throw error;
+      }
+      console.log('Successfully signed out');
+      setUser(null);
+      setProfile(null);
       navigate('/');
     } catch (error) {
+      console.error('Error in signOut function:', error);
       toast({
         variant: "destructive",
         title: "Error",
         description: error instanceof Error ? error.message : "An error occurred during sign out",
       });
+      throw error; // Re-throw the error so it can be caught by the Navigation component
     }
   };
 
