@@ -45,6 +45,11 @@ const Journal = () => {
 
   // Redirect if not authenticated
   if (!user) {
+    toast({
+      variant: "destructive",
+      title: "Authentication required",
+      description: "Please log in to access your dream journal.",
+    });
     return <Navigate to="/auth" replace />;
   }
 
@@ -52,12 +57,18 @@ const Journal = () => {
   const { data: dreams, isLoading } = useQuery({
     queryKey: ['dreams'],
     queryFn: async () => {
+      console.log('Fetching dreams for user:', user.id);
       const { data, error } = await supabase
         .from('dreams')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching dreams:', error);
+        throw error;
+      }
+      console.log('Fetched dreams:', data);
       return data as Dream[];
     },
   });
@@ -65,13 +76,18 @@ const Journal = () => {
   // Create dream mutation
   const createDream = useMutation({
     mutationFn: async (dream: Omit<Dream, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+      console.log('Creating dream:', { ...dream, user_id: user.id });
       const { data, error } = await supabase
         .from('dreams')
         .insert([{ ...dream, user_id: user.id }])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating dream:', error);
+        throw error;
+      }
+      console.log('Dream created successfully:', data);
       return data;
     },
     onSuccess: () => {
@@ -90,6 +106,7 @@ const Journal = () => {
       });
     },
     onError: (error) => {
+      console.error('Mutation error:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -100,16 +117,16 @@ const Journal = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted with values:', newDream);
     createDream.mutate(newDream);
   };
 
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold text-dream-600 animate-fade-in">Dream Journal</h1>
+        <h1 className="text-4xl font-bold text-primary">Dream Journal</h1>
         <Button
           onClick={() => setIsCreating(!isCreating)}
-          className="animate-fade-in"
         >
           <Plus className="mr-2 h-4 w-4" />
           Record Dream
@@ -117,7 +134,7 @@ const Journal = () => {
       </div>
 
       {isCreating && (
-        <Card className="mb-8 animate-slide-up">
+        <Card className="mb-8">
           <CardHeader>
             <CardTitle>Record New Dream</CardTitle>
             <CardDescription>Document your dream experience</CardDescription>
