@@ -53,6 +53,7 @@ const Journal = () => {
 
   // Redirect if not authenticated
   if (!user) {
+    console.log("No user found, redirecting to auth page");
     toast({
       variant: "destructive",
       title: "Authentication required",
@@ -61,11 +62,17 @@ const Journal = () => {
     return <Navigate to="/auth" replace />;
   }
 
-  // Fetch dreams
-  const { data: dreams, isLoading } = useQuery({
+  // Fetch dreams with detailed logging
+  const { data: dreams, isLoading, error: fetchError } = useQuery({
     queryKey: ['dreams'],
     queryFn: async () => {
       console.log('Fetching dreams for user:', user.id);
+      
+      if (!user.id) {
+        console.error('No user ID available for fetching dreams');
+        throw new Error('User ID is required');
+      }
+
       const { data, error } = await supabase
         .from('dreams')
         .select('*')
@@ -76,15 +83,21 @@ const Journal = () => {
         console.error('Error fetching dreams:', error);
         throw error;
       }
-      console.log('Fetched dreams:', data);
+
+      console.log('Successfully fetched dreams:', data);
       return data as Dream[];
     },
   });
 
-  // Create dream mutation
+  // Create dream mutation with improved error handling
   const createDream = useMutation({
     mutationFn: async (dream: Omit<Dream, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+      if (!user) {
+        throw new Error('User must be logged in to create a dream');
+      }
+
       console.log('Creating dream:', { ...dream, user_id: user.id });
+      
       const { data, error } = await supabase
         .from('dreams')
         .insert([{ ...dream, user_id: user.id }])
@@ -95,6 +108,7 @@ const Journal = () => {
         console.error('Error creating dream:', error);
         throw error;
       }
+
       console.log('Dream created successfully:', data);
       return data;
     },
@@ -122,6 +136,16 @@ const Journal = () => {
       });
     },
   });
+
+  // Show fetch error if any
+  if (fetchError) {
+    console.error('Error in dreams query:', fetchError);
+    toast({
+      variant: "destructive",
+      title: "Error loading dreams",
+      description: fetchError instanceof Error ? fetchError.message : "Failed to load dreams",
+    });
+  }
 
   const analyzeDream = async (dream: Dream) => {
     setIsAnalyzing(true);
