@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import Navigation from "@/components/Navigation";
+import { Navigation } from "@/components/Navigation";
 import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
 import Journal from "@/pages/Journal";
