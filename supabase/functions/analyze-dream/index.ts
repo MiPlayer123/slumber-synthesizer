@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,6 +15,12 @@ serve(async (req) => {
 
   try {
     const { dreamContent, dreamId } = await req.json()
+    
+    if (!dreamContent || !dreamId) {
+      throw new Error('Dream content and dream ID are required')
+    }
+
+    console.log('Analyzing dream:', { dreamId, contentLength: dreamContent.length })
     
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -36,14 +43,35 @@ serve(async (req) => {
       }),
     })
 
-    const openAIData = await openAIResponse.json()
-    const analysis = JSON.parse(openAIData.choices[0].message.content)
+    if (!openAIResponse.ok) {
+      const errorData = await openAIResponse.text()
+      console.error('OpenAI API error:', errorData)
+      throw new Error('Failed to get analysis from OpenAI')
+    }
 
-    // Store the analysis in the database
+    const openAIData = await openAIResponse.json()
+    console.log('OpenAI response received')
+    
+    let analysis
+    try {
+      analysis = JSON.parse(openAIData.choices[0].message.content)
+    } catch (error) {
+      console.error('Failed to parse OpenAI response:', openAIData.choices[0].message.content)
+      throw new Error('Invalid analysis format received from OpenAI')
+    }
+
+    // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          persistSession: false
+        }
+      }
     )
+
+    console.log('Storing analysis in database')
 
     const { error: insertError } = await supabaseClient
       .from('dream_analyses')
@@ -58,16 +86,28 @@ serve(async (req) => {
         },
       ])
 
-    if (insertError) throw insertError
+    if (insertError) {
+      console.error('Database insertion error:', insertError)
+      throw insertError
+    }
+
+    console.log('Analysis stored successfully')
 
     return new Response(
       JSON.stringify({ analysis }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   } catch (error) {
+    console.error('Function error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      JSON.stringify({ 
+        error: error.message,
+        details: error.toString()
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      },
     )
   }
 })
