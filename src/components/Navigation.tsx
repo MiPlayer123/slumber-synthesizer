@@ -1,13 +1,33 @@
 
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Moon, Sun, BookMarked, Home, Users, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
 
 export const Navigation = () => {
   const { theme, setTheme } = useTheme();
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Signed out",
+        description: "You have been successfully signed out.",
+      });
+      navigate('/');
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to sign out",
+      });
+    }
+  };
 
   return (
     <nav className="fixed top-0 w-full bg-background/80 backdrop-blur-lg border-b z-50 animate-fade-in">
@@ -38,7 +58,7 @@ export const Navigation = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => signOut()}
+                onClick={handleSignOut}
               >
                 <LogOut className="h-5 w-5" />
               </Button>
