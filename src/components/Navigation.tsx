@@ -16,9 +16,7 @@ export const Navigation = () => {
     e.stopPropagation();
     
     try {
-      console.log("Navigation: Starting sign out process");
       await signOut();
-      console.log("Navigation: Sign out completed");
       
       toast({
         title: "Signed out",
