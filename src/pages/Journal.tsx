@@ -64,7 +64,8 @@ const Journal = () => {
 
   // Fetch dreams with detailed logging
   const { data: dreams, isLoading, error: fetchError } = useQuery({
-    queryKey: ['dreams'],
+    queryKey: ['dreams', user.id],
+    enabled: !!user, // Only run this query if `user` is available
     queryFn: async () => {
       console.log('Fetching dreams for user:', user.id);
       
@@ -178,9 +179,7 @@ const Journal = () => {
     <div className="container mx-auto px-4 py-12">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-4xl font-bold text-primary">Dream Journal</h1>
-        <Button
-          onClick={() => setIsCreating(!isCreating)}
-        >
+        <Button onClick={() => setIsCreating(!isCreating)}>
           <Plus className="mr-2 h-4 w-4" />
           Record Dream
         </Button>
@@ -281,7 +280,9 @@ const Journal = () => {
         {isLoading ? (
           <p className="text-center text-muted-foreground">Loading dreams...</p>
         ) : dreams?.length === 0 ? (
-          <p className="text-center text-muted-foreground">No dreams recorded yet. Start by recording your first dream!</p>
+          <p className="text-center text-muted-foreground">
+            No dreams recorded yet. Start by recording your first dream!
+          </p>
         ) : (
           dreams?.map((dream) => (
             <Card key={dream.id} className="animate-fade-in">
@@ -323,12 +324,15 @@ const Journal = () => {
         )}
       </div>
 
-      <Dialog open={selectedDream !== null} onOpenChange={(open) => {
-        if (!open) {
-          setSelectedDream(null);
-          setAnalysis(null);
-        }
-      }}>
+      <Dialog
+        open={selectedDream !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedDream(null);
+            setAnalysis(null);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>{selectedDream?.title} - Analysis</DialogTitle>
