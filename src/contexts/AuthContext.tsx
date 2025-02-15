@@ -36,17 +36,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      } else {
+      
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
         setProfile(null);
+        navigate('/', { replace: true });
+      } else if (session?.user) {
+        setUser(session.user);
+        await fetchProfile(session.user.id);
       }
+      
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
   const fetchProfile = async (userId: string) => {
     const { data, error } = await supabase
@@ -119,24 +123,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
-      console.log('Signing out...');
+      console.log('AuthContext: Starting sign out process');
+      
       const { error } = await supabase.auth.signOut();
+      
       if (error) {
-        console.error('Error signing out:', error);
+        console.error('AuthContext: Error signing out:', error);
         throw error;
       }
-      console.log('Successfully signed out');
-      setUser(null);
-      setProfile(null);
-      navigate('/');
+
+      console.log('AuthContext: Sign out successful');
+      
+      // The onAuthStateChange listener will handle the state updates and navigation
     } catch (error) {
-      console.error('Error in signOut function:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred during sign out",
-      });
-      throw error; // Re-throw the error so it can be caught by the Navigation component
+      console.error('AuthContext: Error in signOut function:', error);
+      throw error;
     }
   };
 
