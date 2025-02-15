@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -22,10 +21,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import type { Dream, DreamCategory, DreamEmotion } from "@/lib/types";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Navigate } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const dreamCategories: DreamCategory[] = ['normal', 'nightmare', 'lucid', 'recurring', 'prophetic'];
 const dreamEmotions: DreamEmotion[] = ['neutral', 'joy', 'fear', 'confusion', 'anxiety', 'peace', 'excitement', 'sadness'];
@@ -35,6 +40,9 @@ const Journal = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
+  const [selectedDream, setSelectedDream] = useState<Dream | null>(null);
+  const [analysis, setAnalysis] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [newDream, setNewDream] = useState({
     title: "",
     description: "",
@@ -114,6 +122,27 @@ const Journal = () => {
       });
     },
   });
+
+  const analyzeDream = async (dream: Dream) => {
+    setIsAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-dream', {
+        body: { dreamContent: `${dream.title}\n\n${dream.description}` },
+      });
+
+      if (error) throw error;
+      setAnalysis(data.analysis);
+    } catch (error) {
+      console.error('Error analyzing dream:', error);
+      toast({
+        variant: "destructive",
+        title: "Analysis Failed",
+        description: "Failed to analyze dream. Please try again.",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -240,13 +269,25 @@ const Journal = () => {
                       {new Date(dream.created_at).toLocaleDateString()}
                     </CardDescription>
                   </div>
-                  <div className="flex gap-2">
-                    <span className="px-2 py-1 text-xs rounded-full bg-primary/10">
-                      {dream.category}
-                    </span>
-                    <span className="px-2 py-1 text-xs rounded-full bg-primary/10">
-                      {dream.emotion}
-                    </span>
+                  <div className="flex items-center gap-4">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setSelectedDream(dream);
+                        analyzeDream(dream);
+                      }}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                    </Button>
+                    <div className="flex gap-2">
+                      <span className="px-2 py-1 text-xs rounded-full bg-primary/10">
+                        {dream.category}
+                      </span>
+                      <span className="px-2 py-1 text-xs rounded-full bg-primary/10">
+                        {dream.emotion}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </CardHeader>
@@ -257,6 +298,32 @@ const Journal = () => {
           ))
         )}
       </div>
+
+      <Dialog open={selectedDream !== null} onOpenChange={(open) => {
+        if (!open) {
+          setSelectedDream(null);
+          setAnalysis(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>{selectedDream?.title} - Analysis</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            {isAnalyzing ? (
+              <div className="flex items-center justify-center py-8">
+                <p className="text-muted-foreground animate-pulse">Analyzing your dream...</p>
+              </div>
+            ) : analysis ? (
+              <div className="prose prose-sm dark:prose-invert max-w-none">
+                <div className="whitespace-pre-wrap">{analysis}</div>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">Failed to load analysis.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
