@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -22,7 +23,7 @@ import {
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Sparkles, Eye } from "lucide-react";
-import type { Dream, DreamCategory, DreamEmotion } from "@/lib/types";
+import type { Dream, DreamCategory, DreamEmotion, DreamAnalysis } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Navigate } from "react-router-dom";
 import {
