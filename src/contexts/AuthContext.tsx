@@ -37,12 +37,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session);
       
+      setUser(session?.user ?? null);
+      
       if (event === 'SIGNED_OUT') {
-        setUser(null);
         setProfile(null);
         navigate('/', { replace: true });
       } else if (session?.user) {
-        setUser(session.user);
         await fetchProfile(session.user.id);
       }
       
@@ -94,6 +94,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         title: "Error",
         description: error instanceof Error ? error.message : "An error occurred during sign up",
       });
+      throw error;
     }
   };
 
@@ -118,23 +119,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         title: "Error",
         description: error instanceof Error ? error.message : "An error occurred during sign in",
       });
+      throw error;
     }
   };
 
   const signOut = async () => {
     try {
-      console.log('AuthContext: Starting sign out process');
-      
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        console.error('AuthContext: Error signing out:', error);
         throw error;
       }
-
-      console.log('AuthContext: Sign out successful');
-      
-      // The onAuthStateChange listener will handle the state updates and navigation
     } catch (error) {
       console.error('AuthContext: Error in signOut function:', error);
       throw error;
