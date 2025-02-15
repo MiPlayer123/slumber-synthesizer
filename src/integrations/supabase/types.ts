@@ -51,6 +51,50 @@ export type Database = {
           },
         ]
       }
+      dream_analyses: {
+        Row: {
+          created_at: string
+          dream_id: string
+          emotions: string[]
+          id: string
+          interpretation: string
+          rating: number
+          symbols: string[]
+          themes: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dream_id: string
+          emotions: string[]
+          id?: string
+          interpretation: string
+          rating: number
+          symbols: string[]
+          themes: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dream_id?: string
+          emotions?: string[]
+          id?: string
+          interpretation?: string
+          rating?: number
+          symbols?: string[]
+          themes?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dream_analyses_dream_id_fkey"
+            columns: ["dream_id"]
+            isOneToOne: false
+            referencedRelation: "dreams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dream_tags: {
         Row: {
           dream_id: string

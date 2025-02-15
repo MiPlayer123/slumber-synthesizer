@@ -21,7 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Sparkles } from "lucide-react";
+import { Plus, Sparkles, Eye } from "lucide-react";
 import type { Dream, DreamCategory, DreamEmotion } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Navigate } from "react-router-dom";
@@ -31,6 +31,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Badge } from "@/components/ui/badge";
 
 const dreamCategories: DreamCategory[] = ['normal', 'nightmare', 'lucid', 'recurring', 'prophetic'];
 const dreamEmotions: DreamEmotion[] = ['neutral', 'joy', 'fear', 'confusion', 'anxiety', 'peace', 'excitement', 'sadness'];
@@ -87,6 +89,19 @@ const Journal = () => {
 
       console.log('Successfully fetched dreams:', data);
       return data as Dream[];
+    },
+  });
+
+  // Fetch dream analyses
+  const { data: analyses } = useQuery({
+    queryKey: ['dream-analyses'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('dream_analyses')
+        .select('*');
+
+      if (error) throw error;
+      return data as DreamAnalysis[];
     },
   });
 
@@ -152,10 +167,16 @@ const Journal = () => {
     setIsAnalyzing(true);
     try {
       const { data, error } = await supabase.functions.invoke('analyze-dream', {
-        body: { dreamContent: `${dream.title}\n\n${dream.description}` },
+        body: { 
+          dreamContent: `${dream.title}\n\n${dream.description}`,
+          dreamId: dream.id
+        },
       });
 
       if (error) throw error;
+      
+      // Refresh analyses after new analysis is created
+      queryClient.invalidateQueries({ queryKey: ['dream-analyses'] });
       setAnalysis(data.analysis);
     } catch (error) {
       console.error('Error analyzing dream:', error);
@@ -295,16 +316,74 @@ const Journal = () => {
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-4">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setSelectedDream(dream);
-                        analyzeDream(dream);
-                      }}
-                    >
-                      <Sparkles className="h-4 w-4" />
-                    </Button>
+                    {analyses?.find(a => a.dream_id === dream.id) ? (
+                      <HoverCard>
+                        <HoverCardTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-80">
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-sm font-semibold">Dream Analysis</h4>
+                              <div className="flex items-center">
+                                {Array.from({ length: analyses.find(a => a.dream_id === dream.id)?.rating || 0 }).map((_, i) => (
+                                  <Sparkles key={i} className="h-3 w-3 text-yellow-500" />
+                                ))}
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <div>
+                                <h5 className="text-xs font-semibold mb-1">Themes</h5>
+                                <div className="flex flex-wrap gap-1">
+                                  {analyses.find(a => a.dream_id === dream.id)?.themes.map((theme) => (
+                                    <Badge key={theme} variant="secondary">{theme}</Badge>
+                                  ))}
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <h5 className="text-xs font-semibold mb-1">Symbols</h5>
+                                <div className="flex flex-wrap gap-1">
+                                  {analyses.find(a => a.dream_id === dream.id)?.symbols.map((symbol) => (
+                                    <Badge key={symbol} variant="outline">{symbol}</Badge>
+                                  ))}
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <h5 className="text-xs font-semibold mb-1">Emotions</h5>
+                                <div className="flex flex-wrap gap-1">
+                                  {analyses.find(a => a.dream_id === dream.id)?.emotions.map((emotion) => (
+                                    <Badge key={emotion} variant="default">{emotion}</Badge>
+                                  ))}
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <h5 className="text-xs font-semibold mb-1">Interpretation</h5>
+                                <p className="text-xs text-muted-foreground">
+                                  {analyses.find(a => a.dream_id === dream.id)?.interpretation}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </HoverCardContent>
+                      </HoverCard>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setSelectedDream(dream);
+                          analyzeDream(dream);
+                        }}
+                      >
+                        <Sparkles className="h-4 w-4" />
+                      </Button>
+                    )}
                     <div className="flex gap-2">
                       <span className="px-2 py-1 text-xs rounded-full bg-primary/10">
                         {dream.category}

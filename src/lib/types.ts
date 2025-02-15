@@ -22,3 +22,15 @@ export interface Dream {
   created_at: string;
   updated_at: string;
 }
+
+export interface DreamAnalysis {
+  id: string;
+  dream_id: string;
+  rating: number;
+  themes: string[];
+  symbols: string[];
+  emotions: string[];
+  interpretation: string;
+  created_at: string;
+  updated_at: string;
+}
