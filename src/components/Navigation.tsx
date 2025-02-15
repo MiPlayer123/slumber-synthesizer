@@ -1,11 +1,13 @@
 
 import { Link } from "react-router-dom";
-import { Moon, Sun, BookMarked, Home, Users } from "lucide-react";
+import { Moon, Sun, BookMarked, Home, Users, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/use-theme";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const Navigation = () => {
   const { theme, setTheme } = useTheme();
+  const { user, signOut } = useAuth();
 
   return (
     <nav className="fixed top-0 w-full bg-background/80 backdrop-blur-lg border-b z-50 animate-fade-in">
@@ -20,16 +22,33 @@ export const Navigation = () => {
               <Home className="h-5 w-5" />
             </Button>
           </Link>
-          <Link to="/journal">
-            <Button variant="ghost" size="icon">
-              <BookMarked className="h-5 w-5" />
-            </Button>
-          </Link>
-          <Link to="/community">
-            <Button variant="ghost" size="icon">
-              <Users className="h-5 w-5" />
-            </Button>
-          </Link>
+          
+          {user ? (
+            <>
+              <Link to="/journal">
+                <Button variant="ghost" size="icon">
+                  <BookMarked className="h-5 w-5" />
+                </Button>
+              </Link>
+              <Link to="/community">
+                <Button variant="ghost" size="icon">
+                  <Users className="h-5 w-5" />
+                </Button>
+              </Link>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => signOut()}
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
+            </>
+          ) : (
+            <Link to="/auth">
+              <Button variant="default">Sign In</Button>
+            </Link>
+          )}
+          
           <Button
             variant="ghost"
             size="icon"

@@ -9,7 +9,200 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      comments: {
+        Row: {
+          content: string
+          created_at: string
+          dream_id: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          dream_id: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          dream_id?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_dream_id_fkey"
+            columns: ["dream_id"]
+            isOneToOne: false
+            referencedRelation: "dreams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dream_tags: {
+        Row: {
+          dream_id: string
+          tag_id: string
+        }
+        Insert: {
+          dream_id: string
+          tag_id: string
+        }
+        Update: {
+          dream_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dream_tags_dream_id_fkey"
+            columns: ["dream_id"]
+            isOneToOne: false
+            referencedRelation: "dreams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dream_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dreams: {
+        Row: {
+          category: Database["public"]["Enums"]["dream_category"]
+          created_at: string
+          description: string
+          emotion: Database["public"]["Enums"]["dream_emotion"]
+          id: string
+          is_public: boolean
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["dream_category"]
+          created_at?: string
+          description: string
+          emotion?: Database["public"]["Enums"]["dream_emotion"]
+          id?: string
+          is_public?: boolean
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["dream_category"]
+          created_at?: string
+          description?: string
+          emotion?: Database["public"]["Enums"]["dream_emotion"]
+          id?: string
+          is_public?: boolean
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dreams_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      likes: {
+        Row: {
+          created_at: string
+          dream_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dream_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dream_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "likes_dream_id_fkey"
+            columns: ["dream_id"]
+            isOneToOne: false
+            referencedRelation: "dreams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      tags: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +211,21 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      dream_category:
+        | "nightmare"
+        | "lucid"
+        | "recurring"
+        | "prophetic"
+        | "normal"
+      dream_emotion:
+        | "joy"
+        | "fear"
+        | "confusion"
+        | "anxiety"
+        | "peace"
+        | "excitement"
+        | "sadness"
+        | "neutral"
     }
     CompositeTypes: {
       [_ in never]: never
