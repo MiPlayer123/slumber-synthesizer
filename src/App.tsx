@@ -11,6 +11,7 @@ import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
 import Journal from "@/pages/Journal";
 import Community from "@/pages/Community";
+import Statistics from "@/pages/Statistics";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ function App() {
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/journal" element={<Journal />} />
                   <Route path="/community" element={<Community />} />
+                  <Route path="/statistics" element={<Statistics />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
