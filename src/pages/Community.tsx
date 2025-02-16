@@ -20,7 +20,7 @@ const Community = () => {
         .from('dreams')
         .select(`
           *,
-          profiles:profiles(username, avatar_url)
+          profiles!dreams_user_id_fkey(username, avatar_url)
         `)
         .eq('is_public', true)
         .order('created_at', { ascending: false });
