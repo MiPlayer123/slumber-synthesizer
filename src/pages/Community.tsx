@@ -60,7 +60,27 @@ const Community = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="whitespace-pre-wrap text-muted-foreground">{dream.description}</p>
+                <div className="space-y-4">
+                  {dream.image_url && (
+                    <div className="relative w-full h-64 rounded-lg overflow-hidden">
+                      <img
+                        src={dream.image_url}
+                        alt={dream.title}
+                        className="object-cover w-full h-full"
+                      />
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <p className="whitespace-pre-wrap text-muted-foreground">{dream.description}</p>
+                    {dream.enhanced_description && (
+                      <div className="mt-4 p-4 bg-muted rounded-lg">
+                        <p className="text-sm italic text-muted-foreground">
+                          {dream.enhanced_description}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           ))
