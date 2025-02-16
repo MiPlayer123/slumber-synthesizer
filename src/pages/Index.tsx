@@ -15,7 +15,7 @@ const Index = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          Treehacks Project: Dream Journaling
+          Slumber Synthesizer: Dream Journaling
         </motion.h1>
         
         <motion.p 
