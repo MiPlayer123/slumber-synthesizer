@@ -38,7 +38,7 @@ const dreamCategories: DreamCategory[] = ['normal', 'nightmare', 'lucid', 'recur
 const dreamEmotions: DreamEmotion[] = ['neutral', 'joy', 'fear', 'confusion', 'anxiety', 'peace', 'excitement', 'sadness'];
 
 const Journal = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
@@ -52,6 +52,11 @@ const Journal = () => {
     emotion: "neutral" as DreamEmotion,
     is_public: false,
   });
+
+  if (loading) {
+    // Optionally, render a loading indicator while the auth state is being determined.
+    return <div>Loading...</div>;
+  }
 
   // Redirect if not authenticated
   if (!user) {
