@@ -22,6 +22,7 @@ export interface Dream {
   created_at: string;
   updated_at: string;
   image_url?: string | null;
+  enhanced_description?: string | null;
 }
 
 export interface DreamAnalysis {
