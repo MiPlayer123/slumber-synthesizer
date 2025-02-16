@@ -1,69 +1,111 @@
-# Welcome to your Lovable project
 
-## Project info
+# Dream Journal - AI-Powered Dream Recording Platform
 
-**URL**: https://lovable.dev/projects/d5f0d1b7-ddc0-4a0f-8495-464d75587b95
+A modern web application for recording, analyzing, and sharing dreams with AI-enhanced features and community interaction.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+### Dream Recording
+- Record personal dreams with titles and descriptions
+- Categorize dreams (nightmare, lucid, recurring, prophetic, normal)
+- Add emotional context (joy, fear, confusion, anxiety, peace, etc.)
+- AI-generated dream imagery
+- AI-enhanced descriptions and interpretations
 
-**Use Lovable**
+### Community Features
+- Share dreams publicly
+- Browse community dreams
+- View AI-generated dream images
+- Privacy controls for sharing
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/d5f0d1b7-ddc0-4a0f-8495-464d75587b95) and start prompting.
+### Analytics
+- Track dream patterns
+- View emotional and category distributions
+- Weekly dream frequency analysis
+- Visual statistics and charts
 
-Changes made via Lovable will be committed automatically to this repo.
+## Tech Stack
 
-**Use your preferred IDE**
+- **Frontend**: React, TypeScript, Vite
+- **UI**: Tailwind CSS, Shadcn/UI, Framer Motion
+- **State Management**: TanStack Query
+- **Backend**: Supabase (Auth, Database, Storage, Edge Functions)
+- **AI Integration**: OpenAI (DALL-E 3), Mistral AI
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Getting Started
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Prerequisites
 
-Follow these steps:
+- Node.js (v18 or higher)
+- npm or yarn
+- Supabase account
+- OpenAI API key (for AI features)
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### Installation
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd dream-journal
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+2. Install dependencies:
+```bash
+npm install
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+3. Create a `.env` file in the root directory and add your environment variables:
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+4. Start the development server:
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The application will be available at `http://localhost:8080`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Development
 
-**Use GitHub Codespaces**
+### Project Structure
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```
+src/
+├── components/     # Reusable UI components
+├── contexts/       # React contexts
+├── hooks/         # Custom hooks
+├── lib/           # Utility functions and types
+├── pages/         # Page components
+└── integrations/  # Third-party service integrations
+```
 
-## What technologies are used for this project?
+### Available Scripts
 
-This project is built with .
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
+- `npm run typecheck` - Run TypeScript type checking
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Contributing
 
-## How can I deploy this project?
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-Simply open [Lovable](https://lovable.dev/projects/d5f0d1b7-ddc0-4a0f-8495-464d75587b95) and click on Share -> Publish.
+## License
 
-## I want to use a custom domain - is that possible?
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+## Acknowledgments
+
+- Supabase for backend services
+- OpenAI for AI image generation
+- Mistral AI for dream analysis
+- Shadcn/UI for component library
+- Framer Motion for animations
+
