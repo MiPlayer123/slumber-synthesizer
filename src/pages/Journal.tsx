@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -129,7 +128,7 @@ const Journal = () => {
       console.log('Dream created successfully:', data);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (newDream) => {
       queryClient.invalidateQueries({ queryKey: ['dreams'] });
       setIsCreating(false);
       setNewDream({
@@ -143,6 +142,9 @@ const Journal = () => {
         title: "Dream Created",
         description: "Your dream has been successfully recorded.",
       });
+      
+      // Generate image for the new dream
+      generateImage.mutate(newDream);
     },
     onError: (error) => {
       console.error('Mutation error:', error);
@@ -150,6 +152,38 @@ const Journal = () => {
         variant: "destructive",
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create dream",
+      });
+    },
+  });
+
+  // Add new mutation for image generation
+  const generateImage = useMutation({
+    mutationFn: async (dream: Dream) => {
+      console.log('Generating image for dream:', dream.id);
+      
+      const { data, error } = await supabase.functions.invoke('generate-dream-image', {
+        body: { 
+          dreamId: dream.id,
+          description: `${dream.title} - ${dream.description}`
+        },
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dreams'] });
+      toast({
+        title: "Image Generated",
+        description: "Dream image has been generated successfully.",
+      });
+    },
+    onError: (error) => {
+      console.error('Image generation error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to generate dream image. Please try again.",
       });
     },
   });
@@ -397,7 +431,18 @@ const Journal = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="whitespace-pre-wrap">{dream.description}</p>
+                <div className="space-y-4">
+                  {dream.image_url && (
+                    <div className="relative w-full h-48 rounded-lg overflow-hidden">
+                      <img
+                        src={dream.image_url}
+                        alt={dream.title}
+                        className="object-cover w-full h-full"
+                      />
+                    </div>
+                  )}
+                  <p className="whitespace-pre-wrap">{dream.description}</p>
+                </div>
               </CardContent>
             </Card>
           ))

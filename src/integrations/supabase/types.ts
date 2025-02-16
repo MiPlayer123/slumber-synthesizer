@@ -132,6 +132,7 @@ export type Database = {
           description: string
           emotion: Database["public"]["Enums"]["dream_emotion"]
           id: string
+          image_url: string | null
           is_public: boolean
           title: string
           updated_at: string
@@ -143,6 +144,7 @@ export type Database = {
           description: string
           emotion?: Database["public"]["Enums"]["dream_emotion"]
           id?: string
+          image_url?: string | null
           is_public?: boolean
           title: string
           updated_at?: string
@@ -154,6 +156,7 @@ export type Database = {
           description?: string
           emotion?: Database["public"]["Enums"]["dream_emotion"]
           id?: string
+          image_url?: string | null
           is_public?: boolean
           title?: string
           updated_at?: string
