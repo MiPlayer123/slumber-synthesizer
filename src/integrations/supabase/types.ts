@@ -131,6 +131,7 @@ export type Database = {
           created_at: string
           description: string
           emotion: Database["public"]["Enums"]["dream_emotion"]
+          enhanced_description: string | null
           id: string
           image_url: string | null
           is_public: boolean
@@ -143,6 +144,7 @@ export type Database = {
           created_at?: string
           description: string
           emotion?: Database["public"]["Enums"]["dream_emotion"]
+          enhanced_description?: string | null
           id?: string
           image_url?: string | null
           is_public?: boolean
@@ -155,6 +157,7 @@ export type Database = {
           created_at?: string
           description?: string
           emotion?: Database["public"]["Enums"]["dream_emotion"]
+          enhanced_description?: string | null
           id?: string
           image_url?: string | null
           is_public?: boolean
