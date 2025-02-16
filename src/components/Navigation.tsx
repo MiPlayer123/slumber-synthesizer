@@ -1,91 +1,79 @@
 
-import { Link } from "react-router-dom";
-import { Moon, Sun, BookMarked, Home, Users, LogOut } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useTheme } from "@/hooks/use-theme";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Home, BookOpen, Users, BarChart } from "lucide-react";
 
-export const Navigation = () => {
-  const { theme, setTheme } = useTheme();
+const Navigation = () => {
+  const location = useLocation();
   const { user, signOut } = useAuth();
-  const { toast } = useToast();
 
-  const handleSignOut = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    try {
-      await signOut();
-      
-      toast({
-        title: "Signed out",
-        description: "You have been successfully signed out.",
-      });
-    } catch (error) {
-      console.error("Navigation: Sign out error:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to sign out",
-      });
-    }
-  };
+  const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="fixed top-0 w-full bg-background/80 backdrop-blur-lg border-b z-50 animate-fade-in">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center space-x-2">
-          <span className="text-2xl font-bold text-dream-600">REM</span>
-        </Link>
-        
-        <div className="flex items-center space-x-6">
-          <Link to="/">
-            <Button variant="ghost" size="icon">
-              <Home className="h-5 w-5" />
-            </Button>
-          </Link>
-          
-          {user ? (
-            <>
-              <Link to="/journal">
-                <Button variant="ghost" size="icon">
-                  <BookMarked className="h-5 w-5" />
-                </Button>
-              </Link>
-              <Link to="/community">
-                <Button variant="ghost" size="icon">
-                  <Users className="h-5 w-5" />
-                </Button>
-              </Link>
+    <nav className="border-b">
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between h-16">
+          <div className="flex items-center space-x-4">
+            <Link to="/">
               <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleSignOut}
-                type="button"
+                variant={isActive("/") ? "default" : "ghost"}
+                className="space-x-2"
               >
-                <LogOut className="h-5 w-5" />
+                <Home className="h-4 w-4" />
+                <span>Home</span>
               </Button>
-            </>
-          ) : (
-            <Link to="/auth">
-              <Button variant="default">Sign In</Button>
             </Link>
-          )}
-          
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          >
-            {theme === "dark" ? (
-              <Sun className="h-5 w-5" />
-            ) : (
-              <Moon className="h-5 w-5" />
+
+            {user && (
+              <>
+                <Link to="/journal">
+                  <Button
+                    variant={isActive("/journal") ? "default" : "ghost"}
+                    className="space-x-2"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    <span>Journal</span>
+                  </Button>
+                </Link>
+                <Link to="/statistics">
+                  <Button
+                    variant={isActive("/statistics") ? "default" : "ghost"}
+                    className="space-x-2"
+                  >
+                    <BarChart className="h-4 w-4" />
+                    <span>Statistics</span>
+                  </Button>
+                </Link>
+              </>
             )}
-          </Button>
+
+            <Link to="/community">
+              <Button
+                variant={isActive("/community") ? "default" : "ghost"}
+                className="space-x-2"
+              >
+                <Users className="h-4 w-4" />
+                <span>Community</span>
+              </Button>
+            </Link>
+          </div>
+
+          <div>
+            {user ? (
+              <Button variant="outline" onClick={signOut}>
+                Sign Out
+              </Button>
+            ) : (
+              <Link to="/auth">
+                <Button>Sign In</Button>
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     </nav>
   );
-};
+}
+
+export default Navigation;
