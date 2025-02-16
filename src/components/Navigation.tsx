@@ -1,6 +1,6 @@
 
 import { Link } from "react-router-dom";
-import { Moon, Sun, BookMarked, Home, Users, LogOut } from "lucide-react";
+import { Moon, Sun, BookMarked, Home, Users, LogOut, BarChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/contexts/AuthContext";
@@ -51,6 +51,11 @@ export const Navigation = () => {
               <Link to="/journal">
                 <Button variant="ghost" size="icon">
                   <BookMarked className="h-5 w-5" />
+                </Button>
+              </Link>
+              <Link to="/statistics">
+                <Button variant="ghost" size="icon">
+                  <BarChart className="h-5 w-5" />
                 </Button>
               </Link>
               <Link to="/community">
