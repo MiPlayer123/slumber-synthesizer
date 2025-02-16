@@ -53,11 +53,6 @@ const Journal = () => {
     is_public: false,
   });
 
-  if (loading) {
-    // Optionally, render a loading indicator while the auth state is being determined.
-    return <div>Loading...</div>;
-  }
-
   // Redirect if not authenticated
   if (!user) {
     console.log("No user found, redirecting to auth page");
