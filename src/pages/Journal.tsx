@@ -423,13 +423,14 @@ const Journal = () => {
                 <p className="text-muted-foreground animate-pulse">Analyzing your dream...</p>
               </div>
             ) : analysis ? (
-              <div className="prose prose-sm dark:prose-invert max-w-none">
-                <div className="whitespace-pre-wrap">{analysis}</div>
-              </div>
+              <pre className="prose prose-sm dark:prose-invert max-w-none">
+                {JSON.stringify(analysis, null, 2)}
+              </pre>
             ) : (
               <p className="text-muted-foreground">Failed to load analysis.</p>
             )}
           </div>
+
         </DialogContent>
       </Dialog>
     </div>
