@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,46 +25,65 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
+    let mounted = true;
+
+    // Initialize auth state from stored session
     const initializeAuth = async () => {
       try {
+        console.log('Initializing auth state...');
         const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
         
-        if (session?.user) {
-          console.log('Found existing session:', session.user.email);
+        if (error) {
+          console.error('Session retrieval error:', error);
+          throw error;
+        }
+        
+        if (session?.user && mounted) {
+          console.log('Found existing session for:', session.user.email);
           setUser(session.user);
           await fetchProfile(session.user.id);
+        } else {
+          console.log('No existing session found');
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     initializeAuth();
 
+    // Set up auth state change listener
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.email);
       
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      if (!mounted) return;
+
+      if (event === 'SIGNED_IN') {
         setUser(session?.user ?? null);
         if (session?.user) {
           await fetchProfile(session.user.id);
-          if (event === 'SIGNED_IN') {
-            navigate('/journal');
-          }
+          navigate('/journal');
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setProfile(null);
         navigate('/', { replace: true });
+      } else if (event === 'TOKEN_REFRESHED') {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        }
       }
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, [navigate]);
@@ -76,10 +96,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Profile fetch error:', error);
+        throw error;
+      }
+      
+      console.log('Profile fetched successfully:', data?.username);
       setProfile(data);
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error in fetchProfile:', error);
     }
   };
 
@@ -128,8 +153,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         title: "Welcome back!",
         description: "You've successfully signed in.",
       });
-      
-      navigate('/journal');
     } catch (error) {
       toast({
         variant: "destructive",
@@ -144,6 +167,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      
+      // Clear any local state
+      setUser(null);
+      setProfile(null);
     } catch (error) {
       console.error('AuthContext: Error in signOut function:', error);
       throw error;
