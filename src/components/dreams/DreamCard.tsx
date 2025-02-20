@@ -29,10 +29,28 @@ export const DreamCard = ({ dream, analyses }: DreamCardProps) => {
                 />
               </div>
             )}
+            
             {analysis && (
               <div className="space-y-4">
-                <h3 className="text-2xl font-semibold">Dream Analysis</h3>
-                <p className="text-muted-foreground">{analysis.interpretation}</p>
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Themes & Symbols</h4>
+                  <div className="flex">
+                    {Array.from({ length: analysis.rating }).map((_, i) => (
+                      <Sparkles key={i} className="h-4 w-4 text-yellow-500" />
+                    ))}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {analysis.themes.map((theme) => (
+                    <Badge key={theme} variant="secondary">✨ {theme}</Badge>
+                  ))}
+                  {analysis.symbols.map((symbol) => (
+                    <Badge key={symbol} variant="outline">🔮 {symbol}</Badge>
+                  ))}
+                  {analysis.emotions.map((emotion) => (
+                    <Badge key={emotion} variant="default">💭 {emotion}</Badge>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -60,25 +78,8 @@ export const DreamCard = ({ dream, analyses }: DreamCardProps) => {
 
             {analysis && (
               <div className="space-y-4 border-t pt-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Themes & Symbols</h4>
-                  <div className="flex">
-                    {Array.from({ length: analysis.rating }).map((_, i) => (
-                      <Sparkles key={i} className="h-4 w-4 text-yellow-500" />
-                    ))}
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {analysis.themes.map((theme) => (
-                    <Badge key={theme} variant="secondary">✨ {theme}</Badge>
-                  ))}
-                  {analysis.symbols.map((symbol) => (
-                    <Badge key={symbol} variant="outline">🔮 {symbol}</Badge>
-                  ))}
-                  {analysis.emotions.map((emotion) => (
-                    <Badge key={emotion} variant="default">💭 {emotion}</Badge>
-                  ))}
-                </div>
+                <h3 className="text-2xl font-semibold">Dream Analysis</h3>
+                <p className="text-muted-foreground">{analysis.interpretation}</p>
               </div>
             )}
           </div>
