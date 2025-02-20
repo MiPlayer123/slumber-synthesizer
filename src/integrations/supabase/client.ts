@@ -12,9 +12,23 @@ export const supabase = createClient<Database>(
     auth: {
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: false,
-      storage: localStorage,
-      storageKey: 'dreamjournal.auth.token',
+      detectSessionInUrl: true,
+      storage: {
+        getItem: (key) => {
+          const value = localStorage.getItem(key);
+          console.log('Getting auth item:', key, value ? 'exists' : 'not found');
+          return value;
+        },
+        setItem: (key, value) => {
+          console.log('Setting auth item:', key);
+          localStorage.setItem(key, value);
+        },
+        removeItem: (key) => {
+          console.log('Removing auth item:', key);
+          localStorage.removeItem(key);
+        },
+      },
+      storageKey: 'supabase.auth.token',
     },
   }
 );
