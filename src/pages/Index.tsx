@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
@@ -53,19 +52,19 @@ const Index = () => {
 
       {/* Features Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
-        <div className="glass-card p-6 max-w-sm mx-auto w-full">
+        <div className="glass-card p-6">
           <h3 className="text-xl font-semibold mb-2">Record Dreams</h3>
           <p className="text-muted-foreground">
             Capture your dreams in rich detail with our intuitive journal.
           </p>
         </div>
-        <div className="glass-card p-6 max-w-sm mx-auto w-full">
+        <div className="glass-card p-6">
           <h3 className="text-xl font-semibold mb-2">AI Analysis</h3>
           <p className="text-muted-foreground">
             Gain insights into patterns and themes in your dreams.
           </p>
         </div>
-        <div className="glass-card p-6 max-w-sm mx-auto w-full">
+        <div className="glass-card p-6">
           <h3 className="text-xl font-semibold mb-2">Share & Connect</h3>
           <p className="text-muted-foreground">
             Join a community of dreamers and share your experiences.
@@ -77,14 +76,14 @@ const Index = () => {
       <div className="bg-gray-100 py-12 mt-16">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-8">What Our Users Say</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-4">
-            <div className="bg-white p-6 shadow rounded-lg max-w-sm mx-auto w-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="bg-white p-6 shadow rounded-lg">
               <p className="text-muted-foreground mb-4">
                 "This app has completely changed the way I understand my dreams. The AI analysis is spot on!"
               </p>
               <h4 className="font-semibold">- Alex D.</h4>
             </div>
-            <div className="bg-white p-6 shadow rounded-lg max-w-sm mx-auto w-full">
+            <div className="bg-white p-6 shadow rounded-lg">
               <p className="text-muted-foreground mb-4">
                 "I love the community aspect. Sharing dreams and getting feedback is so rewarding."
               </p>
@@ -98,18 +97,18 @@ const Index = () => {
       <div className="py-12 mt-16">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-8">Affordable Pricing Plans</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-4">
-            <div className="bg-white p-6 shadow rounded-lg max-w-sm mx-auto w-full">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-white p-6 shadow rounded-lg">
               <h3 className="text-xl font-bold mb-4">Free</h3>
               <p className="text-muted-foreground mb-4">Basic journaling features.</p>
               <Button size="lg">Get Started</Button>
             </div>
-            <div className="bg-white p-6 shadow rounded-lg max-w-sm mx-auto w-full">
+            <div className="bg-white p-6 shadow rounded-lg">
               <h3 className="text-xl font-bold mb-4">Pro</h3>
               <p className="text-muted-foreground mb-4">Advanced AI analysis and community features.</p>
               <Button size="lg">Upgrade</Button>
             </div>
-            <div className="bg-white p-6 shadow rounded-lg max-w-sm mx-auto w-full">
+            <div className="bg-white p-6 shadow rounded-lg">
               <h3 className="text-xl font-bold mb-4">Premium</h3>
               <p className="text-muted-foreground mb-4">All features with priority support.</p>
               <Button size="lg">Subscribe</Button>
