@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import { decode as base64Decode } from "https://deno.land/std@0.208.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,7 +9,6 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -19,15 +19,15 @@ serve(async (req) => {
     console.log('Processing dream:', dreamId);
     console.log('Initial description:', description);
 
-    // First, use Mistral to enhance the description
-    const mistralResponse = await fetch('https://api.mistral.ai/v1/chat/completions', {
+    // Use OpenAI to enhance the description
+    const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('MISTRAL_API_KEY')}`,
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "mistral-medium",
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: "system",
@@ -42,18 +42,18 @@ serve(async (req) => {
       }),
     });
 
-    if (!mistralResponse.ok) {
-      const error = await mistralResponse.text();
-      console.error('Mistral API error:', error);
-      throw new Error(`Mistral API error: ${error}`);
+    if (!openAiResponse.ok) {
+      const error = await openAiResponse.text();
+      console.error('OpenAI API error:', error);
+      throw new Error(`OpenAI API error: ${error}`);
     }
 
-    const mistralData = await mistralResponse.json();
-    const enhancedDescription = mistralData.choices[0].message.content;
+    const openAiData = await openAiResponse.json();
+    const enhancedDescription = openAiData.choices[0].message.content;
     console.log('Enhanced description:', enhancedDescription);
 
-    // Now use DALL-E 3 to generate the image
-    const openaiResponse = await fetch('https://api.openai.com/v1/images/generations', {
+    // Generate image using DALL-E 3
+    const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
@@ -65,36 +65,59 @@ serve(async (req) => {
         n: 1,
         size: "1024x1024",
         quality: "standard",
-        style: "vivid"
+        response_format: "b64_json"
       }),
     });
 
-    if (!openaiResponse.ok) {
-      const error = await openaiResponse.text();
-      console.error('OpenAI API error:', error);
-      throw new Error(`OpenAI API error: ${error}`);
+    if (!imageResponse.ok) {
+      const error = await imageResponse.text();
+      console.error('DALL-E API error:', error);
+      throw new Error(`DALL-E API error: ${error}`);
     }
 
-    const openaiData = await openaiResponse.json();
-    console.log('OpenAI response received');
+    const imageData = await imageResponse.json();
+    console.log('Image generated successfully');
 
-    if (!openaiData.data || !openaiData.data[0]?.url) {
-      throw new Error('No image URL in OpenAI response');
+    if (!imageData.data || !imageData.data[0]?.b64_json) {
+      throw new Error('No image data in OpenAI response');
     }
 
-    const imageUrl = openaiData.data[0].url;
-
-    // Update the dream with the generated image URL
+    // Create Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Convert base64 to Uint8Array
+    const imageBytes = base64Decode(imageData.data[0].b64_json);
+    const fileName = `${dreamId}_${Date.now()}.png`;
+
+    // Upload image to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase
+      .storage
+      .from('dream-images')
+      .upload(fileName, imageBytes, {
+        contentType: 'image/png',
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('Storage upload error:', uploadError);
+      throw uploadError;
+    }
+
+    // Get public URL for the uploaded image
+    const { data: { publicUrl } } = supabase
+      .storage
+      .from('dream-images')
+      .getPublicUrl(fileName);
+
+    // Update the dream with the generated image URL
     const { error: updateError } = await supabase
       .from('dreams')
       .update({ 
-        image_url: imageUrl,
-        enhanced_description: enhancedDescription  // Store the enhanced description too
+        image_url: publicUrl,
+        enhanced_description: enhancedDescription
       })
       .eq('id', dreamId);
 
@@ -106,7 +129,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        imageUrl,
+        imageUrl: publicUrl,
         enhancedDescription 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
