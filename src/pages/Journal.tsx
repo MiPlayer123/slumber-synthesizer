@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -53,7 +54,6 @@ const Journal = () => {
     is_public: false,
   });
 
-  // Redirect if not authenticated
   if (!user) {
     console.log("No user found, redirecting to auth page");
     toast({
@@ -64,10 +64,9 @@ const Journal = () => {
     return <Navigate to="/auth" replace />;
   }
 
-  // Fetch dreams with detailed logging
   const { data: dreams, isLoading, error: fetchError } = useQuery({
     queryKey: ['dreams', user.id],
-    enabled: !!user, // Only run this query if `user` is available
+    enabled: !!user,
     queryFn: async () => {
       console.log('Fetching dreams for user:', user.id);
       
@@ -92,7 +91,6 @@ const Journal = () => {
     },
   });
 
-  // Fetch dream analyses
   const { data: analyses } = useQuery({
     queryKey: ['dream-analyses'],
     queryFn: async () => {
@@ -105,7 +103,6 @@ const Journal = () => {
     },
   });
 
-  // Create dream mutation with improved error handling
   const createDream = useMutation({
     mutationFn: async (dream: Omit<Dream, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
       if (!user) {
@@ -143,7 +140,6 @@ const Journal = () => {
         description: "Your dream has been successfully recorded.",
       });
       
-      // Generate image for the new dream
       generateImage.mutate(newDream);
     },
     onError: (error) => {
@@ -156,7 +152,6 @@ const Journal = () => {
     },
   });
 
-  // Add new mutation for image generation
   const generateImage = useMutation({
     mutationFn: async (dream: Dream) => {
       console.log('Generating image for dream:', dream.id);
@@ -188,7 +183,6 @@ const Journal = () => {
     },
   });
 
-  // Show fetch error if any
   if (fetchError) {
     console.error('Error in dreams query:', fetchError);
     toast({
@@ -210,7 +204,6 @@ const Journal = () => {
 
       if (error) throw error;
       
-      // Refresh analyses after new analysis is created
       queryClient.invalidateQueries({ queryKey: ['dream-analyses'] });
       setAnalysis(data.analysis);
     } catch (error) {
@@ -242,7 +235,7 @@ const Journal = () => {
       </div>
 
       {isCreating && (
-        <Card className="mb-8">
+        <Card className="mb-8 max-w-3xl mx-auto">
           <CardHeader>
             <CardTitle>Record New Dream</CardTitle>
             <CardDescription>Document your dream experience</CardDescription>
@@ -332,7 +325,7 @@ const Journal = () => {
         </Card>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-4 max-w-3xl mx-auto">
         {isLoading ? (
           <p className="text-center text-muted-foreground">Loading dreams...</p>
         ) : dreams?.length === 0 ? (
@@ -433,7 +426,7 @@ const Journal = () => {
               <CardContent>
                 <div className="space-y-4">
                   {dream.image_url && (
-                    <div className="relative w-full h-48 rounded-lg overflow-hidden">
+                    <div className="relative w-full h-48 md:h-[600px] rounded-lg overflow-hidden">
                       <img
                         src={dream.image_url}
                         alt={dream.title}
@@ -475,7 +468,6 @@ const Journal = () => {
               <p className="text-muted-foreground">Failed to load analysis.</p>
             )}
           </div>
-
         </DialogContent>
       </Dialog>
     </div>
