@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -425,7 +426,7 @@ const Journal = () => {
               <CardContent>
                 <div className="space-y-4">
                   {dream.image_url && (
-                    <div className="relative w-full h-48 rounded-lg overflow-hidden">
+                    <div className="relative w-full md:h-[400px] h-48 rounded-lg overflow-hidden">
                       <img
                         src={dream.image_url}
                         alt={dream.title}
