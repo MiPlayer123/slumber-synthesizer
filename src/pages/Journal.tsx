@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -325,7 +324,7 @@ const Journal = () => {
         </Card>
       )}
 
-      <div className="space-y-4 max-w-3xl mx-auto">
+      <div className="space-y-8 max-w-6xl mx-auto">
         {isLoading ? (
           <p className="text-center text-muted-foreground">Loading dreams...</p>
         ) : dreams?.length === 0 ? (
@@ -335,106 +334,73 @@ const Journal = () => {
         ) : (
           dreams?.map((dream) => (
             <Card key={dream.id} className="animate-fade-in">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle>{dream.title}</CardTitle>
-                    <CardDescription>
-                      {new Date(dream.created_at).toLocaleDateString()}
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    {analyses?.find(a => a.dream_id === dream.id) ? (
-                      <HoverCard>
-                        <HoverCardTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </HoverCardTrigger>
-                        <HoverCardContent className="w-80">
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-sm font-semibold">Dream Analysis</h4>
-                              <div className="flex items-center">
-                                {Array.from({ length: analyses.find(a => a.dream_id === dream.id)?.rating || 0 }).map((_, i) => (
-                                  <Sparkles key={i} className="h-3 w-3 text-yellow-500" />
-                                ))}
-                              </div>
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <div>
-                                <h5 className="text-xs font-semibold mb-1">Themes</h5>
-                                <div className="flex flex-wrap gap-1">
-                                  {analyses.find(a => a.dream_id === dream.id)?.themes.map((theme) => (
-                                    <Badge key={theme} variant="secondary">{theme}</Badge>
-                                  ))}
-                                </div>
-                              </div>
-                              
-                              <div>
-                                <h5 className="text-xs font-semibold mb-1">Symbols</h5>
-                                <div className="flex flex-wrap gap-1">
-                                  {analyses.find(a => a.dream_id === dream.id)?.symbols.map((symbol) => (
-                                    <Badge key={symbol} variant="outline">{symbol}</Badge>
-                                  ))}
-                                </div>
-                              </div>
-                              
-                              <div>
-                                <h5 className="text-xs font-semibold mb-1">Emotions</h5>
-                                <div className="flex flex-wrap gap-1">
-                                  {analyses.find(a => a.dream_id === dream.id)?.emotions.map((emotion) => (
-                                    <Badge key={emotion} variant="default">{emotion}</Badge>
-                                  ))}
-                                </div>
-                              </div>
-                              
-                              <div>
-                                <h5 className="text-xs font-semibold mb-1">Interpretation</h5>
-                                <p className="text-xs text-muted-foreground">
-                                  {analyses.find(a => a.dream_id === dream.id)?.interpretation}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </HoverCardContent>
-                      </HoverCard>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setSelectedDream(dream);
-                          analyzeDream(dream);
-                        }}
-                      >
-                        <Sparkles className="h-4 w-4" />
-                      </Button>
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex flex-col space-y-6">
+                    {dream.image_url && (
+                      <div className="relative w-full aspect-square rounded-lg overflow-hidden">
+                        <img
+                          src={dream.image_url}
+                          alt={dream.title}
+                          className="object-cover w-full h-full"
+                        />
+                      </div>
                     )}
-                    <div className="flex gap-2">
-                      <span className="px-2 py-1 text-xs rounded-full bg-primary/10">
-                        {dream.category}
-                      </span>
-                      <span className="px-2 py-1 text-xs rounded-full bg-primary/10">
-                        {dream.emotion}
-                      </span>
-                    </div>
+                    {analyses?.find(a => a.dream_id === dream.id) && (
+                      <div className="space-y-4">
+                        <h3 className="text-2xl font-semibold">Dream Analysis</h3>
+                        <p className="text-muted-foreground">
+                          {analyses.find(a => a.dream_id === dream.id)?.interpretation}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {dream.image_url && (
-                    <div className="relative w-full h-48 md:h-[600px] rounded-lg overflow-hidden">
-                      <img
-                        src={dream.image_url}
-                        alt={dream.title}
-                        className="object-cover w-full h-full"
-                      />
+                  
+                  <div className="space-y-6">
+                    <div>
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h2 className="text-2xl font-semibold">{dream.title}</h2>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(dream.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="px-2 py-1 text-xs rounded-full bg-primary/10">
+                            {dream.category}
+                          </span>
+                          <span className="px-2 py-1 text-xs rounded-full bg-primary/10">
+                            {dream.emotion}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="whitespace-pre-wrap">{dream.description}</p>
                     </div>
-                  )}
-                  <p className="whitespace-pre-wrap">{dream.description}</p>
+
+                    {analyses?.find(a => a.dream_id === dream.id) && (
+                      <div className="space-y-4 border-t pt-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium">Themes & Symbols</h4>
+                          <div className="flex">
+                            {Array.from({ length: analyses.find(a => a.dream_id === dream.id)?.rating || 0 }).map((_, i) => (
+                              <Sparkles key={i} className="h-4 w-4 text-yellow-500" />
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {analyses.find(a => a.dream_id === dream.id)?.themes.map((theme) => (
+                            <Badge key={theme} variant="secondary">✨ {theme}</Badge>
+                          ))}
+                          {analyses.find(a => a.dream_id === dream.id)?.symbols.map((symbol) => (
+                            <Badge key={symbol} variant="outline">🔮 {symbol}</Badge>
+                          ))}
+                          {analyses.find(a => a.dream_id === dream.id)?.emotions.map((emotion) => (
+                            <Badge key={emotion} variant="default">💭 {emotion}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
