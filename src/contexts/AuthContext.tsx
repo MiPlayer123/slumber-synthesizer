@@ -25,31 +25,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Get initial session
+    // Get initial session and set up auth state listener
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
       }
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session);
-      
-      if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setProfile(null);
-        navigate('/', { replace: true });
-      } else if (session?.user) {
-        setUser(session.user);
-        await fetchProfile(session.user.id);
-      }
-      
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Set up auth state change listener
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session);
+      
+      if (event === 'SIGNED_IN') {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        }
+        navigate('/journal');
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setProfile(null);
+        navigate('/', { replace: true });
+      } else if (event === 'TOKEN_REFRESHED') {
+        setUser(session?.user ?? null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   const fetchProfile = async (userId: string) => {
@@ -77,6 +85,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             username,
             full_name: fullName,
           },
+          emailRedirectTo: window.location.origin + '/auth',
         },
       });
 
@@ -103,6 +112,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
+        options: {
+          persistSession: true,
+        },
       });
 
       if (error) throw error;
@@ -126,12 +138,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        throw error;
-      }
-      
-      // The onAuthStateChange listener will handle navigation and state cleanup
+      if (error) throw error;
     } catch (error) {
       console.error('AuthContext: Error in signOut function:', error);
       throw error;
