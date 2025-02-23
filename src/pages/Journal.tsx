@@ -25,8 +25,9 @@ const Journal = () => {
   const [selectedDream, setSelectedDream] = useState<Dream | null>(null);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [shouldRedirect, setShouldRedirect] = useState(false);
 
-  // Handle authentication toast
+  // Handle authentication state
   useEffect(() => {
     if (!authLoading && !user) {
       toast({
@@ -34,6 +35,7 @@ const Journal = () => {
         title: "Authentication required",
         description: "Please log in to access your dream journal.",
       });
+      setShouldRedirect(true);
     }
   }, [authLoading, user, toast]);
 
@@ -41,7 +43,7 @@ const Journal = () => {
     queryKey: ['dreams', user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      if (!user?.id) throw new Error('User ID is required');
+      if (!user?.id) return [];
 
       const { data, error } = await supabase
         .from('dreams')
@@ -127,7 +129,7 @@ const Journal = () => {
     },
   });
 
-  // Handle loading and auth states
+  // Handle loading state
   if (authLoading) {
     return (
       <div className="container mx-auto px-4 py-12">
@@ -136,8 +138,14 @@ const Journal = () => {
     );
   }
 
-  if (!user) {
+  // Handle redirect
+  if (shouldRedirect) {
     return <Navigate to="/auth" replace />;
+  }
+
+  // Only render the main content if we have a user
+  if (!user) {
+    return null;
   }
 
   return (
