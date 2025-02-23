@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,17 @@ const Journal = () => {
   const [selectedDream, setSelectedDream] = useState<Dream | null>(null);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // Handle authentication toast
+  useEffect(() => {
+    if (!authLoading && !user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication required",
+        description: "Please log in to access your dream journal.",
+      });
+    }
+  }, [authLoading, user, toast]);
 
   const { data: dreams, isLoading: dreamsLoading } = useQuery({
     queryKey: ['dreams', user?.id],
@@ -126,11 +137,6 @@ const Journal = () => {
   }
 
   if (!user) {
-    toast({
-      variant: "destructive",
-      title: "Authentication required",
-      description: "Please log in to access your dream journal.",
-    });
     return <Navigate to="/auth" replace />;
   }
 
