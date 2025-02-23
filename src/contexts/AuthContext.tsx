@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import type { User } from '@supabase/supabase-js';
@@ -20,6 +21,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const initializationComplete = useRef(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -30,8 +32,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Initialize auth state from stored session
     const initializeAuth = async () => {
       try {
+        if (initializationComplete.current) {
+          console.log('🔄 [Auth] Skipping initialization - already completed');
+          return;
+        }
+
         console.log('🔄 [Auth] Starting auth initialization...');
-        setLoading(true);
         
         const { data: { session }, error } = await supabase.auth.getSession();
         
@@ -42,9 +48,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (session?.user && mounted) {
           console.log('✅ [Auth] Found existing session for:', session.user.email);
-          skipNextAuthChange = true; // Skip the next auth change event
+          skipNextAuthChange = true;
           setUser(session.user);
-          await fetchProfile(session.user.id);
+          
+          try {
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+
+            if (profileError) throw profileError;
+            if (profileData) {
+              console.log('✅ [Profile] Loaded initial profile:', profileData.username);
+              setProfile(profileData);
+            }
+          } catch (profileError) {
+            console.error('❌ [Profile] Initial load error:', profileError);
+          }
         } else {
           console.log('ℹ️ [Auth] No existing session found');
           setUser(null);
@@ -57,6 +78,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } finally {
         if (mounted) {
           console.log('✅ [Auth] Initialization complete');
+          initializationComplete.current = true;
           setLoading(false);
         }
       }
@@ -80,24 +102,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      if (event === 'SIGNED_IN') {
-        console.log('🔐 [Auth] Processing SIGNED_IN event');
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-          navigate('/journal');
+      try {
+        if (event === 'SIGNED_IN') {
+          console.log('🔐 [Auth] Processing SIGNED_IN event');
+          if (session?.user) {
+            setUser(session.user);
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+
+            if (profileError) throw profileError;
+            setProfile(profileData);
+            navigate('/journal');
+          }
+        } else if (event === 'SIGNED_OUT') {
+          console.log('🔒 [Auth] Processing SIGNED_OUT event');
+          setUser(null);
+          setProfile(null);
+          navigate('/', { replace: true });
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('🔄 [Auth] Processing TOKEN_REFRESHED event');
+          if (session?.user) {
+            setUser(session.user);
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+
+            if (profileError) throw profileError;
+            setProfile(profileData);
+          }
         }
-      } else if (event === 'SIGNED_OUT') {
-        console.log('🔒 [Auth] Processing SIGNED_OUT event');
-        setUser(null);
-        setProfile(null);
-        navigate('/', { replace: true });
-      } else if (event === 'TOKEN_REFRESHED') {
-        console.log('🔄 [Auth] Processing TOKEN_REFRESHED event');
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        }
+      } catch (error) {
+        console.error('❌ [Auth] Error processing auth state change:', error);
+      } finally {
+        setLoading(false);
       }
     });
 
