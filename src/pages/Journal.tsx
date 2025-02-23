@@ -18,7 +18,7 @@ import { CreateDreamForm } from "@/components/dreams/CreateDreamForm";
 import { DreamCard } from "@/components/dreams/DreamCard";
 
 const Journal = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
@@ -26,7 +26,17 @@ const Journal = () => {
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  if (!user) {
+  // If auth is still loading, show loading state
+  if (authLoading) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <p className="text-center text-muted-foreground">Loading authentication...</p>
+      </div>
+    );
+  }
+
+  // Only redirect if we're sure auth is done loading and there's no user
+  if (!authLoading && !user) {
     console.log("No user found, redirecting to auth page");
     toast({
       variant: "destructive",
@@ -36,13 +46,13 @@ const Journal = () => {
     return <Navigate to="/auth" replace />;
   }
 
-  const { data: dreams, isLoading } = useQuery({
-    queryKey: ['dreams', user.id],
-    enabled: !!user,
+  const { data: dreams, isLoading: dreamsLoading } = useQuery({
+    queryKey: ['dreams', user?.id],
+    enabled: !!user?.id, // Only run query when we have a user ID
     queryFn: async () => {
-      console.log('Fetching dreams for user:', user.id);
+      console.log('Fetching dreams for user:', user?.id);
       
-      if (!user.id) {
+      if (!user?.id) {
         console.error('No user ID available for fetching dreams');
         throw new Error('User ID is required');
       }
@@ -161,7 +171,7 @@ const Journal = () => {
       {isCreating && <CreateDreamForm onSubmit={createDream.mutate} />}
 
       <div className="space-y-8 max-w-6xl mx-auto">
-        {isLoading ? (
+        {dreamsLoading ? (
           <p className="text-center text-muted-foreground">Loading dreams...</p>
         ) : dreams?.length === 0 ? (
           <p className="text-center text-muted-foreground">
