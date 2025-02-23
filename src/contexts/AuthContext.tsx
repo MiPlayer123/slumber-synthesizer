@@ -51,25 +51,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
       if (session?.user) {
         setUser(session.user);
         // Fetch profile
-        supabase
+        const { data } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
-          .single()
-          .then(({ data }) => {
-            if (mounted) {
-              setProfile(data);
-              if (event === 'SIGNED_IN') {
-                navigate('/journal');
-              }
-            }
-          });
+          .single();
+        
+        if (mounted) {
+          setProfile(data);
+          if (event === 'SIGNED_IN') {
+            navigate('/journal');
+          }
+        }
       } else {
         setUser(null);
         setProfile(null);
@@ -134,8 +133,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      // Clear local storage
+      localStorage.clear();
+      
+      // Reset state
+      setUser(null);
+      setProfile(null);
+      
+      // Navigate to home
+      navigate('/', { replace: true });
+      
+      toast({
+        title: "Signed out",
+        description: "You have been successfully signed out.",
+      });
+    } catch (error) {
+      console.error('Sign out error:', error);
+      // Force clear session even if error
+      localStorage.clear();
+      setUser(null);
+      setProfile(null);
+      navigate('/', { replace: true });
+      
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "There was an issue signing out, but you have been logged out.",
+      });
+    }
   };
 
   return (
