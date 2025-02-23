@@ -25,35 +25,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     let mounted = true;
+    let skipNextAuthChange = false;
 
     // Initialize auth state from stored session
     const initializeAuth = async () => {
       try {
-        console.log('Initializing auth state...');
+        console.log('🔄 [Auth] Starting auth initialization...');
+        setLoading(true);
+        
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Session retrieval error:', error);
+          console.error('❌ [Auth] Session retrieval error:', error);
           throw error;
         }
         
         if (session?.user && mounted) {
-          console.log('Found existing session for:', session.user.email);
+          console.log('✅ [Auth] Found existing session for:', session.user.email);
+          skipNextAuthChange = true; // Skip the next auth change event
           setUser(session.user);
           await fetchProfile(session.user.id);
         } else {
-          console.log('No existing session found');
+          console.log('ℹ️ [Auth] No existing session found');
           setUser(null);
           setProfile(null);
-          localStorage.removeItem('supabase.auth.token');
-          localStorage.removeItem('dreamjournal.auth.token');
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error('❌ [Auth] Initialization error:', error);
         setUser(null);
         setProfile(null);
       } finally {
         if (mounted) {
+          console.log('✅ [Auth] Initialization complete');
           setLoading(false);
         }
       }
@@ -64,23 +67,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email);
+      console.log('🔔 [Auth] Auth state changed:', event, session?.user?.email);
       
-      if (!mounted) return;
+      if (!mounted) {
+        console.log('⚠️ [Auth] Component unmounted, skipping auth change');
+        return;
+      }
+
+      if (skipNextAuthChange) {
+        console.log('⏭️ [Auth] Skipping auth change due to initialization');
+        skipNextAuthChange = false;
+        return;
+      }
 
       if (event === 'SIGNED_IN') {
+        console.log('🔐 [Auth] Processing SIGNED_IN event');
         setUser(session?.user ?? null);
         if (session?.user) {
           await fetchProfile(session.user.id);
           navigate('/journal');
         }
       } else if (event === 'SIGNED_OUT') {
+        console.log('🔒 [Auth] Processing SIGNED_OUT event');
         setUser(null);
         setProfile(null);
-        localStorage.removeItem('supabase.auth.token');
-        localStorage.removeItem('dreamjournal.auth.token');
         navigate('/', { replace: true });
       } else if (event === 'TOKEN_REFRESHED') {
+        console.log('🔄 [Auth] Processing TOKEN_REFRESHED event');
         setUser(session?.user ?? null);
         if (session?.user) {
           await fetchProfile(session.user.id);
@@ -89,6 +102,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => {
+      console.log('🧹 [Auth] Cleaning up auth subscriptions');
       mounted = false;
       subscription.unsubscribe();
     };
@@ -96,6 +110,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchProfile = async (userId: string) => {
     try {
+      console.log('🔄 [Profile] Fetching profile for user:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -103,14 +118,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .single();
 
       if (error) {
-        console.error('Profile fetch error:', error);
+        console.error('❌ [Profile] Fetch error:', error);
         throw error;
       }
       
-      console.log('Profile fetched successfully:', data?.username);
+      console.log('✅ [Profile] Fetched successfully:', data?.username);
       setProfile(data);
     } catch (error) {
-      console.error('Error in fetchProfile:', error);
+      console.error('❌ [Profile] Error in fetchProfile:', error);
     }
   };
 
@@ -171,8 +186,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
-      localStorage.removeItem('supabase.auth.token');
-      localStorage.removeItem('dreamjournal.auth.token');
+      console.log('🔄 [Auth] Starting sign out process');
       
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
@@ -180,9 +194,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(null);
       setProfile(null);
       
-      console.log('Signed out successfully, all storage cleared');
+      console.log('✅ [Auth] Signed out successfully');
     } catch (error) {
-      console.error('AuthContext: Error in signOut function:', error);
+      console.error('❌ [Auth] Error in signOut:', error);
       throw error;
     }
   };
