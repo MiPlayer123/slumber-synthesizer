@@ -18,7 +18,6 @@ const customStorage = {
   },
   removeItem: (key: string) => {
     console.log('Removing auth item:', key);
-    // Clear both potential storage keys to ensure clean state
     localStorage.removeItem(key);
     localStorage.removeItem('supabase.auth.token');
     localStorage.removeItem('dreamjournal.auth.token');

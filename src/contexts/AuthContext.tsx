@@ -45,6 +45,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.log('No existing session found');
           setUser(null);
           setProfile(null);
+          localStorage.removeItem('supabase.auth.token');
+          localStorage.removeItem('dreamjournal.auth.token');
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
