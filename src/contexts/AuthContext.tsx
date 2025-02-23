@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,9 +43,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           await fetchProfile(session.user.id);
         } else {
           console.log('No existing session found');
+          setUser(null);
+          setProfile(null);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
+        setUser(null);
+        setProfile(null);
       } finally {
         if (mounted) {
           setLoading(false);
@@ -56,7 +59,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     initializeAuth();
 
-    // Set up auth state change listener
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -73,6 +75,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setProfile(null);
+        localStorage.removeItem('supabase.auth.token');
+        localStorage.removeItem('dreamjournal.auth.token');
         navigate('/', { replace: true });
       } else if (event === 'TOKEN_REFRESHED') {
         setUser(session?.user ?? null);
@@ -165,12 +169,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
+      localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem('dreamjournal.auth.token');
+      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
-      // Clear any local state
       setUser(null);
       setProfile(null);
+      
+      console.log('Signed out successfully, all storage cleared');
     } catch (error) {
       console.error('AuthContext: Error in signOut function:', error);
       throw error;
