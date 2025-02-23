@@ -18,12 +18,20 @@ export const Navigation = () => {
     try {
       await signOut();
       
+      // Clear any local storage tokens
+      localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem('dreamjournal.auth.token');
+      
       toast({
         title: "Signed out",
         description: "You have been successfully signed out.",
       });
     } catch (error) {
       console.error("Navigation: Sign out error:", error);
+      // Even if there's an error, try to clean up local storage
+      localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem('dreamjournal.auth.token');
+      
       toast({
         variant: "destructive",
         title: "Error",
