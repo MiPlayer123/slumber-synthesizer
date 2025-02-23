@@ -26,36 +26,11 @@ const Journal = () => {
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // If auth is still loading, show loading state
-  if (authLoading) {
-    return (
-      <div className="container mx-auto px-4 py-12">
-        <p className="text-center text-muted-foreground">Loading authentication...</p>
-      </div>
-    );
-  }
-
-  // Only redirect if we're sure auth is done loading and there's no user
-  if (!authLoading && !user) {
-    console.log("No user found, redirecting to auth page");
-    toast({
-      variant: "destructive",
-      title: "Authentication required",
-      description: "Please log in to access your dream journal.",
-    });
-    return <Navigate to="/auth" replace />;
-  }
-
   const { data: dreams, isLoading: dreamsLoading } = useQuery({
     queryKey: ['dreams', user?.id],
-    enabled: !!user?.id, // Only run query when we have a user ID
+    enabled: !!user?.id,
     queryFn: async () => {
-      console.log('Fetching dreams for user:', user?.id);
-      
-      if (!user?.id) {
-        console.error('No user ID available for fetching dreams');
-        throw new Error('User ID is required');
-      }
+      if (!user?.id) throw new Error('User ID is required');
 
       const { data, error } = await supabase
         .from('dreams')
@@ -63,18 +38,14 @@ const Journal = () => {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching dreams:', error);
-        throw error;
-      }
-
-      console.log('Successfully fetched dreams:', data);
+      if (error) throw error;
       return data as Dream[];
     },
   });
 
   const { data: analyses } = useQuery({
     queryKey: ['dream-analyses'],
+    enabled: !!user?.id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('dream_analyses')
@@ -87,11 +58,7 @@ const Journal = () => {
 
   const createDream = useMutation({
     mutationFn: async (dream: Omit<Dream, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-      if (!user) {
-        throw new Error('User must be logged in to create a dream');
-      }
-
-      console.log('Creating dream:', { ...dream, user_id: user.id });
+      if (!user) throw new Error('User must be logged in to create a dream');
       
       const { data, error } = await supabase
         .from('dreams')
@@ -99,12 +66,7 @@ const Journal = () => {
         .select()
         .single();
 
-      if (error) {
-        console.error('Error creating dream:', error);
-        throw error;
-      }
-
-      console.log('Dream created successfully:', data);
+      if (error) throw error;
       return data;
     },
     onSuccess: (newDream) => {
@@ -118,7 +80,6 @@ const Journal = () => {
       generateImage.mutate(newDream);
     },
     onError: (error) => {
-      console.error('Mutation error:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -129,8 +90,6 @@ const Journal = () => {
 
   const generateImage = useMutation({
     mutationFn: async (dream: Dream) => {
-      console.log('Generating image for dream:', dream.id);
-      
       const { data, error } = await supabase.functions.invoke('generate-dream-image', {
         body: { 
           dreamId: dream.id,
@@ -149,7 +108,6 @@ const Journal = () => {
       });
     },
     onError: (error) => {
-      console.error('Image generation error:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -157,6 +115,24 @@ const Journal = () => {
       });
     },
   });
+
+  // Handle loading and auth states
+  if (authLoading) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <p className="text-center text-muted-foreground">Loading authentication...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    toast({
+      variant: "destructive",
+      title: "Authentication required",
+      description: "Please log in to access your dream journal.",
+    });
+    return <Navigate to="/auth" replace />;
+  }
 
   return (
     <div className="container mx-auto px-4 py-12">
