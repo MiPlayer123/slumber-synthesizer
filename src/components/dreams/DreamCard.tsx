@@ -25,17 +25,12 @@ export const DreamCard = ({ dream, analyses }: DreamCardProps) => {
 
   const getImageUrl = async () => {
     try {
-      const { data: { publicUrl }, error } = await supabase
+      const { data } = supabase
         .storage
         .from('dream-images')
         .getPublicUrl(`${dream.id}.png`);
 
-      if (error) {
-        console.error('Error getting image URL:', error);
-        return null;
-      }
-
-      return publicUrl;
+      return data.publicUrl;
     } catch (error) {
       console.error('Error in getImageUrl:', error);
       return null;
