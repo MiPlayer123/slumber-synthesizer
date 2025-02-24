@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -89,30 +90,30 @@ const Journal = () => {
 
   const generateImage = useMutation({
     mutationFn: async (dream: Dream) => {
-      const { data, error } = await supabase.functions.invoke('generate-dream-image', {
+      const { data: functionData, error: functionError } = await supabase.functions.invoke('generate-dream-image', {
         body: { 
           dreamId: dream.id,
           description: `${dream.title} - ${dream.description}`
         },
       });
 
-      if (error) throw error;
+      if (functionError) throw functionError;
 
-      const { data: { publicUrl }, error: urlError } = await supabase
+      // Get the public URL for the generated image
+      const { data } = supabase
         .storage
         .from('dream-images')
         .getPublicUrl(`${dream.id}.png`);
 
-      if (urlError) throw urlError;
-
+      // Update the dream with the image URL
       const { error: updateError } = await supabase
         .from('dreams')
-        .update({ image_url: publicUrl })
+        .update({ image_url: data.publicUrl })
         .eq('id', dream.id);
 
       if (updateError) throw updateError;
 
-      return data;
+      return functionData;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dreams'] });
