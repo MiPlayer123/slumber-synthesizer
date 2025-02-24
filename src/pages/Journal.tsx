@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -98,6 +97,21 @@ const Journal = () => {
       });
 
       if (error) throw error;
+
+      const { data: { publicUrl }, error: urlError } = await supabase
+        .storage
+        .from('dream-images')
+        .getPublicUrl(`${dream.id}.png`);
+
+      if (urlError) throw urlError;
+
+      const { error: updateError } = await supabase
+        .from('dreams')
+        .update({ image_url: publicUrl })
+        .eq('id', dream.id);
+
+      if (updateError) throw updateError;
+
       return data;
     },
     onSuccess: () => {
@@ -113,10 +127,10 @@ const Journal = () => {
         title: "Error",
         description: "Failed to generate dream image. Please try again.",
       });
+      console.error('Image generation error:', error);
     },
   });
 
-  // If still loading auth state, show loading indicator
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
@@ -128,7 +142,6 @@ const Journal = () => {
     );
   }
 
-  // If not authenticated, redirect to auth page
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
