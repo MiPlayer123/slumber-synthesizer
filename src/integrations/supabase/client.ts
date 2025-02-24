@@ -10,11 +10,11 @@ export const supabase = createClient<Database>(
   SUPABASE_PUBLISHABLE_KEY,
   {
     auth: {
-      autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false,
       storage: localStorage,
-      storageKey: 'dreamjournal.auth.token',
+      storageKey: 'sb-jduzfrjhxfxiyajvpkus-auth-token',
     },
   }
 );
