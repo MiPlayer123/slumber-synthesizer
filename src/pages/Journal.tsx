@@ -25,19 +25,6 @@ const Journal = () => {
   const [selectedDream, setSelectedDream] = useState<Dream | null>(null);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [shouldRedirect, setShouldRedirect] = useState(false);
-
-  // Handle authentication state
-  useEffect(() => {
-    if (!authLoading && !user) {
-      toast({
-        variant: "destructive",
-        title: "Authentication required",
-        description: "Please log in to access your dream journal.",
-      });
-      setShouldRedirect(true);
-    }
-  }, [authLoading, user, toast]);
 
   const { data: dreams, isLoading: dreamsLoading } = useQuery({
     queryKey: ['dreams', user?.id],
@@ -129,23 +116,21 @@ const Journal = () => {
     },
   });
 
-  // Handle loading state
+  // If still loading auth state, show loading indicator
   if (authLoading) {
     return (
-      <div className="container mx-auto px-4 py-12">
-        <p className="text-center text-muted-foreground">Loading authentication...</p>
+      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading authentication...</p>
+        </div>
       </div>
     );
   }
 
-  // Handle redirect
-  if (shouldRedirect) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  // Only render the main content if we have a user
+  // If not authenticated, redirect to auth page
   if (!user) {
-    return null;
+    return <Navigate to="/auth" replace />;
   }
 
   return (
@@ -162,7 +147,9 @@ const Journal = () => {
 
       <div className="space-y-8 max-w-6xl mx-auto">
         {dreamsLoading ? (
-          <p className="text-center text-muted-foreground">Loading dreams...</p>
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
         ) : dreams?.length === 0 ? (
           <p className="text-center text-muted-foreground">
             No dreams recorded yet. Start by recording your first dream!
