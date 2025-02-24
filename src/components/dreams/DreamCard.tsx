@@ -1,11 +1,19 @@
 
-import { Dream, DreamAnalysis } from "@/lib/types";
-import { Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Dream, DreamAnalysis } from "@/lib/types";
+import { formatDistanceToNow } from "date-fns";
+import { Brain } from "lucide-react";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DreamCardProps {
   dream: Dream;
@@ -13,110 +21,68 @@ interface DreamCardProps {
 }
 
 export const DreamCard = ({ dream, analyses }: DreamCardProps) => {
-  const analysis = analyses?.find(a => a.dream_id === dream.id);
+  const [imageError, setImageError] = useState(false);
+
+  const getImageUrl = async () => {
+    try {
+      const { data: { publicUrl }, error } = await supabase
+        .storage
+        .from('dream-images')
+        .getPublicUrl(`${dream.id}.png`);
+
+      if (error) {
+        console.error('Error getting image URL:', error);
+        return null;
+      }
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error in getImageUrl:', error);
+      return null;
+    }
+  };
+
+  const dreamAnalysis = analyses?.find(
+    (analysis) => analysis.dream_id === dream.id
+  );
 
   return (
-    <Card className="animate-fade-in">
-      <CardContent className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Left column - Image and themes (desktop) / Just image (mobile) */}
-          <div className="flex flex-col space-y-6">
-            {dream.image_url && (
-              <div className="relative w-full aspect-square rounded-lg overflow-hidden">
-                <img
-                  src={dream.image_url}
-                  alt={dream.title}
-                  className="object-cover w-full h-full"
-                />
-              </div>
-            )}
-            
-            {/* Themes section - Only visible on desktop */}
-            {analysis && (
-              <div className="hidden md:block space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Themes & Symbols</h4>
-                  <div className="flex">
-                    {Array.from({ length: analysis.rating }).map((_, i) => (
-                      <Sparkles key={i} className="h-4 w-4 text-yellow-500" />
-                    ))}
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {analysis.themes.map((theme) => (
-                    <Badge key={theme} variant="secondary">✨ {theme}</Badge>
-                  ))}
-                  {analysis.symbols.map((symbol) => (
-                    <Badge key={symbol} variant="outline">🔮 {symbol}</Badge>
-                  ))}
-                  {analysis.emotions.map((emotion) => (
-                    <Badge key={emotion} variant="default">💭 {emotion}</Badge>
-                  ))}
-                </div>
-              </div>
-            )}
+    <Card className="w-full">
+      <CardHeader>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle className="text-2xl mb-2">{dream.title}</CardTitle>
+            <CardDescription>
+              {formatDistanceToNow(new Date(dream.created_at), {
+                addSuffix: true,
+              })}
+            </CardDescription>
           </div>
-          
-          {/* Right column - Dream details and analysis */}
-          <div className="space-y-8">
-            <div>
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h2 className="text-2xl font-semibold">{dream.title}</h2>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {new Date(dream.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <span className="px-2 py-1 text-xs rounded-full bg-primary/10">
-                    {dream.category}
-                  </span>
-                  <span className="px-2 py-1 text-xs rounded-full bg-primary/10">
-                    {dream.emotion}
-                  </span>
-                </div>
-              </div>
-              <p className="whitespace-pre-wrap text-base leading-relaxed">
-                {dream.description}
-              </p>
-            </div>
-
-            {analysis && (
-              <div className="space-y-4 border-t pt-6">
-                <h3 className="text-2xl font-semibold">Dream Analysis</h3>
-                <p className="text-muted-foreground text-base leading-relaxed">
-                  {analysis.interpretation}
-                </p>
-              </div>
-            )}
-
-            {/* Themes section - Only visible on mobile */}
-            {analysis && (
-              <div className="md:hidden space-y-4 border-t pt-6">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Themes & Symbols</h4>
-                  <div className="flex">
-                    {Array.from({ length: analysis.rating }).map((_, i) => (
-                      <Sparkles key={i} className="h-4 w-4 text-yellow-500" />
-                    ))}
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {analysis.themes.map((theme) => (
-                    <Badge key={theme} variant="secondary">✨ {theme}</Badge>
-                  ))}
-                  {analysis.symbols.map((symbol) => (
-                    <Badge key={symbol} variant="outline">🔮 {symbol}</Badge>
-                  ))}
-                  {analysis.emotions.map((emotion) => (
-                    <Badge key={emotion} variant="default">💭 {emotion}</Badge>
-                  ))}
-                </div>
-              </div>
-            )}
+          <div className="flex gap-2">
+            <Badge>{dream.category}</Badge>
+            <Badge variant="secondary">{dream.emotion}</Badge>
           </div>
         </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-lg whitespace-pre-wrap">{dream.description}</p>
+        {dream.image_url && !imageError && (
+          <div className="relative aspect-video w-full overflow-hidden rounded-lg">
+            <img
+              src={dream.image_url}
+              alt={dream.title}
+              className="object-cover w-full h-full"
+              onError={() => setImageError(true)}
+            />
+          </div>
+        )}
       </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button variant="outline" className="gap-2">
+          <Brain className="w-4 h-4" />
+          Analyze Dream
+        </Button>
+      </CardFooter>
     </Card>
   );
 };
