@@ -1,26 +1,21 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { Dream } from "@/lib/types";
-import { useToast } from "@/hooks/use-toast";
 import { Navigate } from "react-router-dom";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { CreateDreamForm } from "@/components/dreams/CreateDreamForm";
-import { DreamCard } from "@/components/dreams/DreamCard";
+import { DreamList } from "@/components/dreams/DreamList";
+import { DreamAnalysisDialog } from "@/components/dreams/DreamAnalysisDialog";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useDreams } from "@/hooks/use-dreams";
 
 const Journal = () => {
   const { user, loading: authLoading } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const { createDream } = useDreams();
   const [isCreating, setIsCreating] = useState(false);
   const [selectedDream, setSelectedDream] = useState<Dream | null>(null);
   const [analysis, setAnalysis] = useState<string | null>(null);
@@ -56,96 +51,18 @@ const Journal = () => {
     },
   });
 
-  const createDream = useMutation({
-    mutationFn: async (dream: Omit<Dream, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-      if (!user) throw new Error('User must be logged in to create a dream');
-      
-      const { data, error } = await supabase
-        .from('dreams')
-        .insert([{ ...dream, user_id: user.id }])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (newDream) => {
-      queryClient.invalidateQueries({ queryKey: ['dreams'] });
-      setIsCreating(false);
-      toast({
-        title: "Dream Created",
-        description: "Your dream has been successfully recorded.",
-      });
-      
-      generateImage.mutate(newDream);
-    },
-    onError: (error) => {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create dream",
-      });
-    },
-  });
-
-  const generateImage = useMutation({
-    mutationFn: async (dream: Dream) => {
-      const { data: functionData, error: functionError } = await supabase.functions.invoke('generate-dream-image', {
-        body: { 
-          dreamId: dream.id,
-          description: `${dream.title} - ${dream.description}`
-        },
-      });
-
-      if (functionError) throw functionError;
-
-      // Get the public URL for the generated image
-      const { data } = supabase
-        .storage
-        .from('dream-images')
-        .getPublicUrl(`${dream.id}.png`);
-
-      // Update the dream with the image URL
-      const { error: updateError } = await supabase
-        .from('dreams')
-        .update({ image_url: data.publicUrl })
-        .eq('id', dream.id);
-
-      if (updateError) throw updateError;
-
-      return functionData;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dreams'] });
-      toast({
-        title: "Image Generated",
-        description: "Dream image has been generated successfully.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to generate dream image. Please try again.",
-      });
-      console.error('Image generation error:', error);
-    },
-  });
-
   if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Loading authentication...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner text="Loading authentication..." />;
   }
 
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
+
+  const handleCreateDream = async (dream: Omit<Dream, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+    await createDream.mutateAsync(dream);
+    setIsCreating(false);
+  };
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -157,52 +74,25 @@ const Journal = () => {
         </Button>
       </div>
 
-      {isCreating && <CreateDreamForm onSubmit={createDream.mutate} />}
+      {isCreating && <CreateDreamForm onSubmit={handleCreateDream} />}
 
-      <div className="space-y-8 max-w-6xl mx-auto">
-        {dreamsLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : dreams?.length === 0 ? (
-          <p className="text-center text-muted-foreground">
-            No dreams recorded yet. Start by recording your first dream!
-          </p>
-        ) : (
-          dreams?.map((dream) => (
-            <DreamCard key={dream.id} dream={dream} analyses={analyses} />
-          ))
-        )}
-      </div>
+      <DreamList 
+        dreams={dreams ?? []} 
+        analyses={analyses} 
+        isLoading={dreamsLoading} 
+      />
 
-      <Dialog
-        open={selectedDream !== null}
+      <DreamAnalysisDialog
+        dream={selectedDream}
+        analysis={analysis}
+        isAnalyzing={isAnalyzing}
         onOpenChange={(open) => {
           if (!open) {
             setSelectedDream(null);
             setAnalysis(null);
           }
         }}
-      >
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>{selectedDream?.title} - Analysis</DialogTitle>
-          </DialogHeader>
-          <div className="mt-4">
-            {isAnalyzing ? (
-              <div className="flex items-center justify-center py-8">
-                <p className="text-muted-foreground animate-pulse">Analyzing your dream...</p>
-              </div>
-            ) : analysis ? (
-              <pre className="prose prose-sm dark:prose-invert max-w-none">
-                {JSON.stringify(analysis, null, 2)}
-              </pre>
-            ) : (
-              <p className="text-muted-foreground">Failed to load analysis.</p>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      />
     </div>
   );
 };
