@@ -33,21 +33,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+
       return data;
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error in fetchProfile:', error);
       return null;
     }
   };
 
   useEffect(() => {
-    // Initialize auth state
     const initializeAuth = async () => {
       try {
-        // Get current session
-        const { data: { session } } = await supabase.auth.getSession();
+        // Get initial session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
+        if (sessionError) {
+          throw sessionError;
+        }
+
         if (session?.user) {
           setUser(session.user);
           const profileData = await fetchProfile(session.user.id);
@@ -55,6 +62,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
+        setUser(null);
+        setProfile(null);
       } finally {
         setLoading(false);
       }
@@ -62,15 +71,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     initializeAuth();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.id);
-      
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         setUser(session.user);
         const profileData = await fetchProfile(session.user.id);
         setProfile(profileData);
-        
+
         if (event === 'SIGNED_IN') {
           navigate('/journal');
         }
@@ -142,13 +150,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+
       setUser(null);
       setProfile(null);
-      
-      // Clear any local storage items
-      localStorage.removeItem('sb-jduzfrjhxfxiyajvpkus-auth-token');
-      
       navigate('/', { replace: true });
       
       toast({
@@ -157,10 +163,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
     } catch (error) {
       console.error('Sign out error:', error);
-      // Force clear session even if error
+      // Force clear state even if error occurs
       setUser(null);
       setProfile(null);
-      localStorage.removeItem('sb-jduzfrjhxfxiyajvpkus-auth-token');
       navigate('/', { replace: true });
       
       toast({
