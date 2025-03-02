@@ -1,20 +1,97 @@
-
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { Toaster } from "@/components/ui/toaster";
 import { Navigation } from "@/components/Navigation";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { Suspense, lazy } from "react";
+
 
 // Pages
 import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
-import Journal from "@/pages/Journal";
-import Community from "@/pages/Community";
-import Statistics from "@/pages/Statistics";
 import NotFound from "@/pages/NotFound";
 
-const queryClient = new QueryClient();
+// Lazy loaded pages for performance
+const Journal = lazy(() => import("@/pages/Journal"));
+const Community = lazy(() => import("@/pages/Community"));
+const Statistics = lazy(() => import("@/pages/Statistics"));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+// Loading component
+const LoadingSpinner = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="flex flex-col items-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-dream-600 mb-4"></div>
+      <p className="text-dream-600">Loading...</p>
+    </div>
+  </div>
+);
+
+// Protected route component with better loading handling
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  
+  // Show loading spinner only during initial authentication check
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+  
+  // If not authenticated, redirect to auth page and remember the intended destination
+  if (!user) {
+    return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+  
+  // Render children wrapped in Suspense for lazy loading
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      {children}
+    </Suspense>
+  );
+};
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route 
+        path="/journal" 
+        element={
+          <ProtectedRoute>
+            <Journal />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/community" 
+        element={
+          <ProtectedRoute>
+            <Community />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/statistics" 
+        element={
+          <ProtectedRoute>
+            <Statistics />
+          </ProtectedRoute>
+        } 
+      />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
 
 function App() {
   return (
@@ -25,14 +102,7 @@ function App() {
             <div className="min-h-screen bg-background font-sans antialiased">
               <Navigation />
               <main className="pt-16">
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/journal" element={<Journal />} />
-                  <Route path="/community" element={<Community />} />
-                  <Route path="/statistics" element={<Statistics />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
+                <AppRoutes />
               </main>
               <Toaster />
             </div>
