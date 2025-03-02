@@ -36,28 +36,10 @@ export const CreateDreamForm = ({ onSubmit }: CreateDreamFormProps) => {
     emotion: "neutral" as DreamEmotion,
     is_public: false,
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (isSubmitting) return; // Prevent double submission
-    
-    try {
-      setIsSubmitting(true);
-      await onSubmit(newDream);
-      
-      // Reset form after successful submission
-      setNewDream({
-        title: "",
-        description: "",
-        category: "normal",
-        emotion: "neutral",
-        is_public: false,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    onSubmit(newDream);
   };
 
   return (
@@ -75,7 +57,6 @@ export const CreateDreamForm = ({ onSubmit }: CreateDreamFormProps) => {
               value={newDream.title}
               onChange={(e) => setNewDream({ ...newDream, title: e.target.value })}
               required
-              className="w-full"
             />
           </div>
 
@@ -86,7 +67,6 @@ export const CreateDreamForm = ({ onSubmit }: CreateDreamFormProps) => {
               value={newDream.description}
               onChange={(e) => setNewDream({ ...newDream, description: e.target.value })}
               required
-              className="w-full min-h-[120px]"
             />
           </div>
 
@@ -99,7 +79,7 @@ export const CreateDreamForm = ({ onSubmit }: CreateDreamFormProps) => {
                   setNewDream({ ...newDream, category: value })
                 }
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -120,7 +100,7 @@ export const CreateDreamForm = ({ onSubmit }: CreateDreamFormProps) => {
                   setNewDream({ ...newDream, emotion: value })
                 }
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger>
                   <SelectValue placeholder="Select emotion" />
                 </SelectTrigger>
                 <SelectContent>
@@ -145,13 +125,8 @@ export const CreateDreamForm = ({ onSubmit }: CreateDreamFormProps) => {
             <Label htmlFor="is_public">Make this dream public</Label>
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full touch-manipulation"
-            disabled={isSubmitting}
-            aria-label="Save Dream"
-          >
-            {isSubmitting ? "Saving..." : "Save Dream"}
+          <Button type="submit" className="w-full">
+            Save Dream
           </Button>
         </form>
       </CardContent>
