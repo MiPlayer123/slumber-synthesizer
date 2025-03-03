@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Wand2 } from "lucide-react";
 import type { Dream } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Navigate } from "react-router-dom";
@@ -22,7 +22,6 @@ const Journal = () => {
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
   const [selectedDream, setSelectedDream] = useState<Dream | null>(null);
-  const [analysis, setAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   if (!user) {
@@ -155,6 +154,56 @@ const Journal = () => {
     },
   });
 
+  const analyzeDream = useMutation({
+    mutationFn: async (dreamId: string) => {
+      console.log('Analyzing dream:', dreamId);
+      
+      const dream = dreams?.find(d => d.id === dreamId);
+      if (!dream) throw new Error('Dream not found');
+      
+      try {
+        setIsAnalyzing(true);
+        
+        const { data, error } = await supabase.functions.invoke('analyze-dream', {
+          body: { 
+            dreamId: dream.id,
+            dreamContent: `Title: ${dream.title}\n\nDescription: ${dream.description}\n\nCategory: ${dream.category}\n\nEmotion: ${dream.emotion}`
+          },
+        });
+
+        if (error) throw error;
+        return data;
+      } catch (err) {
+        console.error('Error invoking analyze-dream function:', err);
+        if (err.message?.includes('404') || err.status === 404) {
+          throw new Error('The dream analysis endpoint was not found. Please ensure your Supabase function is deployed correctly.');
+        }
+        throw err;
+      } finally {
+        setIsAnalyzing(false);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dream-analyses'] });
+      toast({
+        title: "Dream Analyzed",
+        description: "Your dream has been analyzed successfully.",
+      });
+    },
+    onError: (error) => {
+      console.error('Dream analysis error:', error);
+      toast({
+        variant: "destructive",
+        title: "Analysis Failed",
+        description: error instanceof Error ? error.message : "Failed to analyze dream. Please try again.",
+      });
+    },
+  });
+
+  const handleAnalyzeDream = (dreamId: string) => {
+    analyzeDream.mutate(dreamId);
+  };
+
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="flex justify-between items-center mb-8">
@@ -176,36 +225,34 @@ const Journal = () => {
           </p>
         ) : (
           dreams?.map((dream) => (
-            <DreamCard key={dream.id} dream={dream} analyses={analyses} />
+            <DreamCard 
+              key={dream.id} 
+              dream={dream} 
+              analyses={analyses} 
+              onAnalyze={handleAnalyzeDream}
+              isPersonalView={true}
+            />
           ))
         )}
       </div>
 
       <Dialog
-        open={selectedDream !== null}
+        open={isAnalyzing}
         onOpenChange={(open) => {
           if (!open) {
-            setSelectedDream(null);
-            setAnalysis(null);
+            setIsAnalyzing(false);
           }
         }}
       >
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>{selectedDream?.title} - Analysis</DialogTitle>
+            <DialogTitle>Analyzing Dream</DialogTitle>
           </DialogHeader>
-          <div className="mt-4">
-            {isAnalyzing ? (
-              <div className="flex items-center justify-center py-8">
-                <p className="text-muted-foreground animate-pulse">Analyzing your dream...</p>
-              </div>
-            ) : analysis ? (
-              <pre className="prose prose-sm dark:prose-invert max-w-none">
-                {JSON.stringify(analysis, null, 2)}
-              </pre>
-            ) : (
-              <p className="text-muted-foreground">Failed to load analysis.</p>
-            )}
+          <div className="flex items-center justify-center py-8">
+            <div className="flex flex-col items-center gap-4">
+              <Wand2 className="h-8 w-8 animate-pulse text-primary" />
+              <p className="text-muted-foreground">Analyzing your dream...</p>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

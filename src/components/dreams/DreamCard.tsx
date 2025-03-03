@@ -1,19 +1,23 @@
 
 import { Dream, DreamAnalysis } from "@/lib/types";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Wand2 } from "lucide-react";
 import {
   Card,
   CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface DreamCardProps {
   dream: Dream;
   analyses?: DreamAnalysis[];
+  onAnalyze?: (dreamId: string) => void;
+  isPersonalView?: boolean;
 }
 
-export const DreamCard = ({ dream, analyses }: DreamCardProps) => {
+export const DreamCard = ({ dream, analyses, onAnalyze, isPersonalView = false }: DreamCardProps) => {
   const analysis = analyses?.find(a => a.dream_id === dream.id);
+  const needsAnalysis = isPersonalView && !analysis && onAnalyze;
 
   return (
     <Card className="animate-fade-in">
@@ -58,7 +62,7 @@ export const DreamCard = ({ dream, analyses }: DreamCardProps) => {
           </div>
           
           {/* Right column - Dream details and analysis */}
-          <div className="space-y-8">
+          <div className="space-y-8 relative">
             <div>
               <div className="flex justify-between items-start mb-6">
                 <div>
@@ -87,6 +91,21 @@ export const DreamCard = ({ dream, analyses }: DreamCardProps) => {
                 <p className="text-muted-foreground text-base leading-relaxed">
                   {analysis.interpretation}
                 </p>
+              </div>
+            )}
+
+            {/* Dream Analysis Button - Only shown for personal dreams without analysis */}
+            {needsAnalysis && (
+              <div className="absolute bottom-0 right-0">
+                <Button 
+                  onClick={() => onAnalyze(dream.id)} 
+                  variant="secondary" 
+                  className="rounded-full"
+                  size="sm"
+                >
+                  <Wand2 className="mr-1 h-4 w-4" />
+                  Analyze Dream
+                </Button>
               </div>
             )}
 
