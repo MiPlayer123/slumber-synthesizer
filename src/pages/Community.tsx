@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Dream, Profile } from "@/lib/types";
@@ -100,6 +99,11 @@ function DreamCard({ dream }: DreamCardProps) {
       
       {/* Dream Content */}
       <CardContent className="p-0">
+        {/* Dream Title - Moved above the image */}
+        <div className="px-4 pt-1 pb-3">
+          <h3 className="font-semibold">{dream.title}</h3>
+        </div>
+        
         {dream.image_url && (
           <div className="relative w-full aspect-video">
             <img
@@ -129,18 +133,9 @@ function DreamCard({ dream }: DreamCardProps) {
             <p className="font-medium text-sm mb-2">{likesCount} {likesCount === 1 ? 'like' : 'likes'}</p>
           )}
           
-          {/* Dream Title and Description */}
+          {/* Dream Description */}
           <div className="mb-4">
-            <h3 className="font-semibold">{dream.title}</h3>
             <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{dream.description}</p>
-            
-            {dream.enhanced_description && (
-              <div className="mt-3 p-3 bg-muted/50 rounded-md">
-                <p className="text-xs italic text-muted-foreground">
-                  {dream.enhanced_description}
-                </p>
-              </div>
-            )}
           </div>
           
           {/* Comments Section */}
