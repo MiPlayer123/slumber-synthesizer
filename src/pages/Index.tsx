@@ -1,9 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { useEffect } from "react";
 
 const Index = () => {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "Rem";
+  }, []);
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -15,7 +20,7 @@ const Index = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          Slumber Synthesizer: Dream Journaling
+          Rem: Dream Journaling
         </motion.h1>
         
         <motion.p 
