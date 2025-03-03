@@ -9,6 +9,7 @@ interface LikeButtonProps {
   onClick: () => void;
   isLoading?: boolean;
   className?: string;
+  showCount?: boolean;
 }
 
 export function LikeButton({ 
@@ -16,25 +17,28 @@ export function LikeButton({
   likesCount, 
   onClick, 
   isLoading = false,
-  className
+  className,
+  showCount = true
 }: LikeButtonProps) {
   return (
     <Button
-      variant="outline"
+      variant="ghost"
       size="sm"
-      className={cn("gap-1.5", className)}
+      className={cn("px-2 h-8 hover:bg-transparent", className)}
       onClick={onClick}
       disabled={isLoading}
     >
       <Heart
         className={cn(
-          "h-4 w-4", 
-          isLiked ? "fill-destructive text-destructive" : "text-muted-foreground"
+          "h-5 w-5 mr-1.5", 
+          isLiked ? "fill-destructive text-destructive" : "text-foreground"
         )}
       />
-      <span className="font-normal">
-        {likesCount} {likesCount === 1 ? "Like" : "Likes"}
-      </span>
+      {showCount && (
+        <span className="font-normal text-sm">
+          {likesCount}
+        </span>
+      )}
     </Button>
   );
 }
