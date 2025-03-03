@@ -1,6 +1,6 @@
 
 import { Dream, DreamAnalysis } from "@/lib/types";
-import { Sparkles, Wand2 } from "lucide-react";
+import { Sparkles, Wand2, Pencil } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -12,10 +12,17 @@ interface DreamCardProps {
   dream: Dream;
   analyses?: DreamAnalysis[];
   onAnalyze?: (dreamId: string) => void;
+  onEdit?: (dreamId: string) => void;
   isPersonalView?: boolean;
 }
 
-export const DreamCard = ({ dream, analyses, onAnalyze, isPersonalView = false }: DreamCardProps) => {
+export const DreamCard = ({ 
+  dream, 
+  analyses, 
+  onAnalyze, 
+  onEdit,
+  isPersonalView = false 
+}: DreamCardProps) => {
   const analysis = analyses?.find(a => a.dream_id === dream.id);
   const needsAnalysis = isPersonalView && !analysis && onAnalyze;
   const hasImage = !!dream.image_url;
@@ -151,18 +158,32 @@ export const DreamCard = ({ dream, analyses, onAnalyze, isPersonalView = false }
               </div>
             )}
 
-            {/* Dream Analysis Button - Only shown for personal dreams without analysis */}
-            {needsAnalysis && (
-              <div className="absolute bottom-0 right-0">
-                <Button 
-                  onClick={() => onAnalyze(dream.id)} 
-                  variant="secondary" 
-                  className="rounded-full"
-                  size="sm"
-                >
-                  <Wand2 className="mr-1 h-4 w-4" />
-                  Analyze Dream
-                </Button>
+            {/* Action Buttons - Only shown for personal dreams */}
+            {isPersonalView && (
+              <div className="absolute bottom-0 right-0 flex gap-2">
+                {needsAnalysis && (
+                  <Button 
+                    onClick={() => onAnalyze(dream.id)} 
+                    variant="secondary" 
+                    className="rounded-full"
+                    size="sm"
+                  >
+                    <Wand2 className="mr-1 h-4 w-4" />
+                    Analyze Dream
+                  </Button>
+                )}
+                
+                {onEdit && (
+                  <Button 
+                    onClick={() => onEdit(dream.id)} 
+                    variant="outline" 
+                    className="rounded-full"
+                    size="sm"
+                  >
+                    <Pencil className="mr-1 h-4 w-4" />
+                    Edit
+                  </Button>
+                )}
               </div>
             )}
 

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -10,6 +9,7 @@ import { CreateDreamForm } from "@/components/dreams/CreateDreamForm";
 import { DreamsList } from "@/components/dreams/DreamsList";
 import { DreamHeader } from "@/components/dreams/DreamHeader";
 import { AnalyzingDialog } from "@/components/dreams/AnalyzingDialog";
+import { EditDreamForm } from "@/components/dreams/EditDreamForm";
 import { useDreams } from "@/hooks/use-dreams";
 import { useDreamAnalyses } from "@/hooks/use-dream-analyses";
 
@@ -19,6 +19,7 @@ const Journal = () => {
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [editingDreamId, setEditingDreamId] = useState<string | null>(null);
 
   // Handle auth redirection
   if (!user) {
@@ -34,6 +35,11 @@ const Journal = () => {
   // Custom hooks for data fetching
   const { data: dreams, isLoading } = useDreams(user.id);
   const { data: analyses } = useDreamAnalyses();
+
+  // Get the dream being edited
+  const dreamBeingEdited = editingDreamId 
+    ? dreams?.find(dream => dream.id === editingDreamId) 
+    : null;
 
   // Create dream mutation
   const createDream = useMutation({
@@ -74,6 +80,55 @@ const Journal = () => {
         variant: "destructive",
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create dream",
+      });
+    },
+  });
+
+  // Edit dream mutation
+  const editDream = useMutation({
+    mutationFn: async ({ 
+      dreamId, 
+      updatedDream 
+    }: { 
+      dreamId: string, 
+      updatedDream: Partial<Dream> 
+    }) => {
+      console.log('Updating dream:', dreamId, updatedDream);
+      
+      if (!user) {
+        throw new Error('User must be logged in to edit a dream');
+      }
+
+      const { data, error } = await supabase
+        .from('dreams')
+        .update(updatedDream)
+        .eq('id', dreamId)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating dream:', error);
+        throw error;
+      }
+
+      console.log('Dream updated successfully:', data);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dreams'] });
+      setEditingDreamId(null);
+      toast({
+        title: "Dream Updated",
+        description: "Your dream has been successfully updated.",
+      });
+    },
+    onError: (error) => {
+      console.error('Update error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update dream",
       });
     },
   });
@@ -169,16 +224,37 @@ const Journal = () => {
     analyzeDream.mutate(dreamId);
   };
 
+  const handleEditDream = (dreamId: string) => {
+    setEditingDreamId(dreamId);
+  };
+
+  const handleUpdateDream = (dreamId: string, updatedDream: Partial<Dream>) => {
+    editDream.mutate({ dreamId, updatedDream });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingDreamId(null);
+  };
+
   return (
     <div className="container mx-auto px-4 py-12">
       <DreamHeader onCreateClick={() => setIsCreating(!isCreating)} />
 
       {isCreating && <CreateDreamForm onSubmit={createDream.mutate} />}
 
+      {editingDreamId && dreamBeingEdited && (
+        <EditDreamForm 
+          dream={dreamBeingEdited} 
+          onSubmit={handleUpdateDream} 
+          onCancel={handleCancelEdit} 
+        />
+      )}
+
       <DreamsList 
         dreams={dreams || []} 
         analyses={analyses} 
         onAnalyze={handleAnalyzeDream}
+        onEdit={handleEditDream}
         isLoading={isLoading}
       />
 

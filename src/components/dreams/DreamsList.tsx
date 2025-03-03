@@ -7,10 +7,11 @@ interface DreamsListProps {
   dreams: Dream[];
   analyses?: DreamAnalysis[];
   onAnalyze?: (dreamId: string) => void;
+  onEdit?: (dreamId: string) => void;
   isLoading: boolean;
 }
 
-export const DreamsList = ({ dreams, analyses, onAnalyze, isLoading }: DreamsListProps) => {
+export const DreamsList = ({ dreams, analyses, onAnalyze, onEdit, isLoading }: DreamsListProps) => {
   if (isLoading) {
     return <p className="text-center text-muted-foreground">Loading dreams...</p>;
   }
@@ -31,6 +32,7 @@ export const DreamsList = ({ dreams, analyses, onAnalyze, isLoading }: DreamsLis
           dream={dream} 
           analyses={analyses} 
           onAnalyze={onAnalyze}
+          onEdit={onEdit}
           isPersonalView={true}
         />
       ))}
