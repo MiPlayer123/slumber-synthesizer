@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -121,15 +120,23 @@ const Journal = () => {
     mutationFn: async (dream: Dream) => {
       console.log('Generating image for dream:', dream.id);
       
-      const { data, error } = await supabase.functions.invoke('generate-dream-image', {
-        body: { 
-          dreamId: dream.id,
-          description: `${dream.title} - ${dream.description}`
-        },
-      });
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-dream-image', {
+          body: { 
+            dreamId: dream.id,
+            description: `${dream.title} - ${dream.description}`
+          },
+        });
 
-      if (error) throw error;
-      return data;
+        if (error) throw error;
+        return data;
+      } catch (err) {
+        console.error('Error invoking generate-dream-image function:', err);
+        if (err.message?.includes('404') || err.status === 404) {
+          throw new Error('The image generation endpoint was not found. Please ensure your Supabase function is deployed correctly.');
+        }
+        throw err;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dreams'] });
