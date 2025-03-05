@@ -1,18 +1,24 @@
-
 import { Dream, DreamAnalysis } from "@/lib/types";
-import { Sparkles, Wand2, Pencil } from "lucide-react";
+import { Sparkles, Wand2, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import {
   Card,
   CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface DreamCardProps {
   dream: Dream;
   analyses?: DreamAnalysis[];
   onAnalyze?: (dreamId: string) => void;
   onEdit?: (dreamId: string) => void;
+  onDelete?: (dreamId: string) => void;
   isPersonalView?: boolean;
 }
 
@@ -21,6 +27,7 @@ export const DreamCard = ({
   analyses, 
   onAnalyze, 
   onEdit,
+  onDelete,
   isPersonalView = false 
 }: DreamCardProps) => {
   const analysis = analyses?.find(a => a.dream_id === dream.id);
@@ -106,7 +113,7 @@ export const DreamCard = ({
           </div>
           
           {/* Right column - Dream details and analysis */}
-          <div className="space-y-8 relative">
+          <div className="space-y-8">
             {hasImage ? (
               // When image exists, show title and date at the top
               <div>
@@ -160,7 +167,7 @@ export const DreamCard = ({
 
             {/* Action Buttons - Only shown for personal dreams */}
             {isPersonalView && (
-              <div className="absolute bottom-0 right-0 flex gap-2">
+              <div className="flex justify-end gap-2 mt-8">
                 {needsAnalysis && (
                   <Button 
                     onClick={() => onAnalyze(dream.id)} 
@@ -173,16 +180,32 @@ export const DreamCard = ({
                   </Button>
                 )}
                 
-                {onEdit && (
-                  <Button 
-                    onClick={() => onEdit(dream.id)} 
-                    variant="outline" 
-                    className="rounded-full"
-                    size="sm"
-                  >
-                    <Pencil className="mr-1 h-4 w-4" />
-                    Edit
-                  </Button>
+                {/* Replace Edit and Delete buttons with a dropdown menu */}
+                {(onEdit || onDelete) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="icon" className="rounded-full h-8 w-8">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {onEdit && (
+                        <DropdownMenuItem onClick={() => onEdit(dream.id)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                      )}
+                      {onDelete && (
+                        <DropdownMenuItem 
+                          onClick={() => onDelete(dream.id)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
               </div>
             )}
