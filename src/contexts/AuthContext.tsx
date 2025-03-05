@@ -11,6 +11,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, username: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,11 +23,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
 
-  // Initialize auth with timeout
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // Set a timeout to prevent hanging
         const timeoutId = setTimeout(() => {
           console.error('Auth initialization timeout reached');
           setLoading(false);
@@ -35,9 +34,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             title: 'Authentication Error',
             description: 'Failed to initialize authentication. Please refresh the page.',
           });
-        }, 10000); // 10 second timeout
+        }, 10000);
 
-        // Get current session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -49,7 +47,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(session.user);
         }
         
-        // Subscribe to auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           (_event, session) => {
             setSession(session);
@@ -57,11 +54,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         );
         
-        // Clear the timeout since initialization completed
         clearTimeout(timeoutId);
         setLoading(false);
         
-        // Cleanup subscription
         return () => {
           subscription.unsubscribe();
         };
@@ -123,7 +118,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) throw error;
 
-      // Create user profile in profiles table
       if (data.user) {
         const { error: profileError } = await supabase
           .from('profiles')
@@ -178,6 +172,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/journal',
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Google authentication initiated",
+        description: "You'll be redirected to Google for authentication.",
+      });
+    } catch (error) {
+      console.error('Google sign in error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Sign In Failed',
+        description: error instanceof Error ? error.message : 'Failed to sign in with Google',
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -186,7 +209,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       error,
       signIn,
       signUp,
-      signOut
+      signOut,
+      signInWithGoogle
     }}>
       {children}
     </AuthContext.Provider>
