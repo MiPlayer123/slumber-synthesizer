@@ -135,7 +135,7 @@ function DreamCard({ dream }: DreamCardProps) {
           
           {/* Dream Description */}
           <div className="mb-4">
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{dream.description}</p>
+            <p className="text-sm text-muted-foreground mt-1">{dream.description}</p>
           </div>
           
           {/* Comments Section */}
