@@ -12,6 +12,7 @@ import { AnalyzingDialog } from "@/components/dreams/AnalyzingDialog";
 import { EditDreamForm } from "@/components/dreams/EditDreamForm";
 import { useDreams } from "@/hooks/use-dreams";
 import { useDreamAnalyses } from "@/hooks/use-dream-analyses";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const Journal = () => {
   const { user } = useAuth();
@@ -20,6 +21,8 @@ const Journal = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [editingDreamId, setEditingDreamId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [dreamToDelete, setDreamToDelete] = useState<string | null>(null);
 
   // Handle auth redirection
   if (!user) {
@@ -220,6 +223,45 @@ const Journal = () => {
     },
   });
 
+  // Delete dream mutation
+  const deleteDream = useMutation({
+    mutationFn: async (dreamId: string) => {
+      console.log('Deleting dream:', dreamId);
+      
+      if (!user) {
+        throw new Error('User must be logged in to delete a dream');
+      }
+
+      const { error } = await supabase
+        .from('dreams')
+        .delete()
+        .eq('id', dreamId)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error deleting dream:', error);
+        throw error;
+      }
+
+      return dreamId;
+    },
+    onSuccess: (dreamId) => {
+      queryClient.invalidateQueries({ queryKey: ['dreams'] });
+      toast({
+        title: "Dream Deleted",
+        description: "Your dream has been successfully deleted.",
+      });
+    },
+    onError: (error) => {
+      console.error('Delete error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete dream",
+      });
+    },
+  });
+
   const handleAnalyzeDream = (dreamId: string) => {
     analyzeDream.mutate(dreamId);
   };
@@ -234,6 +276,19 @@ const Journal = () => {
 
   const handleCancelEdit = () => {
     setEditingDreamId(null);
+  };
+
+  const handleDeleteDream = (dreamId: string) => {
+    setDreamToDelete(dreamId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (dreamToDelete) {
+      deleteDream.mutate(dreamToDelete);
+    }
+    setDeleteDialogOpen(false);
+    setDreamToDelete(null);
   };
 
   return (
@@ -255,6 +310,7 @@ const Journal = () => {
         analyses={analyses} 
         onAnalyze={handleAnalyzeDream}
         onEdit={handleEditDream}
+        onDelete={handleDeleteDream}
         isLoading={isLoading}
       />
 
@@ -266,6 +322,18 @@ const Journal = () => {
           }
         }}
       />
+
+      {deleteDialogOpen && (
+        <ConfirmDialog
+          isOpen={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+          onConfirm={confirmDelete}
+          title="Delete Dream"
+          description="Are you sure you want to delete this dream? This action cannot be undone."
+          confirmText="Delete"
+          cancelText="Cancel"
+        />
+      )}
     </div>
   );
 };
