@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Dream, DreamAnalysis } from '@/lib/types';
 import { DreamCard } from '@/components/dreams/DreamCard';
@@ -8,10 +7,11 @@ interface DreamsListProps {
   analyses?: DreamAnalysis[];
   onAnalyze?: (dreamId: string) => void;
   onEdit?: (dreamId: string) => void;
+  onDelete?: (dreamId: string) => void;
   isLoading: boolean;
 }
 
-export const DreamsList = ({ dreams, analyses, onAnalyze, onEdit, isLoading }: DreamsListProps) => {
+export const DreamsList = ({ dreams, analyses, onAnalyze, onEdit, onDelete, isLoading }: DreamsListProps) => {
   if (isLoading) {
     return <p className="text-center text-muted-foreground">Loading dreams...</p>;
   }
@@ -33,6 +33,7 @@ export const DreamsList = ({ dreams, analyses, onAnalyze, onEdit, isLoading }: D
           analyses={analyses} 
           onAnalyze={onAnalyze}
           onEdit={onEdit}
+          onDelete={onDelete}
           isPersonalView={true}
         />
       ))}

@@ -68,7 +68,7 @@ function DreamCard({ dream }: DreamCardProps) {
   const avatarFallback = dream.profiles.username.charAt(0).toUpperCase();
 
   return (
-    <Card key={dream.id} className="overflow-hidden border-none shadow-md">
+    <Card key={dream.id} className="overflow-hidden border-none shadow-md dark:shadow-lg dark:shadow-slate-700/50">
       {/* Card Header with Author Info */}
       <CardHeader className="flex flex-row items-center justify-between p-4 space-y-0">
         <div className="flex items-center space-x-3">
@@ -135,7 +135,7 @@ function DreamCard({ dream }: DreamCardProps) {
           
           {/* Dream Description */}
           <div className="mb-4">
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{dream.description}</p>
+            <p className="text-sm text-muted-foreground mt-1">{dream.description}</p>
           </div>
           
           {/* Comments Section */}

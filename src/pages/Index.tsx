@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
+import { MoonIcon, StarIcon, BookOpenIcon, BrainIcon, UsersIcon } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -10,132 +11,235 @@ const Index = () => {
     document.title = "Rem";
   }, []);
 
+  // Animation variants
+  const fadeIn = {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.7 }
+  };
+
+  const staggerContainer = {
+    animate: { transition: { staggerChildren: 0.1 } }
+  };
+
+  const floatAnimation = {
+    initial: { y: 0 },
+    animate: { y: [0, -10, 0], transition: { repeat: Infinity, duration: 6, ease: "easeInOut" }}
+  };
+
   return (
-    <div className="container mx-auto px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-b from-indigo-950/90 via-purple-900/80 to-indigo-950/90 text-white">
       {/* Hero Section */}
-      <div className="max-w-4xl mx-auto text-center space-y-8">
-        <motion.h1 
-          className="text-5xl font-bold text-dream-600 mb-4"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+      <div className="container mx-auto px-4 pt-20 pb-32 relative">
+        <motion.div 
+          className="absolute top-20 right-20 text-purple-300/30 hidden md:block"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 200, repeat: Infinity, ease: "linear" }}
         >
-          Rem: Dream Journaling
-        </motion.h1>
-        
-        <motion.p 
-          className="text-xl text-muted-foreground mb-8"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          Record, analyze, and explore your dreams in a beautiful and secure environment.
-        </motion.p>
+          <StarIcon size={40} />
+        </motion.div>
         
         <motion.div 
-          className="flex justify-center gap-4"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
+          className="absolute bottom-40 left-20 text-blue-300/20 hidden md:block"
+          {...floatAnimation}
         >
-          <Button 
-            size="lg" 
-            onClick={() => navigate("/journal")}
-            className="dream-button"
-          >
-            Start Journaling
-          </Button>
-          <Button 
-            size="lg" 
-            variant="outline"
-            onClick={() => navigate("/community")}
-          >
-            Explore Dreams
-          </Button>
+          <MoonIcon size={60} />
         </motion.div>
+
+        <div className="max-w-3xl mx-auto text-center relative z-10">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8 }}
+          >
+            <div className="flex justify-center mb-6">
+              <div className="p-3 bg-purple-500/20 backdrop-blur rounded-full">
+                <MoonIcon size={40} className="text-purple-200" />
+              </div>
+            </div>
+          </motion.div>
+          
+          <motion.h1 
+            className="text-5xl md:text-6xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-200 to-blue-200"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+          >
+            Capture and share the ephemeral world of dreams
+          </motion.h1>
+          
+          <motion.p 
+            className="text-xl text-purple-100/90 mb-10"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.2 }}
+          >
+            Record your dreams, uncover hidden patterns, and connect with a community of dreamers in a beautiful, secure space.
+          </motion.p>
+          
+          <motion.div 
+            className="flex flex-col sm:flex-row justify-center gap-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.4 }}
+          >
+            <Button 
+              size="lg" 
+              onClick={() => navigate("/journal")}
+              className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white border-0 px-8 py-6 text-lg"
+            >
+              Start Your Dream Journal
+            </Button>
+            <Button 
+              size="lg" 
+              variant="outline"
+              onClick={() => navigate("/community")}
+              className="border-purple-300 text-purple-500 hover:bg-purple-900/30 px-8 py-6 text-lg"
+            >
+              Explore Dreams
+            </Button>
+          </motion.div>
+        </div>
       </div>
 
       {/* Features Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
-        <div className="glass-card p-6">
-          <h3 className="text-xl font-semibold mb-2">Record Dreams</h3>
-          <p className="text-muted-foreground">
-            Capture your dreams in rich detail with our intuitive journal.
-          </p>
-        </div>
-        <div className="glass-card p-6">
-          <h3 className="text-xl font-semibold mb-2">AI Analysis</h3>
-          <p className="text-muted-foreground">
-            Gain insights into patterns and themes in your dreams.
-          </p>
-        </div>
-        <div className="glass-card p-6">
-          <h3 className="text-xl font-semibold mb-2">Share & Connect</h3>
-          <p className="text-muted-foreground">
-            Join a community of dreamers and share your experiences.
-          </p>
-        </div>
+      <div className="container mx-auto px-4 py-24 bg-indigo-950/40 backdrop-blur-sm">
+        <motion.div
+          variants={staggerContainer}
+          initial="initial"
+          whileInView="animate"
+          viewport={{ once: true, amount: 0.3 }}
+          className="max-w-4xl mx-auto"
+        >
+          <motion.h2 
+            variants={fadeIn}
+            className="text-3xl md:text-4xl font-bold text-center mb-16 text-purple-100"
+          >
+            Your dream experience, evolved
+          </motion.h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            <motion.div variants={fadeIn} className="feature-card">
+              <div className="mb-6 flex justify-center">
+                <div className="p-4 rounded-full bg-purple-500/20 backdrop-blur">
+                  <BookOpenIcon className="h-8 w-8 text-purple-300" />
+                </div>
+              </div>
+              <h3 className="text-xl font-semibold mb-3 text-center text-purple-100">Journal With Ease</h3>
+              <p className="text-center text-purple-200/80">
+                Capture rich dream details with our intuitive journaling tools designed for both quick entries and deep reflection.
+              </p>
+            </motion.div>
+
+            <motion.div variants={fadeIn} className="feature-card">
+              <div className="mb-6 flex justify-center">
+                <div className="p-4 rounded-full bg-purple-500/20 backdrop-blur">
+                  <BrainIcon className="h-8 w-8 text-purple-300" />
+                </div>
+              </div>
+              <h3 className="text-xl font-semibold mb-3 text-center text-purple-100">AI-Powered Insights</h3>
+              <p className="text-center text-purple-200/80">
+                Discover patterns, symbols, and meanings in your dreams with our thoughtful AI analysis.
+              </p>
+            </motion.div>
+
+            <motion.div variants={fadeIn} className="feature-card">
+              <div className="mb-6 flex justify-center">
+                <div className="p-4 rounded-full bg-purple-500/20 backdrop-blur">
+                  <UsersIcon className="h-8 w-8 text-purple-300" />
+                </div>
+              </div>
+              <h3 className="text-xl font-semibold mb-3 text-center text-purple-100">Dream Community</h3>
+              <p className="text-center text-purple-200/80">
+                Share experiences and connect with fellow dreamers in a supportive, respectful environment.
+              </p>
+            </motion.div>
+          </div>
+        </motion.div>
       </div>
 
-      {/* Testimonials Section */}
-      <div className="bg-gray-100 py-12 mt-16">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-8">What Our Users Say</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-white p-6 shadow rounded-lg">
-              <p className="text-muted-foreground mb-4">
-                "This app has completely changed the way I understand my dreams. The AI analysis is spot on!"
+      {/* Testimonial Section - Simplified */}
+      <div className="container mx-auto px-4 py-24">
+        <motion.div
+          initial="initial"
+          whileInView="animate"
+          viewport={{ once: true, amount: 0.3 }}
+          className="max-w-3xl mx-auto"
+        >
+          <motion.h2 
+            variants={fadeIn}
+            className="text-3xl md:text-4xl font-bold text-center mb-12 text-purple-100"
+          >
+            Stories from the dreamscape
+          </motion.h2>
+
+          <div className="space-y-6">
+            <motion.div 
+              variants={fadeIn}
+              className="p-8 rounded-xl bg-purple-800/20 backdrop-blur border border-purple-500/20"
+            >
+              <p className="text-purple-100 italic mb-4">
+                "Rem has transformed how I connect with my dreams. The insights I've gained have been truly illuminating, and the community is wonderfully supportive."
               </p>
-              <h4 className="font-semibold">- Alex D.</h4>
+              <p className="text-right text-purple-300 font-medium">— Alex D.</p>
+            </motion.div>
+            
+            <motion.div 
+              variants={fadeIn}
+              className="p-8 rounded-xl bg-indigo-800/20 backdrop-blur border border-indigo-500/20"
+            >
+              <p className="text-purple-100 italic mb-4">
+                "I've kept dream journals for years, but Rem brings a whole new dimension to the practice. The AI analysis has helped me understand recurring themes I never noticed before."
+              </p>
+              <p className="text-right text-purple-300 font-medium">— Jamie L.</p>
+            </motion.div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* CTA Section */}
+      <motion.div 
+        initial="initial"
+        whileInView="animate"
+        viewport={{ once: true }}
+        className="container mx-auto px-4 py-20"
+      >
+        <motion.div 
+          variants={fadeIn}
+          className="max-w-3xl mx-auto text-center p-12 rounded-3xl bg-gradient-to-r from-purple-600/30 to-indigo-600/30 backdrop-blur-md border border-purple-500/30"
+        >
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white">Begin your dream journey</h2>
+          <p className="text-xl text-purple-100 mb-8">
+            Join thousands exploring their subconscious mind and connecting through dreams.
+          </p>
+          <Button
+            size="lg"
+            onClick={() => navigate("/auth")}
+            className="bg-white text-purple-900 hover:bg-purple-100 px-8 py-6 text-lg font-medium"
+          >
+            Start Free
+          </Button>
+        </motion.div>
+      </motion.div>
+
+      {/* Footer */}
+      <footer className="bg-indigo-950/80 border-t border-purple-500/20 py-12">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-center mb-8">
+            <div className="flex items-center mb-4 md:mb-0">
+              <MoonIcon size={24} className="text-purple-400 mr-2" />
+              <span className="text-xl font-bold text-purple-100">Rem</span>
             </div>
-            <div className="bg-white p-6 shadow rounded-lg">
-              <p className="text-muted-foreground mb-4">
-                "I love the community aspect. Sharing dreams and getting feedback is so rewarding."
-              </p>
-              <h4 className="font-semibold">- Jamie L.</h4>
+            <div className="flex space-x-6">
+              <a href="/about" className="text-purple-300 hover:text-white transition">About</a>
+              <a href="/blog" className="text-purple-300 hover:text-white transition">Blog</a>
+              <a href="/support" className="text-purple-300 hover:text-white transition">Support</a>
+              <a href="/privacy" className="text-purple-300 hover:text-white transition">Privacy</a>
+              <a href="/terms" className="text-purple-300 hover:text-white transition">Terms</a>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Pricing Section */}
-      <div className="py-12 mt-16">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-8">Affordable Pricing Plans</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-6 shadow rounded-lg">
-              <h3 className="text-xl font-bold mb-4">Free</h3>
-              <p className="text-muted-foreground mb-4">Basic journaling features.</p>
-              <Button size="lg">Get Started</Button>
-            </div>
-            <div className="bg-white p-6 shadow rounded-lg">
-              <h3 className="text-xl font-bold mb-4">Pro</h3>
-              <p className="text-muted-foreground mb-4">Advanced AI analysis and community features.</p>
-              <Button size="lg">Upgrade</Button>
-            </div>
-            <div className="bg-white p-6 shadow rounded-lg">
-              <h3 className="text-xl font-bold mb-4">Premium</h3>
-              <p className="text-muted-foreground mb-4">All features with priority support.</p>
-              <Button size="lg">Subscribe</Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Call-to-Action Section */}
-      <div className="bg-dream-600 py-12 text-white text-center mt-16">
-        <h2 className="text-3xl font-bold mb-4">Ready to Start Your Dream Journey?</h2>
-        <p className="text-xl mb-8">Join thousands of dreamers today.</p>
-        <Button size="lg" onClick={() => navigate("/signup")}>Sign Up Now</Button>
-      </div>
-
-      {/* Footer Section */}
-      <footer className="bg-gray-900 text-white py-8 mt-16">
-        <div className="max-w-4xl mx-auto text-center">
-          <p className="mb-4">&copy; 2025 Dream Journal. All rights reserved.</p>
-          <div className="flex justify-center gap-4">
-            <a href="/privacy" className="hover:underline">Privacy Policy</a>
-            <a href="/terms" className="hover:underline">Terms of Service</a>
+          <div className="text-center text-purple-400 text-sm">
+            <p>&copy; {new Date().getFullYear()} Rem. All rights reserved.</p>
           </div>
         </div>
       </footer>
