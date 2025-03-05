@@ -1,5 +1,9 @@
 /* Add these styles to your globals.css file */
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @layer base {
   body {
     @apply bg-indigo-950 text-purple-100;

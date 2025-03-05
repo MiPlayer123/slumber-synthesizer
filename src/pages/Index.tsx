@@ -8,7 +8,7 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "Rem | Dream Journal & Community";
+    document.title = "Rem";
   }, []);
 
   // Animation variants
