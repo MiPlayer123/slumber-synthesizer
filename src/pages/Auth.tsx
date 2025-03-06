@@ -1,11 +1,10 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { Separator } from "@/components/ui/separator";
 
 const Auth = () => {
@@ -16,6 +15,21 @@ const Auth = () => {
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
   const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [isGoogleSignUp, setIsGoogleSignUp] = useState(false);
+  const [googleUsername, setGoogleUsername] = useState('');
+  const location = useLocation();
+
+  // Check URL for error parameters when component mounts
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const error = params.get('error');
+    const errorDesc = params.get('error_description');
+    
+    // If we detect the specific database error for new user, show username form
+    if (error === 'server_error' && errorDesc?.includes('Database error saving new user')) {
+      setIsGoogleSignUp(true);
+    }
+  }, [location]);
 
   if (user) {
     return <Navigate to="/journal" replace />;
@@ -55,8 +69,80 @@ const Auth = () => {
 
   const handleGoogleSignIn = async (e: React.MouseEvent) => {
     e.preventDefault();
-    await signInWithGoogle();
+    
+    if (!isGoogleSignUp) {
+      // Start the normal Google sign-in flow
+      try {
+        await signInWithGoogle();
+      } catch (error) {
+        console.error("Google authentication error:", error);
+      }
+    } else {
+      // Handle completing the Google sign-up with username
+      if (!googleUsername || googleUsername.trim() === '') {
+        setErrors({...errors, googleUsername: 'Username is required'});
+        return;
+      }
+      
+      try {
+        await completeGoogleSignUp(googleUsername);
+        setIsGoogleSignUp(false);
+        setGoogleUsername('');
+      } catch (error) {
+        console.error("Google username registration error:", error);
+        setErrors({...errors, googleUsername: 'Failed to register username, please try again'});
+      }
+    }
   };
+
+  // Render Google username form if in Google sign-up flow
+  if (isGoogleSignUp) {
+    return (
+      <div className="container max-w-md mx-auto px-4 py-12">
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle>One Last Step</CardTitle>
+            <CardDescription>
+              Please choose a username to complete your sign up
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="googleUsername">Username</Label>
+                <Input
+                  id="googleUsername"
+                  value={googleUsername}
+                  onChange={(e) => setGoogleUsername(e.target.value)}
+                  className={errors.googleUsername ? "border-red-500" : ""}
+                />
+                {errors.googleUsername && (
+                  <p className="text-red-500 text-xs mt-1">{errors.googleUsername}</p>
+                )}
+              </div>
+
+              <Button 
+                type="button" 
+                onClick={handleGoogleSignIn}
+                className="w-full"
+              >
+                Complete Sign Up
+              </Button>
+              
+              <Button 
+                type="button" 
+                onClick={() => setIsGoogleSignUp(false)}
+                variant="outline"
+                className="w-full mt-2"
+              >
+                Cancel
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container max-w-md mx-auto px-4 py-12">
@@ -170,3 +256,7 @@ const Auth = () => {
 };
 
 export default Auth;
+function completeGoogleSignUp(googleUsername: string) {
+  throw new Error('Function not implemented.');
+}
+
