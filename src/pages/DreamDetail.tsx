@@ -10,7 +10,7 @@ import { MessageCircle, Share, ArrowLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { DreamLikeButton } from '@/components/dreams/DreamLikeButton';
-import { useQueryClient } from 'react-query';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function DreamDetail() {
   const { dreamId } = useParams<{ dreamId: string }>();
