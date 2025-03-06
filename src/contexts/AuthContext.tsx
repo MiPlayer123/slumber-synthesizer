@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
@@ -23,6 +24,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
 
+  // Function to ensure user profile exists
+  const ensureUserProfile = async (user: User) => {
+    try {
+      // First check if profile already exists
+      const { data: existingProfile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "not found"
+        console.error('Error checking for existing profile:', fetchError);
+        return;
+      }
+
+      // If profile exists, we're done
+      if (existingProfile) {
+        console.log('User profile already exists');
+        return;
+      }
+
+      // Extract user data from Google metadata if available
+      const metadata = user.user_metadata;
+      const userEmail = user.email || '';
+      const fullName = metadata?.full_name || metadata?.name || '';
+      const username = metadata?.preferred_username || userEmail.split('@')[0];
+      
+      // Create profile if it doesn't exist
+      const { error: insertError } = await supabase
+        .from('profiles')
+        .insert([{
+          id: user.id,
+          username,
+          full_name: fullName,
+          email: userEmail,
+          avatar_url: metadata?.avatar_url || metadata?.picture || ''
+        }]);
+
+      if (insertError) {
+        console.error('Error creating user profile:', insertError);
+        toast({
+          variant: 'destructive',
+          title: 'Profile Creation Error',
+          description: 'There was an error creating your profile.',
+        });
+      } else {
+        console.log('Created new user profile');
+      }
+    } catch (err) {
+      console.error('Error in ensureUserProfile:', err);
+    }
+  };
+
   useEffect(() => {
     const initializeAuth = async () => {
       try {
@@ -45,12 +99,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session) {
           setSession(session);
           setUser(session.user);
+          
+          // Ensure profile exists for the authenticated user
+          await ensureUserProfile(session.user);
         }
         
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          (_event, session) => {
+          async (_event, session) => {
             setSession(session);
             setUser(session?.user || null);
+            
+            // If there's a user in the session, ensure they have a profile
+            if (session?.user) {
+              await ensureUserProfile(session.user);
+            }
           }
         );
         
