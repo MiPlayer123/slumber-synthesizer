@@ -15,17 +15,41 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
 
   if (user) {
     return <Navigate to="/journal" replace />;
   }
 
+  const validateForm = () => {
+    const newErrors: {[key: string]: string} = {};
+    
+    if (!email) newErrors.email = 'Email is required';
+    if (!password) newErrors.password = 'Password is required';
+    
+    if (isSignUp) {
+      if (!username || username.trim() === '') {
+        newErrors.username = 'Username is required';
+      }
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSignUp) {
-      await signUp(email, password, username, fullName);
-    } else {
-      await signIn(email, password);
+    
+    if (!validateForm()) return;
+    
+    try {
+      if (isSignUp) {
+        await signUp(email, password, username, fullName);
+      } else {
+        await signIn(email, password);
+      }
+    } catch (error) {
+      console.error("Authentication error:", error);
     }
   };
 
@@ -53,7 +77,9 @@ const Auth = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className={errors.email ? "border-red-500" : ""}
               />
+              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
             </div>
             
             <div className="space-y-2">
@@ -64,7 +90,9 @@ const Auth = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                className={errors.password ? "border-red-500" : ""}
               />
+              {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
             </div>
 
             {isSignUp && (
@@ -76,7 +104,9 @@ const Auth = () => {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
+                    className={errors.username ? "border-red-500" : ""}
                   />
+                  {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username}</p>}
                 </div>
 
                 <div className="space-y-2">
