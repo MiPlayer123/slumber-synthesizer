@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +25,7 @@ import { MessageCircle, Filter, Search, Sparkles, Wand2, Share } from "lucide-re
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { DreamLikeButton } from '@/components/dreams/DreamLikeButton';
+import { LikeButton } from '@/components/dreams/LikeButton';
 import { useDreamLikes } from '@/hooks/use-dream-likes';
 
 export default function DreamWall() {
