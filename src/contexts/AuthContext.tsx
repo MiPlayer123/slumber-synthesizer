@@ -167,6 +167,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string, username: string, fullName: string) => {
     try {
       setLoading(true);
+      
+      // Validate username is not empty (this is required by the database)
+      if (!username || username.trim() === '') {
+        throw new Error('Username cannot be empty');
+      }
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -181,18 +187,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
 
       if (data.user) {
+        // Create profile record after successful signup
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([
             {
               id: data.user.id,
-              username,
+              username, // Ensure username is included
               full_name: fullName,
               email
             }
           ]);
 
-        if (profileError) throw profileError;
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          throw new Error(`Profile creation failed: ${profileError.message}`);
+        }
       }
 
       toast({
