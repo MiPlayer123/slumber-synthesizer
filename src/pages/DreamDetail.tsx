@@ -6,17 +6,15 @@ import { Dream } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Heart, MessageCircle, Share, ArrowLeft } from 'lucide-react';
+import { MessageCircle, Share, ArrowLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { DreamLikeButton } from '@/components/dreams/DreamLikeButton';
 
 export default function DreamDetail() {
   const { dreamId } = useParams<{ dreamId: string }>();
   const [dream, setDream] = useState<Dream | null>(null);
   const [loading, setLoading] = useState(true);
-  const [hasLiked, setHasLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(0);
-  const [isLiking, setIsLiking] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -44,28 +42,6 @@ export default function DreamDetail() {
         if (error) throw error;
         if (data) {
           setDream(data);
-          
-          // Fetch likes count
-          const { data: likesData, error: likesError } = await supabase
-            .from('likes')
-            .select('id')
-            .eq('dream_id', dreamId);
-            
-          if (!likesError) {
-            setLikesCount(likesData?.length || 0);
-          }
-          
-          // Check if user has liked this dream
-          if (user) {
-            const { data: userLikeData } = await supabase
-              .from('likes')
-              .select('id')
-              .eq('dream_id', dreamId)
-              .eq('user_id', user.id)
-              .maybeSingle();
-              
-            setHasLiked(!!userLikeData);
-          }
         }
       } catch (error) {
         console.error('Error fetching dream:', error);
@@ -80,54 +56,7 @@ export default function DreamDetail() {
     }
     
     fetchDream();
-  }, [dreamId, user, toast]);
-  
-  const handleToggleLike = async () => {
-    if (!user || isLiking) return;
-    
-    setIsLiking(true);
-    
-    try {
-      if (hasLiked) {
-        // Unlike
-        const { error } = await supabase
-          .from('likes')
-          .delete()
-          .match({
-            dream_id: dreamId,
-            user_id: user.id
-          });
-          
-        if (error) throw error;
-        
-        setLikesCount(prev => Math.max(0, prev - 1));
-        setHasLiked(false);
-      } else {
-        // Like
-        const { error } = await supabase
-          .from('likes')
-          .insert({
-            dream_id: dreamId,
-            user_id: user.id,
-            created_at: new Date().toISOString()
-          });
-          
-        if (error) throw error;
-        
-        setLikesCount(prev => prev + 1);
-        setHasLiked(true);
-      }
-    } catch (error) {
-      console.error('Error toggling like:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to update like status',
-      });
-    } finally {
-      setIsLiking(false);
-    }
-  };
+  }, [dreamId, toast]);
   
   const handleShareDream = () => {
     const shareUrl = `${window.location.origin}/dream/${dreamId}`;
@@ -236,16 +165,7 @@ export default function DreamDetail() {
             </div>
             
             <div className="mt-auto flex items-center space-x-4">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className={`flex items-center gap-1 ${hasLiked ? 'text-red-500' : ''}`}
-                onClick={handleToggleLike}
-                disabled={isLiking}
-              >
-                <Heart className={`h-5 w-5 ${hasLiked ? 'fill-current' : ''}`} />
-                <span>{likesCount}</span>
-              </Button>
+              {dreamId && <DreamLikeButton dreamId={dreamId} />}
               
               <Button 
                 variant="ghost" 
@@ -278,4 +198,4 @@ export default function DreamDetail() {
       </div>
     </div>
   );
-} 
+}
