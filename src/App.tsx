@@ -5,7 +5,7 @@ import { Navigation } from "@/components/Navigation";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { Suspense, lazy } from "react";
-
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 // Pages
 import Index from "@/pages/Index";
@@ -105,6 +105,7 @@ function App() {
                 <AppRoutes />
               </main>
               <Toaster />
+              <SpeedInsights />
             </div>
           </AuthProvider>
         </QueryClientProvider>
