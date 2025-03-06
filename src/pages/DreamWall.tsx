@@ -20,28 +20,33 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heart, MessageCircle, Filter, Search, Sparkles, Wand2, Share } from "lucide-react";
+import { MessageCircle, Filter, Search, Sparkles, Wand2, Share } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { format } from "date-fns";
+import { DreamLikeButton } from '@/components/dreams/DreamLikeButton';
+import { useDreamLikes } from '@/hooks/use-dream-likes';
 
-// Main component
 export default function DreamWall() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedDream, setSelectedDream] = useState<Dream | null>(null);
-  const [hasLiked, setHasLiked] = useState(false);
-  const [isLiking, setIsLiking] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [isPostingComment, setIsPostingComment] = useState(false);
   
-  // Add filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [emotionFilter, setEmotionFilter] = useState('');
   
-  // Fetch dreams using React Query
+  const { 
+    likesCount: selectedDreamLikes, 
+    hasLiked: selectedDreamHasLiked, 
+    toggleLike: toggleSelectedDreamLike, 
+    isLoading: isTogglingLike,
+    refetch: refetchSelectedDreamLikes
+  } = useDreamLikes(selectedDream?.id || '');
+  
   const { data: dreams = [], isLoading, error } = useQuery({
     queryKey: ['dreams', 'public'],
     queryFn: async () => {
@@ -69,20 +74,16 @@ export default function DreamWall() {
     },
   });
   
-  // Filter dreams based on search and filters
   const filteredDreams = dreams.filter(dream => {
-    // Filter by search
     const matchesSearch = searchQuery ? 
       (dream.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
        dream.description?.toLowerCase().includes(searchQuery.toLowerCase())) : 
       true;
     
-    // Filter by category
     const matchesCategory = categoryFilter ? 
       dream.category === categoryFilter : 
       true;
     
-    // Filter by emotion
     const matchesEmotion = emotionFilter ? 
       dream.emotion === emotionFilter : 
       true;
@@ -90,140 +91,6 @@ export default function DreamWall() {
     return matchesSearch && matchesCategory && matchesEmotion;
   });
 
-  // Like functionality
-  const handleToggleLike = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!user || !selectedDream || isLiking) return;
-    
-    setIsLiking(true);
-    
-    try {
-      console.log('Current user ID:', user.id);
-      console.log('Selected dream ID:', selectedDream.id);
-      
-      if (hasLiked) {
-        // Unlike
-        console.log('Attempting to unlike dream');
-        
-        const { error: unlikeError } = await supabase
-          .from('likes')
-          .delete()
-          .match({
-            dream_id: selectedDream.id,
-            user_id: user.id
-          });
-          
-        if (unlikeError) {
-          console.error('Unlike error details:', unlikeError);
-          throw new Error(`Failed to unlike: ${unlikeError.message}`);
-        }
-        
-        console.log('Successfully unliked dream');
-        
-        setSelectedDream({
-          ...selectedDream,
-          likesCount: Math.max(0, selectedDream.likesCount - 1)
-        });
-        setHasLiked(false);
-        
-        toast({
-          title: "Dream unliked",
-          description: "Your like has been removed"
-        });
-      } else {
-        // Like
-        console.log('Attempting to like dream');
-        
-        const likeObject = {
-          dream_id: selectedDream.id,
-          user_id: user.id,
-          created_at: new Date().toISOString()
-        };
-        
-        console.log('Insert object:', likeObject);
-        
-        const { error: likeError } = await supabase
-          .from('likes')
-          .insert(likeObject);
-          
-        if (likeError) {
-          console.error('Like error details:', likeError);
-          throw new Error(`Failed to like: ${likeError.message}`);
-        }
-        
-        console.log('Successfully liked dream');
-        
-        setSelectedDream({
-          ...selectedDream,
-          likesCount: selectedDream.likesCount + 1
-        });
-        setHasLiked(true);
-        
-        toast({
-          title: "Dream liked",
-          description: "You liked this dream"
-        });
-      }
-    } catch (error) {
-      console.error('Error toggling like:', error);
-      
-      // Fallback to local only on error
-      if (!hasLiked) {
-        setSelectedDream({
-          ...selectedDream,
-          likesCount: selectedDream.likesCount + 1
-        });
-        setHasLiked(true);
-        toast({
-          title: "Dream liked",
-          description: "You liked this dream (local only)",
-          variant: "destructive"
-        });
-      } else {
-        setSelectedDream({
-          ...selectedDream,
-          likesCount: Math.max(0, selectedDream.likesCount - 1)
-        });
-        setHasLiked(false);
-        toast({
-          title: "Dream unliked", 
-          description: "Your like has been removed (local only)",
-          variant: "destructive"
-        });
-      }
-    } finally {
-      setIsLiking(false);
-    }
-  };
-
-  // Check if user has liked the selected dream
-  useEffect(() => {
-    if (!selectedDream || !user) return;
-    
-    const checkLikeStatus = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('likes')
-          .select('id')
-          .eq('dream_id', selectedDream.id)
-          .eq('user_id', user.id)
-          .maybeSingle();
-          
-        if (error) throw error;
-        
-        setHasLiked(!!data);
-      } catch (error) {
-        console.error('Error checking like status:', error);
-      }
-    };
-    
-    checkLikeStatus();
-    fetchComments(selectedDream.id);
-  }, [selectedDream, user]);
-
-  // Comments functionality
   const fetchComments = async (dreamId: string) => {
     if (!dreamId) return;
     
@@ -254,7 +121,13 @@ export default function DreamWall() {
     }
   };
 
-  // Post comment handler
+  useEffect(() => {
+    if (selectedDream) {
+      fetchComments(selectedDream.id);
+      refetchSelectedDreamLikes();
+    }
+  }, [selectedDream, refetchSelectedDreamLikes]);
+
   const handlePostComment = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -293,14 +166,12 @@ export default function DreamWall() {
     }
   };
 
-  // Clear all filters
   const handleClearFilters = () => {
     setSearchQuery('');
     setCategoryFilter('');
     setEmotionFilter('');
   };
 
-  // Share dream
   const handleShareDream = (dreamId: string) => {
     const shareUrl = `${window.location.origin}/dream/${dreamId}`;
     
@@ -316,7 +187,6 @@ export default function DreamWall() {
     <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-8 text-center text-purple-600">Dream Explorer</h1>
       
-      {/* Filters Section */}
       <div className="mb-8 bg-card rounded-lg p-4 shadow-md">
         <div className="flex flex-col md:flex-row gap-4 mb-4">
           <div className="relative flex-grow">
@@ -465,7 +335,6 @@ export default function DreamWall() {
         </div>
       </div>
       
-      {/* Dreams Grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {[...Array(8)].map((_, i) => (
@@ -523,7 +392,6 @@ export default function DreamWall() {
         </div>
       )}
       
-      {/* Dream Detail Dialog */}
       <Dialog open={!!selectedDream} onOpenChange={(open) => !open && setSelectedDream(null)}>
         <DialogContent className="max-w-5xl p-0 overflow-hidden">
           <DialogTitle className="sr-only">Dream Details</DialogTitle>
@@ -531,7 +399,6 @@ export default function DreamWall() {
           
           {selectedDream && (
             <div className="flex flex-col md:flex-row h-[90vh] md:h-auto">
-              {/* Left side - Image */}
               <div className="md:w-3/5 bg-black flex items-center justify-center">
                 {selectedDream.image_url ? (
                   <img 
@@ -546,9 +413,7 @@ export default function DreamWall() {
                 )}
               </div>
               
-              {/* Right side - Content */}
               <div className="md:w-2/5 flex flex-col h-full max-h-[600px] overflow-hidden">
-                {/* Header with user info */}
                 <div className="p-4 border-b">
                   <div className="flex items-center gap-2">
                     <Avatar className="h-8 w-8">
@@ -559,7 +424,6 @@ export default function DreamWall() {
                   </div>
                 </div>
                 
-                {/* Dream content */}
                 <div className="p-4 overflow-y-auto flex-grow">
                   <div className="mb-4">
                     <h1 className="text-xl font-bold mb-2">{selectedDream.title}</h1>
@@ -579,7 +443,6 @@ export default function DreamWall() {
                     </p>
                   </div>
                   
-                  {/* Comments section */}
                   <div className="mt-4 border-t pt-4">
                     <div className="mb-4 space-y-4">
                       {isLoadingComments ? (
@@ -623,18 +486,9 @@ export default function DreamWall() {
                   </div>
                 </div>
                 
-                {/* Actions bar */}
                 <div className="p-4 border-t">
                   <div className="flex items-center space-x-4 mb-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className={`p-0 ${hasLiked ? 'text-red-500' : ''}`}
-                      onClick={handleToggleLike}
-                      disabled={isLiking}
-                    >
-                      <Heart className={`h-6 w-6 ${hasLiked ? 'fill-current' : ''}`} />
-                    </Button>
+                    <DreamLikeButton dreamId={selectedDream.id} />
                     
                     <Button 
                       variant="ghost" 
@@ -646,11 +500,6 @@ export default function DreamWall() {
                     </Button>
                   </div>
                   
-                  <div className="text-sm font-medium mb-2">
-                    {selectedDream.likesCount || 0} likes
-                  </div>
-                  
-                  {/* Comment Form */}
                   {user && (
                     <form onSubmit={handlePostComment} className="flex gap-2 mt-3">
                       <input
@@ -677,9 +526,8 @@ export default function DreamWall() {
       </Dialog>
     </div>
   );
-} 
+}
 
-// DreamTile Component
 type DreamTileProps = {
   dream: Dream;
   onDreamClick: () => void;
@@ -687,83 +535,11 @@ type DreamTileProps = {
 };
 
 const DreamTile: React.FC<DreamTileProps> = ({ dream, onDreamClick, onShare }) => {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(dream.likesCount || 0);
-  const [isLiking, setIsLiking] = useState(false);
+  const { likesCount, hasLiked, toggleLike, isLoading: isLikeLoading } = useDreamLikes(dream.id);
   
-  // Check if user has liked this dream
-  useEffect(() => {
-    if (!user) return;
-    
-    const checkLikeStatus = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('likes')
-          .select('id')
-          .eq('dream_id', dream.id)
-          .eq('user_id', user.id)
-          .maybeSingle();
-          
-        if (error) throw error;
-        
-        setIsLiked(!!data);
-      } catch (error) {
-        console.error('Error checking like status:', error);
-      }
-    };
-    
-    checkLikeStatus();
-  }, [dream.id, user]);
-  
-  const handleLikeClick = async (e: React.MouseEvent) => {
+  const handleLikeClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
-    if (!user || isLiking) return;
-    
-    setIsLiking(true);
-    
-    try {
-      if (isLiked) {
-        // Unlike
-        const { error } = await supabase
-          .from('likes')
-          .delete()
-          .match({
-            dream_id: dream.id,
-            user_id: user.id
-          });
-          
-        if (error) throw error;
-        
-        setLikeCount(prev => Math.max(0, prev - 1));
-        setIsLiked(false);
-      } else {
-        // Like
-        const { error } = await supabase
-          .from('likes')
-          .insert({
-            dream_id: dream.id,
-            user_id: user.id,
-            created_at: new Date().toISOString()
-          });
-          
-        if (error) throw error;
-        
-        setLikeCount(prev => prev + 1);
-        setIsLiked(true);
-      }
-    } catch (error) {
-      console.error('Error toggling like:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to update like status',
-      });
-    } finally {
-      setIsLiking(false);
-    }
+    toggleLike();
   };
   
   const handleShareClick = (e: React.MouseEvent) => {
@@ -813,16 +589,13 @@ const DreamTile: React.FC<DreamTileProps> = ({ dream, onDreamClick, onShare }) =
       
       <CardFooter className="p-4 pt-0 flex justify-between">
         <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className={`flex items-center gap-1 p-0 ${isLiked ? 'text-red-500' : ''}`}
+          <LikeButton 
+            isLiked={hasLiked}
+            likesCount={likesCount}
             onClick={handleLikeClick}
-            disabled={isLiking}
-          >
-            <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
-            <span className="text-xs">{likeCount}</span>
-          </Button>
+            isLoading={isLikeLoading}
+            showCount={true}
+          />
           
           <Button 
             variant="ghost" 
@@ -844,4 +617,4 @@ const DreamTile: React.FC<DreamTileProps> = ({ dream, onDreamClick, onShare }) =
       </CardFooter>
     </Card>
   );
-}; 
+};
