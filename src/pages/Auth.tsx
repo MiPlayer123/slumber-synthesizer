@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +8,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { Separator } from "@/components/ui/separator";
 
 const Auth = () => {
-  const { user, signIn, signUp, signInWithGoogle } = useAuth();
+  const { user, signIn, signUp, signInWithGoogle, completeGoogleSignUp } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -257,7 +256,3 @@ const Auth = () => {
 };
 
 export default Auth;
-function completeGoogleSignUp(googleUsername: string) {
-  throw new Error('Function not implemented.');
-}
-
