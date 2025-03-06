@@ -33,9 +33,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "not found"
+      if (fetchError) {
         console.error('Error checking for existing profile:', fetchError);
         return;
       }
@@ -46,11 +46,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Extract user data from Google metadata if available
+      // For Google auth, we need to check if we have a username
+      // If not, we don't try to create a profile yet - the Auth component will handle this
       const metadata = user.user_metadata;
+      const provider = metadata?.provider;
+      
+      if (provider === 'google' && (!metadata?.username)) {
+        console.log('Google auth user without username, skipping profile creation');
+        return;
+      }
+
+      // Extract user data from metadata
       const userEmail = user.email || '';
       const fullName = metadata?.full_name || metadata?.name || '';
-      const username = metadata?.preferred_username || userEmail.split('@')[0];
+      // For Google users, we'll use the username they provided in the second step
+      // For email users, their username comes from the signup form
+      const username = metadata?.username || metadata?.preferred_username || userEmail.split('@')[0];
+      
+      if (!username || username.trim() === '') {
+        console.error('Cannot create profile: username is empty');
+        return;
+      }
       
       // Create profile if it doesn't exist
       const { error: insertError } = await supabase
@@ -251,7 +267,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin + '/journal',
+          redirectTo: window.location.origin + '/auth',
+          queryParams: {
+            // Ensure the auth flow includes enough privileges
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       });
 
@@ -289,6 +310,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (userError) throw userError;
       if (!user) throw new Error('No authenticated user found');
       
+      // Update user metadata to include the username
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { 
+          username: username.trim(),
+          provider: 'google' // Mark that this is a Google auth user
+        }
+      });
+      
+      if (updateError) {
+        console.error('Error updating user metadata:', updateError);
+        throw updateError;
+      }
+      
       // Create or update the profile with the provided username
       const { error: profileError } = await supabase
         .from('profiles')
@@ -309,7 +343,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Force refresh the session to update user info
       await supabase.auth.refreshSession();
       
-      // Redirect to the journal page
+      // Redirect to the journal page after completion
       window.location.href = '/journal';
       
       toast({
