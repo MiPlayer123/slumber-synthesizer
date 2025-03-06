@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -110,7 +111,6 @@ const Auth = () => {
             onClick={handleGoogleSignIn} 
             variant="outline" 
             className="w-full"
-            disabled={true} // Add this line to disable the button
           >
             <svg 
               xmlns="http://www.w3.org/2000/svg" 
