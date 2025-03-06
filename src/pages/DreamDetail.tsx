@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Dream } from '@/lib/types';
+import { Dream, Profile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
@@ -33,7 +34,9 @@ export default function DreamDetail() {
               id,
               username,
               avatar_url,
-              full_name
+              full_name,
+              created_at,
+              updated_at
             )
           `)
           .eq('id', dreamId)
@@ -41,7 +44,12 @@ export default function DreamDetail() {
           
         if (error) throw error;
         if (data) {
-          setDream(data);
+          // Ensure the data conforms to the Dream type
+          const dreamWithProfiles: Dream = {
+            ...data,
+            profiles: data.profiles as Profile
+          };
+          setDream(dreamWithProfiles);
         }
       } catch (error) {
         console.error('Error fetching dream:', error);
