@@ -1,5 +1,5 @@
 import { Dream, DreamAnalysis } from "@/lib/types";
-import { Sparkles, Wand2, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { Sparkles, Wand2, MoreVertical, Pencil, Trash2, Loader2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Progress } from "@/components/ui/progress";
 
 interface DreamCardProps {
   dream: Dream;
@@ -20,6 +21,7 @@ interface DreamCardProps {
   onEdit?: (dreamId: string) => void;
   onDelete?: (dreamId: string) => void;
   isPersonalView?: boolean;
+  isGeneratingImage?: boolean;
 }
 
 export const DreamCard = ({ 
@@ -28,7 +30,8 @@ export const DreamCard = ({
   onAnalyze, 
   onEdit,
   onDelete,
-  isPersonalView = false 
+  isPersonalView = false,
+  isGeneratingImage = false
 }: DreamCardProps) => {
   const analysis = analyses?.find(a => a.dream_id === dream.id);
   const needsAnalysis = isPersonalView && !analysis && onAnalyze;
@@ -49,8 +52,15 @@ export const DreamCard = ({
                   className="object-cover w-full h-full"
                 />
               </div>
+            ) : isGeneratingImage ? (
+              // When image is generating, show loading state
+              <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted/30 flex flex-col items-center justify-center">
+                <Loader2 className="h-10 w-10 text-primary animate-spin mb-2" />
+                <p className="text-sm text-muted-foreground mb-4">Generating dream image...</p>
+                <Progress className="w-3/4" value={undefined} />
+              </div>
             ) : (
-              // When no image exists, show description and themes
+              // When no image exists and not generating, show description and themes
               <div className="flex flex-col space-y-6 h-full">
                 <div className="flex-grow">
                   <h2 className="text-2xl font-semibold mb-3">{dream.title}</h2>

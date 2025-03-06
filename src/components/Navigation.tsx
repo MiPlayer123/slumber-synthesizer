@@ -1,10 +1,18 @@
-
 import { Link } from "react-router-dom";
-import { Moon, Sun, BookMarked, Home, Users, LogOut, BarChart } from "lucide-react";
+import { Moon, Sun, BookMarked, Home, Users, LogOut, User, BarChart, Settings, Grid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const Navigation = () => {
   const { theme, setTheme } = useTheme();
@@ -63,14 +71,48 @@ export const Navigation = () => {
                   <Users className="h-5 w-5" />
                 </Button>
               </Link>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleSignOut}
-                type="button"
-              >
-                <LogOut className="h-5 w-5" />
-              </Button>
+              <Link to="/dream-wall">
+                <Button variant="ghost" size="icon">
+                  <Grid className="h-5 w-5" />
+                </Button>
+              </Link>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <Avatar className="h-8 w-8">
+                      {user.user_metadata?.avatar_url ? (
+                        <AvatarImage src={user.user_metadata.avatar_url} alt={user.user_metadata?.name || user.email || "User"} />
+                      ) : (
+                        <AvatarFallback>{(user.email?.charAt(0) || "U").toUpperCase()}</AvatarFallback>
+                      )}
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>
+                    {user.user_metadata?.name || user.email || "My Account"}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile/settings">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Settings</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           ) : (
             <Link to="/auth">

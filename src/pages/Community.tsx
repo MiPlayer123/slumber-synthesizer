@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useDreamLikes } from "@/hooks/use-dream-likes";
+import { useDreamLikes } from "@/hooks/use-dream-likes.tsx";
 import { LikeButton } from "@/components/dreams/LikeButton";
 import { CommentsSection } from "@/components/dreams/CommentsSection";
 import { MessageSquare, MoreHorizontal } from "lucide-react";
