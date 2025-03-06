@@ -18,7 +18,7 @@ export const useDreamLikes = (dreamId: string) => {
       // Get total likes count
       const { data: likesData, error: likesError } = await supabase
         .from('likes')
-        .select('id')
+        .select('*')
         .eq('dream_id', dreamId);
         
       if (likesError) throw likesError;
@@ -29,7 +29,7 @@ export const useDreamLikes = (dreamId: string) => {
       if (user) {
         const { data: userLikeData, error: userLikeError } = await supabase
           .from('likes')
-          .select('id')
+          .select('*')
           .eq('dream_id', dreamId)
           .eq('user_id', user.id)
           .maybeSingle();

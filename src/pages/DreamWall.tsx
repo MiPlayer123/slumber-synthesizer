@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -60,7 +59,10 @@ export default function DreamWall() {
           profiles:user_id (
             id, 
             username,
-            avatar_url
+            avatar_url,
+            full_name,
+            created_at,
+            updated_at
           )
         `)
         .eq('is_public', true)
