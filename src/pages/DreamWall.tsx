@@ -596,7 +596,7 @@ const DreamTile: React.FC<DreamTileProps> = ({ dream, onDreamClick, onShare }) =
           <LikeButton 
             isLiked={hasLiked}
             likesCount={likesCount}
-            onClick={handleLikeClick}
+            onClick={() => toggleLike()}
             isLoading={isLikeLoading}
             showCount={true}
           />
