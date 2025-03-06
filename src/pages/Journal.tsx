@@ -23,6 +23,7 @@ const Journal = () => {
   const [editingDreamId, setEditingDreamId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [dreamToDelete, setDreamToDelete] = useState<string | null>(null);
+  const [generatingImageForDreams, setGeneratingImageForDreams] = useState<Set<string>>(new Set());
 
   // Handle auth redirection
   if (!user) {
@@ -141,6 +142,13 @@ const Journal = () => {
     mutationFn: async (dream: Dream) => {
       console.log('Generating image for dream:', dream.id);
       
+      // Add the dream ID to the generating set
+      setGeneratingImageForDreams(prev => {
+        const newSet = new Set(prev);
+        newSet.add(dream.id);
+        return newSet;
+      });
+      
       try {
         const { data, error } = await supabase.functions.invoke('generate-dream-image', {
           body: { 
@@ -174,6 +182,14 @@ const Journal = () => {
         description: "Failed to generate dream image. Please try again.",
       });
     },
+    onSettled: (_, __, dream) => {
+      // Remove the dream ID from the generating set regardless of success/failure
+      setGeneratingImageForDreams(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(dream.id);
+        return newSet;
+      });
+    }
   });
 
   // Analyze dream mutation
@@ -312,6 +328,7 @@ const Journal = () => {
         onEdit={handleEditDream}
         onDelete={handleDeleteDream}
         isLoading={isLoading}
+        generatingImageForDreams={generatingImageForDreams}
       />
 
       <AnalyzingDialog 

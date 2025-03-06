@@ -9,9 +9,18 @@ interface DreamsListProps {
   onEdit?: (dreamId: string) => void;
   onDelete?: (dreamId: string) => void;
   isLoading: boolean;
+  generatingImageForDreams?: Set<string>;
 }
 
-export const DreamsList = ({ dreams, analyses, onAnalyze, onEdit, onDelete, isLoading }: DreamsListProps) => {
+export const DreamsList = ({
+  dreams,
+  analyses,
+  onAnalyze,
+  onEdit,
+  onDelete,
+  isLoading,
+  generatingImageForDreams = new Set()
+}: DreamsListProps) => {
   if (isLoading) {
     return <p className="text-center text-muted-foreground">Loading dreams...</p>;
   }
@@ -35,6 +44,7 @@ export const DreamsList = ({ dreams, analyses, onAnalyze, onEdit, onDelete, isLo
           onEdit={onEdit}
           onDelete={onDelete}
           isPersonalView={true}
+          isGeneratingImage={generatingImageForDreams.has(dream.id)}
         />
       ))}
     </div>

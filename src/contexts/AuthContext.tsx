@@ -12,6 +12,8 @@ interface AuthContextType {
   signUp: (email: string, password: string, username: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -201,6 +203,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const forgotPassword = async (email: string) => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/reset-password',
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Password Reset Email Sent',
+        description: 'Check your email for a password reset link.',
+      });
+    } catch (error) {
+      console.error('Password reset error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Password Reset Failed',
+        description: error instanceof Error ? error.message : 'Failed to send password reset email',
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetPassword = async (password: string) => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.updateUser({
+        password: password,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Password Updated',
+        description: 'Your password has been successfully reset.',
+      });
+    } catch (error) {
+      console.error('Password update error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Password Update Failed',
+        description: error instanceof Error ? error.message : 'Failed to update password',
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -210,7 +264,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signIn,
       signUp,
       signOut,
-      signInWithGoogle
+      signInWithGoogle,
+      forgotPassword,
+      resetPassword
     }}>
       {children}
     </AuthContext.Provider>
