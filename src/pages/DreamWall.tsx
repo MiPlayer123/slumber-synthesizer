@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Dream, Profile } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,6 +30,7 @@ import { useDreamLikes } from '@/hooks/use-dream-likes';
 export default function DreamWall() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [selectedDream, setSelectedDream] = useState<Dream | null>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
@@ -40,13 +41,17 @@ export default function DreamWall() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [emotionFilter, setEmotionFilter] = useState('');
   
+  const refreshLikes = () => {
+    queryClient.invalidateQueries({ queryKey: ['dream-likes-count'] });
+  };
+  
   const { 
     likesCount: selectedDreamLikes, 
     hasLiked: selectedDreamHasLiked, 
     toggleLike: toggleSelectedDreamLike, 
     isLoading: isTogglingLike,
     refetch: refetchSelectedDreamLikes
-  } = useDreamLikes(selectedDream?.id || '');
+  } = useDreamLikes(selectedDream?.id || '', refreshLikes);
   
   const { data: dreams = [], isLoading, error } = useQuery({
     queryKey: ['dreams', 'public'],
@@ -185,6 +190,13 @@ export default function DreamWall() {
         description: 'Dream link copied to clipboard!',
       });
     });
+  };
+
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      setSelectedDream(null);
+      refreshLikes();
+    }
   };
 
   return (
@@ -391,12 +403,16 @@ export default function DreamWall() {
               dream={dream} 
               onDreamClick={() => setSelectedDream(dream)}
               onShare={() => handleShareDream(dream.id)}
+              refreshLikes={refreshLikes}
             />
           ))}
         </div>
       )}
       
-      <Dialog open={!!selectedDream} onOpenChange={(open) => !open && setSelectedDream(null)}>
+      <Dialog 
+        open={!!selectedDream} 
+        onOpenChange={handleDialogOpenChange}
+      >
         <DialogContent className="max-w-5xl p-0 overflow-hidden">
           <DialogTitle className="sr-only">Dream Details</DialogTitle>
           <DialogDescription className="sr-only">View and interact with dream details</DialogDescription>
@@ -492,7 +508,11 @@ export default function DreamWall() {
                 
                 <div className="p-4 border-t">
                   <div className="flex items-center space-x-4 mb-2">
-                    <DreamLikeButton dreamId={selectedDream.id} />
+                    <DreamLikeButton 
+                      dreamId={selectedDream.id} 
+                      className="" 
+                      onSuccess={refreshLikes}
+                    />
                     
                     <Button 
                       variant="ghost" 
@@ -536,15 +556,16 @@ type DreamTileProps = {
   dream: Dream;
   onDreamClick: () => void;
   onShare: () => void;
+  refreshLikes: () => void;
 };
 
-const DreamTile: React.FC<DreamTileProps> = ({ dream, onDreamClick, onShare }) => {
-  const { likesCount, hasLiked, toggleLike, isLoading: isLikeLoading } = useDreamLikes(dream.id);
-  
-  const handleLikeClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    toggleLike();
-  };
+const DreamTile: React.FC<DreamTileProps> = ({ 
+  dream, 
+  onDreamClick, 
+  onShare,
+  refreshLikes 
+}) => {
+  const { likesCount, hasLiked, toggleLike, isLoading: isLikeLoading } = useDreamLikes(dream.id, refreshLikes);
   
   const handleShareClick = (e: React.MouseEvent) => {
     e.stopPropagation();

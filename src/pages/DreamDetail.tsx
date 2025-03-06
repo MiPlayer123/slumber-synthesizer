@@ -1,5 +1,4 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +10,7 @@ import { MessageCircle, Share, ArrowLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { DreamLikeButton } from '@/components/dreams/DreamLikeButton';
+import { useQueryClient } from 'react-query';
 
 export default function DreamDetail() {
   const { dreamId } = useParams<{ dreamId: string }>();
@@ -19,13 +19,13 @@ export default function DreamDetail() {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   
   useEffect(() => {
     async function fetchDream() {
       if (!dreamId) return;
       
       try {
-        // Fetch the dream
         const { data, error } = await supabase
           .from('dreams')
           .select(`
@@ -44,7 +44,6 @@ export default function DreamDetail() {
           
         if (error) throw error;
         if (data) {
-          // Ensure the data conforms to the Dream type
           const dreamWithProfiles: Dream = {
             ...data,
             profiles: data.profiles as Profile
@@ -99,6 +98,10 @@ export default function DreamDetail() {
     });
   };
   
+  const refreshLikes = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['dream-likes-count'] });
+  }, [queryClient]);
+  
   if (loading) {
     return (
       <div className="container mx-auto py-8 flex items-center justify-center min-h-[60vh]">
@@ -129,7 +132,6 @@ export default function DreamDetail() {
       
       <div className="bg-card text-card-foreground rounded-lg shadow-md overflow-hidden">
         <div className="md:grid md:grid-cols-5 flex flex-col">
-          {/* Image Column */}
           <div className="md:col-span-3 h-[350px] md:h-auto bg-muted relative">
             {dream.image_url ? (
               <img 
@@ -144,7 +146,6 @@ export default function DreamDetail() {
             )}
           </div>
           
-          {/* Content Column */}
           <div className="md:col-span-2 p-6 flex flex-col">
             <div className="flex items-center gap-2 mb-4">
               <Avatar className="h-8 w-8">
@@ -173,7 +174,7 @@ export default function DreamDetail() {
             </div>
             
             <div className="mt-auto flex items-center space-x-4">
-              {dreamId && <DreamLikeButton dreamId={dreamId} />}
+              {dreamId && <DreamLikeButton dreamId={dreamId} onSuccess={refreshLikes} />}
               
               <Button 
                 variant="ghost" 
@@ -198,10 +199,8 @@ export default function DreamDetail() {
           </div>
         </div>
         
-        {/* Comments section would go here */}
         <div id="comments" className="p-6 border-t">
           <h2 className="text-xl font-bold mb-4">Comments</h2>
-          {/* Add your comments component here */}
         </div>
       </div>
     </div>
