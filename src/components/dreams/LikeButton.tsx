@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 interface LikeButtonProps {
   isLiked: boolean;
   likesCount: number;
-  onClick: () => void;
+  onClick: () => void; // Confirms the onClick handler expects no parameters
   isLoading?: boolean;
   className?: string;
   showCount?: boolean;
