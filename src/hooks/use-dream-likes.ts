@@ -17,7 +17,7 @@ export const useDreamLikes = (dreamId: string) => {
     try {
       // Get total likes count
       const { data: likesData, error: likesError } = await supabase
-        .from('dream_likes')
+        .from('likes')
         .select('id')
         .eq('dream_id', dreamId);
         
@@ -28,7 +28,7 @@ export const useDreamLikes = (dreamId: string) => {
       // Check if current user has liked
       if (user) {
         const { data: userLikeData, error: userLikeError } = await supabase
-          .from('dream_likes')
+          .from('likes')
           .select('id')
           .eq('dream_id', dreamId)
           .eq('user_id', user.id)

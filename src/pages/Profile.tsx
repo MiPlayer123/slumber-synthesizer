@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -17,6 +18,9 @@ interface Profile {
   avatar_url: string | null;
   bio: string | null;
   website: string | null;
+  full_name: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export const Profile = () => {
@@ -58,10 +62,17 @@ export const Profile = () => {
         }
         
         if (data) {
-          setProfile(data);
-          setUsername(data.username || "");
-          setWebsite(data.website || "");
-          setBio(data.bio || "");
+          // Initialize with default values for bio and website if they're null
+          const profileData: Profile = {
+            ...data,
+            bio: data.bio || "",
+            website: data.website || ""
+          };
+          
+          setProfile(profileData);
+          setUsername(profileData.username || "");
+          setWebsite(profileData.website || "");
+          setBio(profileData.bio || "");
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -94,7 +105,9 @@ export const Profile = () => {
       
       const { error } = await supabase
         .from("profiles")
-        .upsert(updates, { returning: "minimal" });
+        .upsert(updates, { 
+          onConflict: 'id' 
+        });
         
       if (error) {
         throw error;
@@ -333,4 +346,4 @@ export const Profile = () => {
       </Card>
     </div>
   );
-}; 
+};
