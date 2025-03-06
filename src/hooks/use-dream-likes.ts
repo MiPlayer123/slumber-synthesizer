@@ -3,13 +3,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
-export const useDreamLikes = (dreamId: string) => {
+export const useDreamLikes = (dreamId: string, onSuccess?: () => void) => {
   const { user } = useAuth();
   const [hasLiked, setHasLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const fetchLikes = useCallback(async () => {
     if (!dreamId) return;
@@ -48,6 +50,34 @@ export const useDreamLikes = (dreamId: string) => {
   useEffect(() => {
     fetchLikes();
   }, [fetchLikes]);
+
+  // Setup listener for real-time updates to likes
+  useEffect(() => {
+    if (!dreamId) return;
+    
+    // Subscribe to changes on the likes table for this dream
+    const channel = supabase
+      .channel(`likes-${dreamId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen for all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'likes',
+          filter: `dream_id=eq.${dreamId}`
+        },
+        () => {
+          // Refresh likes count and status when any changes occur
+          fetchLikes();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      // Unsubscribe when component unmounts
+      supabase.removeChannel(channel);
+    };
+  }, [dreamId, fetchLikes]);
 
   // Toggle like function
   const toggleLike = useCallback(async () => {
@@ -102,6 +132,15 @@ export const useDreamLikes = (dreamId: string) => {
           description: "You have liked this dream"
         });
       }
+      
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
+      
+      // Invalidate any queries for this dream's likes
+      queryClient.invalidateQueries({ queryKey: ['dream-likes-count', dreamId] });
+      
     } catch (error) {
       console.error('Error toggling like:', error);
       toast({
@@ -112,7 +151,7 @@ export const useDreamLikes = (dreamId: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [dreamId, hasLiked, isLoading, toast, user]);
+  }, [dreamId, hasLiked, isLoading, toast, user, onSuccess, queryClient]);
 
   return {
     likesCount,

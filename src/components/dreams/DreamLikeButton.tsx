@@ -5,10 +5,11 @@ import { LikeButton } from '@/components/dreams/LikeButton';
 interface DreamLikeButtonProps {
   dreamId: string;
   className?: string;
+  onSuccess?: () => void;
 }
 
-export const DreamLikeButton = ({ dreamId, className }: DreamLikeButtonProps) => {
-  const { likesCount, hasLiked, toggleLike, isLoading } = useDreamLikes(dreamId);
+export const DreamLikeButton = ({ dreamId, className, onSuccess }: DreamLikeButtonProps) => {
+  const { likesCount, hasLiked, toggleLike, isLoading } = useDreamLikes(dreamId, onSuccess);
 
   return (
     <LikeButton
