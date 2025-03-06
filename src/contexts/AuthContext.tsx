@@ -13,6 +13,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, username: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  completeGoogleSignUp: (username: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -273,6 +274,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Function to complete Google sign-up with a username
+  const completeGoogleSignUp = async (username: string) => {
+    try {
+      setLoading(true);
+      
+      if (!username || username.trim() === '') {
+        throw new Error('Username cannot be empty');
+      }
+      
+      // Get the current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) throw userError;
+      if (!user) throw new Error('No authenticated user found');
+      
+      // Create or update the profile with the provided username
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert([
+          {
+            id: user.id,
+            username: username.trim(),
+            full_name: user.user_metadata?.name || '',
+            email: user.email || '',
+            avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || ''
+          }
+        ]);
+      
+      if (profileError) {
+        throw new Error(`Profile creation failed: ${profileError.message}`);
+      }
+      
+      // Force refresh the session to update user info
+      await supabase.auth.refreshSession();
+      
+      // Redirect to the journal page
+      window.location.href = '/journal';
+      
+      toast({
+        title: 'Account setup complete!',
+        description: 'Your account has been successfully set up.',
+      });
+    } catch (error) {
+      console.error('Complete Google sign-up error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Sign Up Failed',
+        description: error instanceof Error ? error.message : 'Failed to complete account setup',
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -282,7 +338,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signIn,
       signUp,
       signOut,
-      signInWithGoogle
+      signInWithGoogle,
+      completeGoogleSignUp
     }}>
       {children}
     </AuthContext.Provider>
