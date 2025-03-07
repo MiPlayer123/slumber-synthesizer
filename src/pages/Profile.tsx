@@ -73,6 +73,15 @@ export const Profile = () => {
           setUsername(profileData.username || "");
           setWebsite(profileData.website || "");
           setBio(profileData.bio || "");
+          
+          // Sync avatar URL to user metadata if they're different
+          if (profileData.avatar_url && 
+              user.user_metadata?.avatar_url !== profileData.avatar_url) {
+            // Update user metadata with the profile avatar URL
+            await supabase.auth.updateUser({
+              data: { avatar_url: profileData.avatar_url }
+            });
+          }
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -199,6 +208,15 @@ export const Profile = () => {
         
       if (updateError) {
         throw updateError;
+      }
+      
+      // Update user metadata with the new avatar URL
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: { avatar_url: publicUrl }
+      });
+      
+      if (metadataError) {
+        throw metadataError;
       }
       
       // Update local state
