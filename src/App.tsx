@@ -20,6 +20,7 @@ const Community = lazy(() => import("@/pages/Community"));
 const Statistics = lazy(() => import("@/pages/Statistics"));
 const DreamWall = lazy(() => import("@/pages/DreamWall"));
 const DreamDetail = lazy(() => import("@/pages/DreamDetail"));
+const Settings = lazy(() => import("@/pages/Settings"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -116,6 +117,14 @@ function AppRoutes() {
             <Suspense fallback={<LoadingSpinner />}>
               <DreamDetail />
             </Suspense>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/settings" 
+        element={
+          <ProtectedRoute>
+            <Settings />
           </ProtectedRoute>
         } 
       />
