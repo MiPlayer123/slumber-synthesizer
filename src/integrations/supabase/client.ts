@@ -93,7 +93,7 @@ export const supabase = createClient<Database>(
         'X-Client-Info': 'slumber-synthesizer/1.0.0'
       },
     },
-    // Add some debug info in development
+    // Add some debug info in development mode
     ...(import.meta.env.DEV ? { 
       debug: true 
     } : {})
