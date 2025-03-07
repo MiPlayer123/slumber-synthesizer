@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -6,7 +5,7 @@ import { cn } from "@/lib/utils";
 interface LikeButtonProps {
   isLiked: boolean;
   likesCount: number;
-  onClick: () => void;
+  onClick: () => void; // Confirms the onClick handler expects no parameters
   isLoading?: boolean;
   className?: string;
   showCount?: boolean;
@@ -30,8 +29,8 @@ export function LikeButton({
     >
       <Heart
         className={cn(
-          "h-5 w-5 mr-1.5", 
-          isLiked ? "fill-destructive text-destructive" : "text-foreground"
+          "h-5 w-5 mr-1.5 transition-colors duration-200", 
+          isLiked ? "fill-destructive text-destructive" : "text-foreground fill-transparent"
         )}
       />
       {showCount && (

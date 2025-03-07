@@ -296,6 +296,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // This function is from the dreamwall branch
   const forgotPassword = async (email: string) => {
     try {
       setLoading(true);
@@ -322,6 +323,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // This function is from the dreamwall branch
   const resetPassword = async (password: string) => {
     try {
       setLoading(true);
@@ -348,7 +350,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Function to complete Google sign-up with a username
+  // This function is from the main branch
   const completeGoogleSignUp = async (username: string) => {
     try {
       setLoading(true);
@@ -441,4 +443,4 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
+} 
