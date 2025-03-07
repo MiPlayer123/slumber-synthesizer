@@ -41,9 +41,15 @@ export default function DreamWall() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [emotionFilter, setEmotionFilter] = useState('');
   
-  const refreshLikes = () => {
-    queryClient.invalidateQueries({ queryKey: ['dream-likes-count'] });
-  };
+  const refreshLikes = useCallback((dreamId?: string) => {
+    if (dreamId) {
+      // Invalidate a specific dream's likes
+      queryClient.invalidateQueries({ queryKey: ['dream-likes-count', dreamId] });
+    } else {
+      // Invalidate all likes (fallback)
+      queryClient.invalidateQueries({ queryKey: ['dream-likes-count'] });
+    }
+  }, [queryClient]);
   
   const { 
     likesCount: selectedDreamLikes, 
@@ -133,7 +139,9 @@ export default function DreamWall() {
   useEffect(() => {
     if (selectedDream) {
       fetchComments(selectedDream.id);
-      refetchSelectedDreamLikes();
+      if (refetchSelectedDreamLikes && typeof refetchSelectedDreamLikes === 'function') {
+        refetchSelectedDreamLikes();
+      }
     }
   }, [selectedDream, refetchSelectedDreamLikes]);
 
@@ -510,8 +518,7 @@ export default function DreamWall() {
                   <div className="flex items-center space-x-4 mb-2">
                     <DreamLikeButton 
                       dreamId={selectedDream.id} 
-                      className="" 
-                      onSuccess={refreshLikes}
+                      onSuccess={() => refreshLikes(selectedDream.id)}
                     />
                     
                     <Button 
@@ -556,7 +563,7 @@ type DreamTileProps = {
   dream: Dream;
   onDreamClick: () => void;
   onShare: () => void;
-  refreshLikes: () => void;
+  refreshLikes: (dreamId?: string) => void;
 };
 
 const DreamTile: React.FC<DreamTileProps> = ({ 
@@ -565,11 +572,18 @@ const DreamTile: React.FC<DreamTileProps> = ({
   onShare,
   refreshLikes 
 }) => {
-  const { likesCount, hasLiked, toggleLike, isLoading: isLikeLoading } = useDreamLikes(dream.id, refreshLikes);
+  const { likesCount, hasLiked, toggleLike, isLoading: isLikeLoading } = useDreamLikes(
+    dream.id, 
+    () => refreshLikes(dream.id)
+  );
   
   const handleShareClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onShare();
+  };
+
+  const handleLikeClick = () => {
+    toggleLike();
   };
 
   return (
@@ -614,13 +628,15 @@ const DreamTile: React.FC<DreamTileProps> = ({
       
       <CardFooter className="p-4 pt-0 flex justify-between">
         <div className="flex items-center gap-4">
-          <LikeButton 
-            isLiked={hasLiked}
-            likesCount={likesCount}
-            onClick={() => toggleLike()}
-            isLoading={isLikeLoading}
-            showCount={true}
-          />
+          <div onClick={(e) => e.stopPropagation()} className="inline-block">
+            <LikeButton
+              isLiked={hasLiked}
+              likesCount={likesCount}
+              onClick={handleLikeClick}
+              isLoading={isLikeLoading}
+              showCount={true}
+            />
+          </div>
           
           <Button 
             variant="ghost" 
