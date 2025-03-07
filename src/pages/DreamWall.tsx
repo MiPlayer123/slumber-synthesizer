@@ -87,6 +87,8 @@ export default function DreamWall() {
       console.log('Fetched dreams:', data);
       return data || [];
     },
+    refetchOnMount: 'always',
+    staleTime: 0
   });
   
   const filteredDreams = dreams.filter(dream => {
