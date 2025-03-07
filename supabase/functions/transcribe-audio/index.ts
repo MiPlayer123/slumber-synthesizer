@@ -52,7 +52,7 @@ serve(async (req) => {
     let audioBlob;
     try {
       audioBlob = base64Decode(audioBase64);
-      console.log('Decoded audio data, size:', audioBlob.length);
+      console.log('Decoded audio data, size:', audioBlob.length, 'bytes');
     } catch (error) {
       console.error('Error decoding base64 audio:', error);
       throw new Error('Invalid audio data format');
@@ -62,16 +62,29 @@ serve(async (req) => {
     const formData = new FormData();
     
     try {
-      // Create a Blob with proper type and name
-      const blob = new Blob([audioBlob], { type: 'audio/webm' });
-      formData.append('file', blob, 'recording.webm');
-      formData.append('model', 'whisper-1');
-      formData.append('language', 'en'); // Optional: specify language
+      // Create a file object from the binary data
+      const file = new File([audioBlob], "recording.webm", { type: "audio/webm" });
       
-      console.log('FormData created successfully');
-    } catch (error) {
-      console.error('Error creating FormData:', error);
-      throw new Error(`Failed to create form data: ${error.message}`);
+      formData.append('file', file);
+      formData.append('model', 'whisper-1');
+      formData.append('language', 'en');
+      
+      console.log('FormData created successfully with File object');
+    } catch (fileError) {
+      console.error('Error creating File object:', fileError);
+      
+      // Fallback to Blob if File constructor fails
+      try {
+        const blob = new Blob([audioBlob], { type: 'audio/webm' });
+        formData.append('file', blob, 'recording.webm');
+        formData.append('model', 'whisper-1');
+        formData.append('language', 'en');
+        
+        console.log('FormData created successfully with Blob fallback');
+      } catch (blobError) {
+        console.error('Error creating Blob:', blobError);
+        throw new Error(`Cannot create form data: ${blobError.message}`);
+      }
     }
     
     console.log('Sending request to OpenAI API');
