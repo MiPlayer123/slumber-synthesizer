@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
@@ -342,6 +341,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         variant: 'destructive',
         title: 'Password Update Failed',
         description: error instanceof Error ? error.message : 'Failed to update password',
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Function to complete Google sign-up with a username
   const completeGoogleSignUp = async (username: string) => {
     try {
@@ -421,7 +427,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut,
       signInWithGoogle,
       forgotPassword,
-      resetPassword
+      resetPassword,
       completeGoogleSignUp
     }}>
       {children}

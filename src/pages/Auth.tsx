@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,8 +17,7 @@ import {
 } from "@/components/ui/dialog";
 
 const Auth = () => {
-  const { user, signIn, signUp, signInWithGoogle, forgotPassword, loading } = useAuth();
-  const { user, signIn, signUp, signInWithGoogle, completeGoogleSignUp } = useAuth();
+  const { user, signIn, signUp, signInWithGoogle, forgotPassword, completeGoogleSignUp, loading } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
