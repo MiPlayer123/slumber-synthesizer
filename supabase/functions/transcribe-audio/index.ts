@@ -60,35 +60,72 @@ serve(async (req) => {
     
     // Create a FormData object to send to OpenAI
     const formData = new FormData();
-    formData.append('file', new Blob([audioBlob], { type: 'audio/webm' }), 'recording.webm');
-    formData.append('model', 'whisper-1');
-    formData.append('language', 'en'); // Optional: specify language
+    
+    try {
+      // Create a Blob with proper type and name
+      const blob = new Blob([audioBlob], { type: 'audio/webm' });
+      formData.append('file', blob, 'recording.webm');
+      formData.append('model', 'whisper-1');
+      formData.append('language', 'en'); // Optional: specify language
+      
+      console.log('FormData created successfully');
+    } catch (error) {
+      console.error('Error creating FormData:', error);
+      throw new Error(`Failed to create form data: ${error.message}`);
+    }
     
     console.log('Sending request to OpenAI API');
     
-    // Send request to OpenAI API
-    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-      },
-      body: formData,
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorData;
-      try {
-        errorData = JSON.parse(errorText);
-      } catch {
-        errorData = { error: { message: errorText } };
-      }
+    // Send request to OpenAI API with enhanced error handling
+    let response;
+    try {
+      response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+        },
+        body: formData,
+      });
       
-      console.error('OpenAI API error:', errorData);
-      throw new Error(errorData.error?.message || `Transcription failed with status ${response.status}`);
+      console.log('Received response from OpenAI API, status:', response.status);
+    } catch (error) {
+      console.error('Network error when calling OpenAI API:', error);
+      throw new Error(`Network error: ${error.message}`);
     }
     
-    const data = await response.json();
+    if (!response.ok) {
+      let errorDetails = 'Unknown error';
+      try {
+        const errorText = await response.text();
+        console.error('OpenAI API error response:', errorText);
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          errorDetails = errorData.error?.message || `Status ${response.status}`;
+        } catch {
+          errorDetails = errorText || `Status ${response.status}`;
+        }
+      } catch (e) {
+        console.error('Error parsing error response:', e);
+        errorDetails = `Status ${response.status}`;
+      }
+      
+      throw new Error(`Transcription failed: ${errorDetails}`);
+    }
+    
+    let data;
+    try {
+      data = await response.json();
+    } catch (error) {
+      console.error('Error parsing OpenAI response:', error);
+      throw new Error('Invalid response from OpenAI API');
+    }
+    
+    if (!data.text) {
+      console.error('No transcription in response:', data);
+      throw new Error('No transcription returned from OpenAI');
+    }
+    
     console.log('Transcription completed successfully');
     
     return new Response(
