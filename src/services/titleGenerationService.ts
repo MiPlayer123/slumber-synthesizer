@@ -1,4 +1,5 @@
-import { apiKeyService } from './apiKeyService';
+
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Service to generate dream titles from descriptions using OpenAI
@@ -15,37 +16,26 @@ export const titleGenerationService = {
     }
 
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKeyService.getApiKey()}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a helpful assistant that generates short, creative titles for dreams. Generate a brief, imaginative title (4-6 words max) based on the dream description provided. Do not include quotes or any explanations, just return the title text.'
-            },
-            {
-              role: 'user',
-              content: `Generate a title for this dream: ${description.substring(0, 500)}...`
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 30
-        })
+      // Create a structured request for title generation
+      const request = {
+        prompt: description.substring(0, 500),
+        type: 'title',
+        maxWords: 6
+      };
+
+      // Call the analyze-dream Edge Function
+      // We use the existing Edge Function since it already has OpenAI access
+      const { data, error } = await supabase.functions.invoke('analyze-dream', {
+        body: request
       });
 
-      const data = await response.json();
-      if (!response.ok) {
-        console.error('Error generating title:', data);
+      if (error) {
+        console.error('Error generating title:', error);
         return createFallbackTitle(description);
       }
 
       // Extract the title from the response
-      const generatedTitle = data.choices?.[0]?.message?.content?.trim() || createFallbackTitle(description);
+      const generatedTitle = data?.title || createFallbackTitle(description);
       return generatedTitle;
     } catch (error) {
       console.error('Failed to generate title:', error);
@@ -75,4 +65,4 @@ function createFallbackTitle(description: string): string {
   }
 
   return title + (title.endsWith('.') ? '' : '...');
-} 
+}
