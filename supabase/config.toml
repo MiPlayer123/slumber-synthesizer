@@ -46,7 +46,6 @@ jwt_expiry = 3600
 # Allow/disallow new user signups to your project.
 enable_signup = true
 
-# Configure Edge Functions
 [functions]
 # Port to use for Edge Functions emulator.
 port = 54321
