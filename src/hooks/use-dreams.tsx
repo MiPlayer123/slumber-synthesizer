@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dream } from "@/lib/types";
@@ -37,5 +36,7 @@ export const useDreams = (userId: string | undefined) => {
       console.log('Successfully fetched dreams:', data);
       return data as Dream[];
     },
+    refetchOnMount: 'always',
+    staleTime: 0
   });
 };

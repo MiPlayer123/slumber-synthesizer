@@ -20,12 +20,15 @@ const Community = lazy(() => import("@/pages/Community"));
 const Statistics = lazy(() => import("@/pages/Statistics"));
 const DreamWall = lazy(() => import("@/pages/DreamWall"));
 const DreamDetail = lazy(() => import("@/pages/DreamDetail"));
+const Settings = lazy(() => import("@/pages/Settings"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      refetchOnMount: true,
+      staleTime: 1000 * 30, // 30 seconds
     },
   },
 });
@@ -119,29 +122,47 @@ function AppRoutes() {
           </ProtectedRoute>
         } 
       />
+      <Route 
+        path="/settings" 
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        } 
+      />
       <Route path="*" element={<NotFound />} />
     </Routes>
+  );
+}
+
+// Create a separate component that uses the router hooks
+function AppContent() {
+  const location = useLocation();
+  
+  return (
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <div className="min-h-screen bg-background font-sans antialiased">
+            <Navigation />
+            <main className="pt-16">
+              {/* Add key prop using pathname to force re-rendering when route changes */}
+              <AppRoutes key={location.pathname} />
+            </main>
+            <Toaster />
+            {/* SpeedInsights has been temporarily disabled */}
+            {/* <SpeedInsights /> */}
+          </div>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 
 function App() {
   return (
     <Router>
-      <ThemeProvider>
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <div className="min-h-screen bg-background font-sans antialiased">
-              <Navigation />
-              <main className="pt-16">
-                <AppRoutes />
-              </main>
-              <Toaster />
-              {/* SpeedInsights has been temporarily disabled */}
-              {/* <SpeedInsights /> */}
-            </div>
-          </AuthProvider>
-        </QueryClientProvider>
-      </ThemeProvider>
+      <AppContent />
     </Router>
   );
 }
