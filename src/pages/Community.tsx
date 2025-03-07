@@ -18,14 +18,17 @@ import { useCallback } from "react";
 
 const Community = () => {
   // Fetch public dreams with their authors
-  const { data: publicDreams, isLoading } = useQuery({
-    queryKey: ['public-dreams'],
+  const { data: publicDreams = [], isLoading } = useQuery({
+    queryKey: ['dreams', 'community'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('dreams')
         .select(`
           *,
-          profiles!dreams_user_id_fkey(username, avatar_url)
+          profiles:user_id (
+            username,
+            avatar_url
+          )
         `)
         .eq('is_public', true)
         .order('created_at', { ascending: false });
@@ -33,6 +36,10 @@ const Community = () => {
       if (error) throw error;
       return data as (Dream & { profiles: Pick<Profile, 'username' | 'avatar_url'> })[];
     },
+    // Ensure data is fetched when the component mounts
+    refetchOnMount: 'always',
+    // Don't rely on stale data when navigating to this page
+    staleTime: 0
   });
 
   return (
