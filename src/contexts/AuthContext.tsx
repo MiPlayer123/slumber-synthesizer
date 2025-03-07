@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
@@ -14,6 +15,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (password: string) => Promise<void>;
+  completeGoogleSignUp: (username: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,6 +26,75 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
+
+  // Function to ensure user profile exists
+  const ensureUserProfile = async (user: User) => {
+    try {
+      // First check if profile already exists
+      const { data: existingProfile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error('Error checking for existing profile:', fetchError);
+        return;
+      }
+
+      // If profile exists, we're done
+      if (existingProfile) {
+        console.log('User profile already exists');
+        return;
+      }
+
+      // For Google auth, we need to check if we have a username
+      // If not, we don't try to create a profile yet - the Auth component will handle this
+      const metadata = user.user_metadata;
+      const provider = metadata?.provider;
+      
+      if (provider === 'google' && (!metadata?.username)) {
+        console.log('Google auth user without username, skipping profile creation');
+        return;
+      }
+
+      // Extract user data from metadata
+      const userEmail = user.email || '';
+      const fullName = metadata?.full_name || metadata?.name || '';
+      // For Google users, we'll use the username they provided in the second step
+      // For email users, their username comes from the signup form
+      const username = metadata?.username || metadata?.preferred_username || userEmail.split('@')[0];
+      
+      if (!username || username.trim() === '') {
+        console.error('Cannot create profile: username is empty');
+        return;
+      }
+      
+      // Create profile if it doesn't exist
+      const { error: insertError } = await supabase
+        .from('profiles')
+        .insert([{
+          id: user.id,
+          username,
+          full_name: fullName,
+          email: userEmail,
+          avatar_url: metadata?.avatar_url || metadata?.picture || ''
+        }]);
+
+      if (insertError) {
+        console.error('Error creating user profile:', insertError);
+        toast({
+          variant: 'destructive',
+          title: 'Profile Creation Error',
+          description: 'There was an error creating your profile.',
+        });
+      } else {
+        console.log('Created new user profile');
+      }
+    } catch (err) {
+      console.error('Error in ensureUserProfile:', err);
+    }
+  };
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -47,12 +118,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session) {
           setSession(session);
           setUser(session.user);
+          
+          // Ensure profile exists for the authenticated user
+          await ensureUserProfile(session.user);
         }
         
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          (_event, session) => {
+          async (_event, session) => {
             setSession(session);
             setUser(session?.user || null);
+            
+            // If there's a user in the session, ensure they have a profile
+            if (session?.user) {
+              await ensureUserProfile(session.user);
+            }
           }
         );
         
@@ -107,6 +186,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string, username: string, fullName: string) => {
     try {
       setLoading(true);
+      
+      // Validate username is not empty (this is required by the database)
+      if (!username || username.trim() === '') {
+        throw new Error('Username cannot be empty');
+      }
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -121,18 +206,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
 
       if (data.user) {
+        // Create profile record after successful signup
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([
             {
               id: data.user.id,
-              username,
+              username, // Ensure username is included
               full_name: fullName,
               email
             }
           ]);
 
-        if (profileError) throw profileError;
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          throw new Error(`Profile creation failed: ${profileError.message}`);
+        }
       }
 
       toast({
@@ -180,7 +269,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin + '/journal',
+          redirectTo: window.location.origin + '/auth',
+          queryParams: {
+            // Ensure the auth flow includes enough privileges
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       });
 
@@ -248,6 +342,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         variant: 'destructive',
         title: 'Password Update Failed',
         description: error instanceof Error ? error.message : 'Failed to update password',
+  // Function to complete Google sign-up with a username
+  const completeGoogleSignUp = async (username: string) => {
+    try {
+      setLoading(true);
+      
+      if (!username || username.trim() === '') {
+        throw new Error('Username cannot be empty');
+      }
+      
+      // Get the current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) throw userError;
+      if (!user) throw new Error('No authenticated user found');
+      
+      // Update user metadata to include the username
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { 
+          username: username.trim(),
+          provider: 'google' // Mark that this is a Google auth user
+        }
+      });
+      
+      if (updateError) {
+        console.error('Error updating user metadata:', updateError);
+        throw updateError;
+      }
+      
+      // Create or update the profile with the provided username
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert([
+          {
+            id: user.id,
+            username: username.trim(),
+            full_name: user.user_metadata?.name || '',
+            email: user.email || '',
+            avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || ''
+          }
+        ]);
+      
+      if (profileError) {
+        throw new Error(`Profile creation failed: ${profileError.message}`);
+      }
+      
+      // Force refresh the session to update user info
+      await supabase.auth.refreshSession();
+      
+      // Redirect to the journal page after completion
+      window.location.href = '/journal';
+      
+      toast({
+        title: 'Account setup complete!',
+        description: 'Your account has been successfully set up.',
+      });
+    } catch (error) {
+      console.error('Complete Google sign-up error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Sign Up Failed',
+        description: error instanceof Error ? error.message : 'Failed to complete account setup',
       });
       throw error;
     } finally {
@@ -267,6 +422,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithGoogle,
       forgotPassword,
       resetPassword
+      completeGoogleSignUp
     }}>
       {children}
     </AuthContext.Provider>

@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Sitemap files
+Sitemap: https://rem-sleep.app/sitemap.xml

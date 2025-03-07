@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { Dream, DreamCategory, DreamEmotion } from "@/lib/types";
+import type { Dream } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { DreamCategory, DreamEmotion } from "@/lib/types";
 import {
   Select,
   SelectContent,
@@ -24,15 +26,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { titleGenerationService } from "@/services/titleGenerationService";
 import { useToast } from "@/hooks/use-toast";
 
-interface CreateDreamFormProps {
-  onSubmit: (dream: Omit<Dream, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => void;
-}
+type CreateDreamFormProps = {
+  onSubmit: (dream: Omit<Dream, 'id' | 'user_id' | 'created_at' | 'updated_at'>, file?: File) => void;
+};
 
 const dreamCategories: DreamCategory[] = ['normal', 'nightmare', 'lucid', 'recurring', 'prophetic'];
 const dreamEmotions: DreamEmotion[] = ['neutral', 'joy', 'fear', 'confusion', 'anxiety', 'peace', 'excitement', 'sadness'];
 
-export const CreateDreamForm = ({ onSubmit }: CreateDreamFormProps) => {
+export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
   const { toast } = useToast();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [newDream, setNewDream] = useState({
     title: "", // Still keeping the title property, but it will be auto-generated
     description: "",
@@ -69,8 +72,8 @@ export const CreateDreamForm = ({ onSubmit }: CreateDreamFormProps) => {
         title: generatedTitle
       };
       
-      // Submit the dream
-      onSubmit(dreamToSubmit);
+      // Submit the dream with the file
+      onSubmit(dreamToSubmit, selectedFile || undefined);
     } catch (error) {
       console.error('Error during dream submission:', error);
       toast({
@@ -89,6 +92,14 @@ export const CreateDreamForm = ({ onSubmit }: CreateDreamFormProps) => {
       ...prev,
       description: (prev.description ? prev.description + "\n\n" : "") + text
     }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    } else {
+      setSelectedFile(null);
+    }
   };
 
   return (
@@ -197,6 +208,19 @@ export const CreateDreamForm = ({ onSubmit }: CreateDreamFormProps) => {
             <Label htmlFor="is_public">Make this dream public</Label>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="media">Upload Image (Optional)</Label>
+            <Input 
+              id="media" 
+              type="file" 
+              accept="image/*,video/*" 
+              onChange={handleFileChange} 
+            />
+            <p className="text-sm text-muted-foreground">
+              Upload your own image or video, or let AI generate an image based on your dream.
+            </p>
+          </div>
+
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? (
               <>
@@ -211,4 +235,4 @@ export const CreateDreamForm = ({ onSubmit }: CreateDreamFormProps) => {
       </CardContent>
     </Card>
   );
-};
+}
