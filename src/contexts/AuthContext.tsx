@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 
 interface AuthContextType {
   user: User | null;
@@ -15,6 +16,7 @@ interface AuthContextType {
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (password: string) => Promise<void>;
   completeGoogleSignUp: (username: string) => Promise<void>;
+  clearAuthStorage: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,6 +27,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
+
+  // Function to clear auth storage and reset state
+  const clearAuthStorage = () => {
+    try {
+      // Clear any persisted Supabase auth data from local storage
+      localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem('sb-refresh-token');
+      localStorage.removeItem('sb-access-token');
+      localStorage.removeItem('supabase.auth.expires_at');
+      
+      // Clear any app-specific auth storage items if they exist
+      localStorage.removeItem('auth-user');
+      
+      console.log('Auth storage cleared');
+      
+      // Reset auth state
+      setUser(null);
+      setSession(null);
+      setError(null);
+      
+      return true;
+    } catch (error) {
+      console.error('Error clearing auth storage:', error);
+      return false;
+    }
+  };
 
   // Function to ensure user profile exists
   const ensureUserProfile = async (user: User) => {
@@ -96,60 +124,137 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    // Create a reference to store the auth subscription
+    let authSubscription: { unsubscribe: () => void } | null = null;
+    
     const initializeAuth = async () => {
-      try {
-        const timeoutId = setTimeout(() => {
-          console.error('Auth initialization timeout reached');
-          setLoading(false);
-          toast({
-            variant: 'destructive',
-            title: 'Authentication Error',
-            description: 'Failed to initialize authentication. Please refresh the page.',
-          });
-        }, 10000);
-
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          throw sessionError;
-        }
-        
-        if (session) {
-          setSession(session);
-          setUser(session.user);
-          
-          // Ensure profile exists for the authenticated user
-          await ensureUserProfile(session.user);
-        }
-        
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (_event, session) => {
-            setSession(session);
-            setUser(session?.user || null);
-            
-            // If there's a user in the session, ensure they have a profile
-            if (session?.user) {
-              await ensureUserProfile(session.user);
-            }
-          }
-        );
-        
-        clearTimeout(timeoutId);
+      // Track retry attempts
+      let retryCount = 0;
+      const maxRetries = 3;
+      const retryDelay = 2000; // 2 seconds between retries
+      
+      // Increase timeout to 20 seconds
+      const timeoutId = setTimeout(() => {
+        console.error('Auth initialization timeout reached after 20 seconds');
         setLoading(false);
         
-        return () => {
-          subscription.unsubscribe();
-        };
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-        setError(error instanceof Error ? error : new Error('Unknown auth error'));
-        setLoading(false);
         toast({
           variant: 'destructive',
           title: 'Authentication Error',
-          description: error instanceof Error ? error.message : 'Failed to initialize authentication',
+          description: 'Failed to initialize authentication. Try clearing your auth data or refreshing the page.',
+          action: (
+            <div className="mt-2">
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  clearAuthStorage();
+                  window.location.reload();
+                }}
+              >
+                Clear Auth Data
+              </Button>
+            </div>
+          ),
         });
-      }
+      }, 20000);
+
+      const attemptInitialization = async (): Promise<void> => {
+        try {
+          console.log(`Auth initialization attempt ${retryCount + 1}/${maxRetries + 1}`);
+          
+          // Add timeout to the Supabase call to prevent it from hanging indefinitely
+          const sessionPromise = supabase.auth.getSession();
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Supabase getSession timeout')), 8000)
+          );
+          
+          // Race between the actual call and a timeout
+          const { data: { session }, error: sessionError } = await Promise.race([
+            sessionPromise,
+            timeoutPromise
+          ]) as any;
+          
+          if (sessionError) {
+            throw sessionError;
+          }
+          
+          if (session) {
+            setSession(session);
+            setUser(session.user);
+            
+            // Ensure profile exists for the authenticated user
+            await ensureUserProfile(session.user);
+          } else {
+            console.log('No active session found');
+          }
+          
+          const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            async (_event, session) => {
+              setSession(session);
+              setUser(session?.user || null);
+              
+              // If there's a user in the session, ensure they have a profile
+              if (session?.user) {
+                await ensureUserProfile(session.user);
+              }
+            }
+          );
+          
+          // Store the subscription for cleanup
+          authSubscription = subscription;
+          
+          clearTimeout(timeoutId);
+          setLoading(false);
+        } catch (error) {
+          console.error(`Auth initialization error (attempt ${retryCount + 1}/${maxRetries + 1}):`, error);
+          
+          // If we haven't reached max retries, try again
+          if (retryCount < maxRetries) {
+            retryCount++;
+            console.log(`Retrying authentication in ${retryDelay/1000} seconds...`);
+            setTimeout(() => attemptInitialization(), retryDelay);
+          } else {
+            // Max retries reached, show error
+            clearTimeout(timeoutId);
+            console.error('Authentication failed after multiple attempts');
+            setError(error instanceof Error ? error : new Error('Unknown auth error'));
+            setLoading(false);
+            
+            toast({
+              variant: 'destructive',
+              title: 'Authentication Error',
+              description: 'Failed to connect to authentication service. Please check your network connection and try again.',
+              action: (
+                <div className="mt-2">
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      clearAuthStorage();
+                      window.location.reload();
+                    }}
+                  >
+                    Clear Auth Data
+                  </Button>
+                </div>
+              ),
+            });
+          }
+        }
+      };
+      
+      // Start the first attempt
+      attemptInitialization();
+      
+      // Cleanup function
+      return () => {
+        clearTimeout(timeoutId);
+        // Unsubscribe from auth changes if subscription exists
+        if (authSubscription) {
+          authSubscription.unsubscribe();
+        }
+      };
     };
 
     initializeAuth();
@@ -158,10 +263,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.auth.signInWithPassword({
+      
+      // Use Promise.race to add a timeout to the sign in call
+      const signInPromise = supabase.auth.signInWithPassword({
         email,
         password
       });
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Sign in request timed out. Please try again.')), 10000)
+      );
+      
+      const { data, error } = await Promise.race([
+        signInPromise,
+        timeoutPromise
+      ]) as any;
 
       if (error) throw error;
 
@@ -171,10 +287,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     } catch (error) {
       console.error('Sign in error:', error);
+      
+      // Provide more specific error messages based on the error type
+      let errorMessage = 'Failed to sign in';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Add specific error detection
+        if (errorMessage.includes('timeout')) {
+          errorMessage = 'Sign in request timed out. Please check your network connection and try again.';
+        } else if (errorMessage.includes('Invalid login')) {
+          errorMessage = 'Invalid email or password. Please try again.';
+        } else if (errorMessage.includes('network')) {
+          errorMessage = 'Network error. Please check your internet connection.';
+        }
+      }
+      
       toast({
         variant: 'destructive',
         title: 'Sign In Failed',
-        description: error instanceof Error ? error.message : 'Failed to sign in',
+        description: errorMessage,
       });
       throw error;
     } finally {
@@ -428,7 +561,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithGoogle,
       forgotPassword,
       resetPassword,
-      completeGoogleSignUp
+      completeGoogleSignUp,
+      clearAuthStorage
     }}>
       {children}
     </AuthContext.Provider>
