@@ -3,7 +3,6 @@
 
 // We're using a hard-coded key here as requested by the user
 // In a production environment, this would be handled more securely via server-side processing
-const OPENAI_API_KEY = 'blank';
 
 export const apiKeyService = {
   // Get the API key for use
