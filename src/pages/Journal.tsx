@@ -45,30 +45,118 @@ const Journal = () => {
     ? dreams?.find(dream => dream.id === editingDreamId) 
     : null;
 
+  // Upload media mutation
+  const uploadMedia = useMutation({
+    mutationFn: async ({ dreamId, file }: { dreamId: string; file: File }) => {
+      if (!user) {
+        throw new Error('User must be logged in to upload files');
+      }
+
+      console.log('Uploading media for dream:', dreamId);
+      
+      try {
+        // Create a unique file name
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${dreamId}-${Date.now()}.${fileExt}`;
+        
+        // Upload directly to the root of the dream-images bucket (no subfolders)
+        const filePath = `${fileName}`;
+        
+        // Upload the file to Supabase storage using the correct bucket name
+        const { data, error } = await supabase.storage
+          .from('dream-images')
+          .upload(filePath, file);
+          
+        if (error) {
+          console.error('Error uploading file:', error);
+          throw error;
+        }
+        
+        // Get the public URL from the correct bucket
+        const { data: { publicUrl } } = supabase.storage
+          .from('dream-images')
+          .getPublicUrl(filePath);
+          
+        // Update the dream with the image URL only
+        const { error: updateError } = await supabase
+          .from('dreams')
+          .update({ image_url: publicUrl })
+          .eq('id', dreamId);
+          
+        if (updateError) {
+          console.error('Error updating dream with image URL:', updateError);
+          throw updateError;
+        }
+        
+        console.log('Media uploaded successfully:', publicUrl);
+        return publicUrl;
+      } catch (error) {
+        console.error('Full upload error details:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dreams'] });
+      toast({
+        title: "Media Uploaded",
+        description: "Your image or video has been uploaded successfully.",
+      });
+    },
+    onError: (error) => {
+      console.error('Media upload error:', error);
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "Failed to upload media",
+      });
+    },
+  });
+
   // Create dream mutation
   const createDream = useMutation({
-    mutationFn: async (dream: Omit<Dream, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async ({ 
+      dream, 
+      file 
+    }: { 
+      dream: Omit<Dream, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
+      file?: File
+    }) => {
       if (!user) {
         throw new Error('User must be logged in to create a dream');
       }
 
-      console.log('Creating dream:', { ...dream, user_id: user.id });
+      // Prepare the dream data with appropriate fields
+      const dreamData = {
+        title: dream.title,
+        description: dream.description,
+        category: dream.category, 
+        emotion: dream.emotion,
+        is_public: dream.is_public,
+        user_id: user.id
+      };
       
-      const { data, error } = await supabase
-        .from('dreams')
-        .insert([{ ...dream, user_id: user.id }])
-        .select()
-        .single();
+      console.log('Creating dream with data:', dreamData);
+      
+      try {
+        const { data, error } = await supabase
+          .from('dreams')
+          .insert([dreamData])
+          .select()
+          .single();
 
-      if (error) {
-        console.error('Error creating dream:', error);
+        if (error) {
+          console.error('Error creating dream:', error);
+          throw error;
+        }
+
+        console.log('Dream created successfully:', data);
+        return { dream: data, file };
+      } catch (error) {
+        console.error('Full error details:', error);
         throw error;
       }
-
-      console.log('Dream created successfully:', data);
-      return data;
     },
-    onSuccess: (newDream) => {
+    onSuccess: ({ dream: newDream, file }) => {
       queryClient.invalidateQueries({ queryKey: ['dreams'] });
       setIsCreating(false);
       toast({
@@ -76,7 +164,12 @@ const Journal = () => {
         description: "Your dream has been successfully recorded.",
       });
       
-      generateImage.mutate(newDream);
+      // If file is provided, upload it; otherwise generate AI image
+      if (file) {
+        uploadMedia.mutate({ dreamId: newDream.id, file });
+      } else {
+        generateImage.mutate(newDream);
+      }
     },
     onError: (error) => {
       console.error('Mutation error:', error);
@@ -92,10 +185,12 @@ const Journal = () => {
   const editDream = useMutation({
     mutationFn: async ({ 
       dreamId, 
-      updatedDream 
+      updatedDream,
+      file
     }: { 
       dreamId: string, 
-      updatedDream: Partial<Dream> 
+      updatedDream: Partial<Dream>,
+      file?: File
     }) => {
       console.log('Updating dream:', dreamId, updatedDream);
       
@@ -103,9 +198,14 @@ const Journal = () => {
         throw new Error('User must be logged in to edit a dream');
       }
 
+      // If file is provided, update image status
+      const dataToUpdate = file 
+        ? { ...updatedDream, image_status: 'uploading' } 
+        : updatedDream;
+
       const { data, error } = await supabase
         .from('dreams')
-        .update(updatedDream)
+        .update(dataToUpdate)
         .eq('id', dreamId)
         .eq('user_id', user.id)
         .select()
@@ -117,15 +217,20 @@ const Journal = () => {
       }
 
       console.log('Dream updated successfully:', data);
-      return data;
+      return { dream: data, file };
     },
-    onSuccess: () => {
+    onSuccess: ({ dream: updatedDream, file }) => {
       queryClient.invalidateQueries({ queryKey: ['dreams'] });
       setEditingDreamId(null);
       toast({
         title: "Dream Updated",
         description: "Your dream has been successfully updated.",
       });
+      
+      // If file is provided, upload it
+      if (file) {
+        uploadMedia.mutate({ dreamId: updatedDream.id, file });
+      }
     },
     onError: (error) => {
       console.error('Update error:', error);
@@ -286,8 +391,8 @@ const Journal = () => {
     setEditingDreamId(dreamId);
   };
 
-  const handleUpdateDream = (dreamId: string, updatedDream: Partial<Dream>) => {
-    editDream.mutate({ dreamId, updatedDream });
+  const handleUpdateDream = (dreamId: string, updatedDream: Partial<Dream>, file?: File) => {
+    editDream.mutate({ dreamId, updatedDream, file });
   };
 
   const handleCancelEdit = () => {
@@ -311,12 +416,12 @@ const Journal = () => {
     <div className="container mx-auto px-4 py-12">
       <DreamHeader onCreateClick={() => setIsCreating(!isCreating)} />
 
-      {isCreating && <CreateDreamForm onSubmit={createDream.mutate} />}
+      {isCreating && <CreateDreamForm onSubmit={(dream, file) => createDream.mutate({ dream, file })} />}
 
       {editingDreamId && dreamBeingEdited && (
         <EditDreamForm 
           dream={dreamBeingEdited} 
-          onSubmit={handleUpdateDream} 
+          onSubmit={(dreamId: string, updatedDream: Partial<Dream>, file?: File) => handleUpdateDream(dreamId, updatedDream, file)} 
           onCancel={handleCancelEdit} 
         />
       )}
