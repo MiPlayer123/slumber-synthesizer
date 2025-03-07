@@ -5,12 +5,16 @@ import { decode as base64Decode } from "https://deno.land/std@0.208.0/encoding/b
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+  'Access-Control-Allow-Methods': 'POST, OPTIONS'
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      status: 204, // Use 204 No Content for OPTIONS
+      headers: corsHeaders 
+    });
   }
 
   try {
@@ -51,7 +55,10 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({ text: data.text }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      },
     );
   } catch (error) {
     console.error('Function error:', error);
