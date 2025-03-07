@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { Moon, Sun, BookMarked, Home, Users, LogOut, User, BarChart, Settings, Grid, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -110,7 +109,7 @@ export const Navigation = () => {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/profile/settings">
+                    <Link to="/settings">
                       <Settings className="mr-2 h-4 w-4" />
                       <span>Settings</span>
                     </Link>
@@ -203,7 +202,7 @@ export const Navigation = () => {
                         <span>Profile</span>
                       </Button>
                     </Link>
-                    <Link to="/profile/settings" onClick={() => setIsOpen(false)}>
+                    <Link to="/settings" onClick={() => setIsOpen(false)}>
                       <Button variant="ghost" className="w-full justify-start" size="lg">
                         <Settings className="h-5 w-5 mr-2" />
                         <span>Settings</span>
