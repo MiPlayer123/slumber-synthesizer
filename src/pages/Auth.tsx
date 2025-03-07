@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,14 +6,26 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Separator } from "@/components/ui/separator";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from "@/components/ui/dialog";
 
 const Auth = () => {
-  const { user, signIn, signUp, signInWithGoogle, completeGoogleSignUp } = useAuth();
+  const { user, signIn, signUp, signInWithGoogle, forgotPassword, completeGoogleSignUp, loading } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
+  const [resetEmail, setResetEmail] = useState('');
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isGoogleSignUp, setIsGoogleSignUp] = useState(false);
   const [googleUsername, setGoogleUsername] = useState('');
@@ -92,6 +104,21 @@ const Auth = () => {
         console.error("Google username registration error:", error);
         setErrors({...errors, googleUsername: 'Failed to register username, please try again'});
       }
+    }
+  };
+
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail) {
+      return;
+    }
+    
+    try {
+      await forgotPassword(resetEmail);
+      setIsResetDialogOpen(false);
+    } catch (error) {
+      // Error is already handled in the forgotPassword function
     }
   };
 
@@ -181,6 +208,48 @@ const Auth = () => {
               {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
             </div>
 
+            {/* Forgot Password link */}
+            {!isSignUp && (
+              <div className="text-right">
+                <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+                  <DialogTrigger asChild>
+                    <button 
+                      type="button" 
+                      className="text-sm text-dream-600 hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Reset Password</DialogTitle>
+                      <DialogDescription>
+                        Enter your email address and we'll send you a link to reset your password.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleForgotPassword} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="resetEmail">Email</Label>
+                        <Input
+                          id="resetEmail"
+                          type="email"
+                          value={resetEmail}
+                          onChange={(e) => setResetEmail(e.target.value)}
+                          placeholder="you@example.com"
+                          required
+                        />
+                      </div>
+                      <DialogFooter>
+                        <Button type="submit" disabled={loading}>
+                          Send Reset Link
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            )}
+
             {isSignUp && (
               <>
                 <div className="space-y-2">
@@ -206,7 +275,7 @@ const Auth = () => {
               </>
             )}
 
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" disabled={loading}>
               {isSignUp ? 'Sign Up' : 'Sign In'}
             </Button>
           </form>
@@ -227,6 +296,7 @@ const Auth = () => {
             onClick={handleGoogleSignIn} 
             variant="outline" 
             className="w-full"
+            disabled={loading}
           >
             <svg 
               xmlns="http://www.w3.org/2000/svg" 
@@ -241,6 +311,7 @@ const Auth = () => {
 
           <div className="mt-4 text-center">
             <button
+              type="button"
               onClick={() => setIsSignUp(!isSignUp)}
               className="text-sm text-dream-600 hover:underline"
             >

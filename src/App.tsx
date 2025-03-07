@@ -5,17 +5,21 @@ import { Navigation } from "@/components/Navigation";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { Suspense, lazy } from "react";
-import { SpeedInsights } from "@vercel/speed-insights/react";
+// import { SpeedInsights } from "@vercel/speed-insights/react";
 
 // Pages
 import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
 import NotFound from "@/pages/NotFound";
+import { Profile } from "@/pages/Profile";
+import ResetPassword from "@/pages/ResetPassword";
 
 // Lazy loaded pages for performance
 const Journal = lazy(() => import("@/pages/Journal"));
 const Community = lazy(() => import("@/pages/Community"));
 const Statistics = lazy(() => import("@/pages/Statistics"));
+const DreamWall = lazy(() => import("@/pages/DreamWall"));
+const DreamDetail = lazy(() => import("@/pages/DreamDetail"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -64,6 +68,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/auth" element={<Auth />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route 
         path="/journal" 
         element={
@@ -88,6 +93,32 @@ function AppRoutes() {
           </ProtectedRoute>
         } 
       />
+      <Route 
+        path="/profile" 
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dream-wall" 
+        element={
+          <ProtectedRoute>
+            <DreamWall />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dream/:dreamId" 
+        element={
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingSpinner />}>
+              <DreamDetail />
+            </Suspense>
+          </ProtectedRoute>
+        } 
+      />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
@@ -105,7 +136,8 @@ function App() {
                 <AppRoutes />
               </main>
               <Toaster />
-              <SpeedInsights />
+              {/* SpeedInsights has been temporarily disabled */}
+              {/* <SpeedInsights /> */}
             </div>
           </AuthProvider>
         </QueryClientProvider>
