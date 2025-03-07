@@ -50,3 +50,4 @@ enable_signup = true
 [functions]
 # Port to use for Edge Functions emulator.
 port = 54321
+
