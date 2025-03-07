@@ -1,6 +1,6 @@
-
 import { useState } from "react";
-import { Dream, DreamCategory, DreamEmotion } from "@/lib/types";
+import type { Dream } from "@/lib/types";
+import { DreamCategory, DreamEmotion } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,16 +23,16 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { X } from "lucide-react";
 
-interface EditDreamFormProps {
+type EditDreamFormProps = {
   dream: Dream;
-  onSubmit: (dreamId: string, updatedDream: Partial<Dream>) => void;
+  onSubmit: (dreamId: string, updatedDream: Partial<Dream>, file?: File) => void;
   onCancel: () => void;
-}
+};
 
 const dreamCategories: DreamCategory[] = ['normal', 'nightmare', 'lucid', 'recurring', 'prophetic'];
 const dreamEmotions: DreamEmotion[] = ['neutral', 'joy', 'fear', 'confusion', 'anxiety', 'peace', 'excitement', 'sadness'];
 
-export const EditDreamForm = ({ dream, onSubmit, onCancel }: EditDreamFormProps) => {
+export function EditDreamForm({ dream, onSubmit, onCancel }: EditDreamFormProps) {
   const [formData, setFormData] = useState({
     title: dream.title,
     description: dream.description,
@@ -41,9 +41,19 @@ export const EditDreamForm = ({ dream, onSubmit, onCancel }: EditDreamFormProps)
     is_public: dream.is_public,
   });
 
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(dream.id, formData);
+    onSubmit(dream.id, formData, selectedFile || undefined);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    } else {
+      setSelectedFile(null);
+    }
   };
 
   return (
@@ -137,6 +147,29 @@ export const EditDreamForm = ({ dream, onSubmit, onCancel }: EditDreamFormProps)
             <Label htmlFor="is_public">Make this dream public</Label>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="media">Upload New Image or Video (Optional)</Label>
+            <Input 
+              id="media" 
+              type="file" 
+              accept="image/*,video/*" 
+              onChange={handleFileChange} 
+            />
+            <p className="text-sm text-muted-foreground">
+              Upload a new image or video to replace the current one.
+            </p>
+            {selectedFile && (
+              <div className="mt-2">
+                <p>Selected file: {selectedFile.name}</p>
+              </div>
+            )}
+            {dream.image_url && !selectedFile && (
+              <div className="mt-2">
+                <p>Current media will be kept if no new file is selected.</p>
+              </div>
+            )}
+          </div>
+
           <div className="flex justify-end space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancel
@@ -149,4 +182,4 @@ export const EditDreamForm = ({ dream, onSubmit, onCancel }: EditDreamFormProps)
       </CardContent>
     </Card>
   );
-};
+}

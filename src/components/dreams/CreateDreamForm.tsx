@@ -1,10 +1,10 @@
-
 import { useState } from "react";
-import { Dream, DreamCategory, DreamEmotion } from "@/lib/types";
+import type { Dream } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { DreamCategory, DreamEmotion } from "@/lib/types";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -21,14 +21,15 @@ import {
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 
-interface CreateDreamFormProps {
-  onSubmit: (dream: Omit<Dream, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => void;
-}
+type CreateDreamFormProps = {
+  onSubmit: (dream: Omit<Dream, 'id' | 'user_id' | 'created_at' | 'updated_at'>, file?: File) => void;
+};
 
 const dreamCategories: DreamCategory[] = ['normal', 'nightmare', 'lucid', 'recurring', 'prophetic'];
 const dreamEmotions: DreamEmotion[] = ['neutral', 'joy', 'fear', 'confusion', 'anxiety', 'peace', 'excitement', 'sadness'];
 
-export const CreateDreamForm = ({ onSubmit }: CreateDreamFormProps) => {
+export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [newDream, setNewDream] = useState({
     title: "",
     description: "",
@@ -39,7 +40,15 @@ export const CreateDreamForm = ({ onSubmit }: CreateDreamFormProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(newDream);
+    onSubmit(newDream, selectedFile || undefined);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    } else {
+      setSelectedFile(null);
+    }
   };
 
   return (
@@ -125,6 +134,19 @@ export const CreateDreamForm = ({ onSubmit }: CreateDreamFormProps) => {
             <Label htmlFor="is_public">Make this dream public</Label>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="media">Upload Image (Optional)</Label>
+            <Input 
+              id="media" 
+              type="file" 
+              accept="image/*,video/*" 
+              onChange={handleFileChange} 
+            />
+            <p className="text-sm text-muted-foreground">
+              Upload your own image or video, or let AI generate an image based on your dream.
+            </p>
+          </div>
+
           <Button type="submit" className="w-full">
             Save Dream
           </Button>
@@ -132,4 +154,4 @@ export const CreateDreamForm = ({ onSubmit }: CreateDreamFormProps) => {
       </CardContent>
     </Card>
   );
-};
+}
