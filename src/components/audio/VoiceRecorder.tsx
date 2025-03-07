@@ -1,15 +1,14 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Mic, Square, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { apiKeyService } from '@/services/apiKeyService';
+import { supabase } from '@/integrations/supabase/client';
 
 interface VoiceRecorderProps {
   onTranscriptionComplete: (text: string) => void;
   isRecording?: boolean;
-  // apiKey is now optional since we'll use the service by default
-  apiKey?: string;
 }
 
 export function VoiceRecorder({ 
@@ -108,44 +107,35 @@ export function VoiceRecorder({
   };
 
   const transcribeAudio = async (audioBlob: Blob) => {
-    // Get API key from the service
-    const apiKey = apiKeyService.getApiKey();
-    
-    if (!apiKey) {
-      toast({
-        variant: 'destructive',
-        title: 'API Key Missing',
-        description: 'The application API key is not configured properly. Please contact support.',
-      });
-      return;
-    }
-    
     try {
       setIsTranscribing(true);
       
-      // Create a FormData object to send the audio file
-      const formData = new FormData();
-      formData.append('file', audioBlob, 'recording.webm');
-      formData.append('model', 'whisper-1');
-      formData.append('language', 'en'); // Optional: specify language
+      // Convert the audio blob to base64
+      const reader = new FileReader();
       
-      // Send request to OpenAI API
-      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: formData,
+      // Create a Promise to handle the asynchronous FileReader
+      const base64Audio = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          // Extract the base64 part (remove the data URL prefix)
+          const base64 = reader.result as string;
+          const base64Data = base64.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(audioBlob);
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || 'Transcription failed');
+      // Call the Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('transcribe-audio', {
+        body: { audioBase64: base64Audio }
+      });
+      
+      if (error) {
+        console.error('Transcription function error:', error);
+        throw new Error(error.message || 'Transcription failed');
       }
       
-      const data = await response.json();
-      
-      if (data.text) {
+      if (data?.text) {
         onTranscriptionComplete(data.text);
         toast({
           title: 'Transcription Complete',
