@@ -59,7 +59,12 @@ export default function DreamWall() {
     refetch: refetchSelectedDreamLikes
   } = useDreamLikes(selectedDream?.id || '', refreshLikes);
   
-  const { data: dreams = [], isLoading, error } = useQuery({
+  const { 
+    data: dreams = [], 
+    isLoading, 
+    error,
+    refetch: refetchDreams
+  } = useQuery({
     queryKey: ['dreams', 'public'],
     queryFn: async () => {
       console.log('Fetching public dreams...');
@@ -87,9 +92,31 @@ export default function DreamWall() {
       console.log('Fetched dreams:', data);
       return data || [];
     },
+    // Ensure data is fetched when the component mounts
     refetchOnMount: 'always',
+    // Don't rely on stale data when navigating to this page
     staleTime: 0
   });
+  
+  // Force refetch on component mount to ensure fresh data after login
+  useEffect(() => {
+    console.log('DreamWall component mounted, forcing data refetch');
+    refetchDreams();
+  }, [refetchDreams]);
+  
+  // Listen for auth events to refetch data
+  useEffect(() => {
+    const handleAuthEvent = () => {
+      console.log('Auth event detected in DreamWall - triggering refetch');
+      refetchDreams();
+    };
+    
+    window.addEventListener('AUTH_SIGN_IN_SUCCESS', handleAuthEvent);
+    
+    return () => {
+      window.removeEventListener('AUTH_SIGN_IN_SUCCESS', handleAuthEvent);
+    };
+  }, [refetchDreams]);
   
   const filteredDreams = dreams.filter(dream => {
     const matchesSearch = searchQuery ? 

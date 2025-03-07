@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,8 +37,15 @@ const Journal = () => {
   }
 
   // Custom hooks for data fetching
-  const { data: dreams, isLoading } = useDreams(user.id);
-  const { data: analyses } = useDreamAnalyses();
+  const { data: dreams, isLoading, refetch: refetchDreams } = useDreams(user.id);
+  const { data: analyses, refetch: refetchAnalyses } = useDreamAnalyses();
+  
+  // Force refetch on component mount to ensure fresh data after login
+  useEffect(() => {
+    console.log('Journal component mounted, forcing data refetch');
+    refetchDreams();
+    refetchAnalyses();
+  }, [refetchDreams, refetchAnalyses]);
 
   // Get the dream being edited
   const dreamBeingEdited = editingDreamId 

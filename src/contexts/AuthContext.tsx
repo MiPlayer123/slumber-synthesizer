@@ -279,6 +279,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initializeAuth();
   }, []);
 
+  // Add a custom event type for auth state changes
+  type AuthEventType = 'AUTH_SIGN_IN_SUCCESS' | 'AUTH_SIGN_OUT';
+
+  // Function to emit auth events that components can listen for
+  const emitAuthEvent = (type: AuthEventType, detail?: any) => {
+    console.log(`Emitting auth event: ${type}`);
+    const event = new CustomEvent(type, { detail });
+    window.dispatchEvent(event);
+  };
+
   const signIn = async (email: string, password: string) => {
     try {
       console.log('Starting sign-in process...');
@@ -325,6 +335,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Session refreshed successfully');
         setSession(refreshedSession.session);
       }
+      
+      // Emit auth event to notify components about successful sign-in
+      // This will trigger data refetching in components that listen for this event
+      emitAuthEvent('AUTH_SIGN_IN_SUCCESS', { user: data.user });
       
       // Wait a moment before showing success message to allow state update
       setTimeout(() => {
@@ -443,6 +457,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      
+      // Emit sign out event
+      emitAuthEvent('AUTH_SIGN_OUT');
       
       toast({
         title: 'Signed out',

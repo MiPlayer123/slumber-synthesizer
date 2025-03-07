@@ -14,11 +14,17 @@ import { CommentsSection } from "@/components/dreams/CommentsSection";
 import { MessageSquare, MoreHorizontal } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
 const Community = () => {
+  const queryClient = useQueryClient();
+  
   // Fetch public dreams with their authors
-  const { data: publicDreams = [], isLoading } = useQuery({
+  const { 
+    data: publicDreams = [], 
+    isLoading,
+    refetch: refetchPublicDreams
+  } = useQuery({
     queryKey: ['dreams', 'community'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -41,6 +47,26 @@ const Community = () => {
     // Don't rely on stale data when navigating to this page
     staleTime: 0
   });
+  
+  // Force refetch on component mount to ensure fresh data after login
+  useEffect(() => {
+    console.log('Community component mounted, forcing data refetch');
+    refetchPublicDreams();
+  }, [refetchPublicDreams]);
+  
+  // Listen for auth events to refetch data
+  useEffect(() => {
+    const handleAuthEvent = () => {
+      console.log('Auth event detected in Community - triggering refetch');
+      refetchPublicDreams();
+    };
+    
+    window.addEventListener('AUTH_SIGN_IN_SUCCESS', handleAuthEvent);
+    
+    return () => {
+      window.removeEventListener('AUTH_SIGN_IN_SUCCESS', handleAuthEvent);
+    };
+  }, [refetchPublicDreams]);
 
   return (
     <div className="container max-w-2xl mx-auto px-4 py-8">
