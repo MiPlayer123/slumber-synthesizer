@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Session, User } from '@supabase/supabase-js';
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
+import { supabase, refreshSession, isSessionValid } from '@/integrations/supabase/client';
+import { Session, User, AuthError } from '@supabase/supabase-js';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 
@@ -9,17 +9,22 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   error: Error | null;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, username: string, fullName: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error: Error | null }>;
+  signUp: (email: string, password: string, username: string, fullName: string) => Promise<{ success: boolean; error: Error | null }>;
   signOut: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  forgotPassword: (email: string) => Promise<void>;
-  resetPassword: (password: string) => Promise<void>;
-  completeGoogleSignUp: (username: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<{ success: boolean; error: Error | null }>;
+  resetPassword: (password: string) => Promise<{ success: boolean; error: Error | null }>;
+  completeGoogleSignUp: (username: string) => Promise<{ success: boolean; error: Error | null }>;
   clearAuthStorage: () => boolean;
+  refreshUserSession: () => Promise<boolean>;
+  checkSessionStatus: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const AUTH_STORAGE_PREFIX = 'slumber-synthesizer-';
+const SESSION_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -27,20 +32,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
+  
+  // Track session refresh attempts to prevent infinite loops
+  const refreshAttemptRef = useRef(0);
+  const refreshIntervalRef = useRef<number | null>(null);
+  const authSubscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
+
+  // Improved error logging utility
+  const logAuthError = useCallback((context: string, error: unknown) => {
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error(`[Auth ${context}]:`, err);
+    
+    // In production, you might want to send this to an error tracking service
+    setError(err);
+    return err;
+  }, []);
 
   // Function to clear auth storage and reset state
-  const clearAuthStorage = () => {
+  const clearAuthStorage = useCallback(() => {
     try {
       // Clear any persisted Supabase auth data from local storage
-      localStorage.removeItem('supabase.auth.token');
-      localStorage.removeItem('sb-refresh-token');
-      localStorage.removeItem('sb-access-token');
-      localStorage.removeItem('supabase.auth.expires_at');
-      
-      // Clear any app-specific auth storage items if they exist
-      localStorage.removeItem('auth-user');
-      
-      console.log('Auth storage cleared');
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+          key.startsWith('sb-') || 
+          key.startsWith('supabase.') || 
+          key.startsWith(AUTH_STORAGE_PREFIX)
+        )) {
+          localStorage.removeItem(key);
+        }
+      }
       
       // Reset auth state
       setUser(null);
@@ -49,13 +70,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       return true;
     } catch (error) {
-      console.error('Error clearing auth storage:', error);
+      logAuthError('clearAuthStorage', error);
       return false;
     }
-  };
+  }, [logAuthError]);
+
+  // Check session status - returns true if session is valid
+  const checkSessionStatus = useCallback(async (): Promise<boolean> => {
+    try {
+      const valid = await isSessionValid();
+      if (!valid && user !== null) {
+        // Session is invalid but we have a user - clear state
+        setUser(null);
+        setSession(null);
+      }
+      return valid;
+    } catch (error) {
+      logAuthError('checkSessionStatus', error);
+      return false;
+    }
+  }, [user, logAuthError]);
+
+  // Refresh user session - returns true if refresh successful
+  const refreshUserSession = useCallback(async (): Promise<boolean> => {
+    try {
+      // Limit refresh attempts to prevent infinite loops
+      if (refreshAttemptRef.current > 3) {
+        clearAuthStorage();
+        return false;
+      }
+      
+      refreshAttemptRef.current += 1;
+      const { data, error } = await refreshSession();
+      
+      if (error) {
+        logAuthError('refreshUserSession', error);
+        return false;
+      }
+      
+      if (data?.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+        refreshAttemptRef.current = 0; // Reset counter on success
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      logAuthError('refreshUserSession', error);
+      return false;
+    }
+  }, [logAuthError, clearAuthStorage]);
 
   // Function to ensure user profile exists
-  const ensureUserProfile = async (user: User) => {
+  const ensureUserProfile = useCallback(async (user: User) => {
     try {
       // First check if profile already exists
       const { data: existingProfile, error: fetchError } = await supabase
@@ -65,14 +133,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
 
       if (fetchError) {
-        console.error('Error checking for existing profile:', fetchError);
-        return;
+        logAuthError('ensureUserProfile:fetch', fetchError);
+        return false;
       }
 
       // If profile exists, we're done
       if (existingProfile) {
-        console.log('User profile already exists');
-        return;
+        return true;
       }
 
       // For Google auth, we need to check if we have a username
@@ -81,8 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const provider = metadata?.provider;
       
       if (provider === 'google' && (!metadata?.username)) {
-        console.log('Google auth user without username, skipping profile creation');
-        return;
+        return false;
       }
 
       // Extract user data from metadata
@@ -93,8 +159,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const username = metadata?.username || metadata?.preferred_username || userEmail.split('@')[0];
       
       if (!username || username.trim() === '') {
-        console.error('Cannot create profile: username is empty');
-        return;
+        logAuthError('ensureUserProfile', new Error('Cannot create profile: username is empty'));
+        return false;
       }
       
       // Create profile if it doesn't exist
@@ -105,23 +171,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           username,
           full_name: fullName,
           email: userEmail,
-          avatar_url: metadata?.avatar_url || metadata?.picture || ''
+          avatar_url: metadata?.avatar_url || metadata?.picture || '',
+          created_at: new Date().toISOString()
         }]);
 
       if (insertError) {
-        console.error('Error creating user profile:', insertError);
+        logAuthError('ensureUserProfile:insert', insertError);
         toast({
           variant: 'destructive',
           title: 'Profile Creation Error',
-          description: 'There was an error creating your profile.',
+          description: 'There was an error creating your profile. Please try again.',
+          action: (
+            <Button variant="outline" size="sm" onClick={() => ensureUserProfile(user)}>
+              Retry
+            </Button>
+          )
         });
-      } else {
-        console.log('Created new user profile');
+        return false;
       }
+      
+      return true;
     } catch (err) {
-      console.error('Error in ensureUserProfile:', err);
+      logAuthError('ensureUserProfile', err);
+      return false;
     }
-  };
+  }, [toast, logAuthError]);
+
+  useEffect(() => {
+    // Setup session periodic check
+    const setupSessionCheck = () => {
+      // Clear any existing interval
+      if (refreshIntervalRef.current) {
+        window.clearInterval(refreshIntervalRef.current);
+      }
+      
+      // Set up new interval if user is authenticated
+      if (user) {
+        refreshIntervalRef.current = window.setInterval(async () => {
+          const sessionValid = await checkSessionStatus();
+          if (!sessionValid) {
+            await refreshUserSession();
+          }
+        }, SESSION_CHECK_INTERVAL);
+      }
+    };
+
+    setupSessionCheck();
+    
+    // Cleanup interval on unmount or when user changes
+    return () => {
+      if (refreshIntervalRef.current) {
+        window.clearInterval(refreshIntervalRef.current);
+      }
+    };
+  }, [user, checkSessionStatus, refreshUserSession]);
 
   useEffect(() => {
     // Create a reference to store the auth subscription
@@ -148,14 +251,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  clearAuthStorage();
-                  window.location.reload();
+                  const success = clearAuthStorage();
+                  if (success) {
+                    window.location.reload();
+                  }
                 }}
               >
-                Clear Auth Data
+                Clear & Reload
               </Button>
             </div>
-          ),
+          )
         });
       }, 20000);
 
@@ -355,7 +460,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       }, 500);
       
-      return data;
+      return { success: true, error: null };
     } catch (error) {
       console.error('Sign in error:', error);
       
@@ -384,7 +489,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       }, 100);
       
-      throw error;
+      return { success: false, error: error instanceof Error ? error : new Error(errorMessage) };
     } finally {
       // Add a short delay before resetting loading state to avoid UI flicker
       setTimeout(() => {
@@ -439,6 +544,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: 'Account created!',
         description: 'Your account has been successfully created.',
       });
+
+      return { success: true, error: null };
     } catch (error) {
       console.error('Sign up error:', error);
       toast({
@@ -446,7 +553,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: 'Sign Up Failed',
         description: error instanceof Error ? error.message : 'Failed to create account',
       });
-      throw error;
+      return { success: false, error: error instanceof Error ? error : new Error('Failed to create account') };
     } finally {
       setLoading(false);
     }
@@ -524,6 +631,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: 'Password Reset Email Sent',
         description: 'Check your email for a password reset link.',
       });
+
+      return { success: true, error: null };
     } catch (error) {
       console.error('Password reset error:', error);
       toast({
@@ -531,7 +640,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: 'Password Reset Failed',
         description: error instanceof Error ? error.message : 'Failed to send password reset email',
       });
-      throw error;
+      return { success: false, error: error instanceof Error ? error : new Error('Failed to send password reset email') };
     } finally {
       setLoading(false);
     }
@@ -550,6 +659,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: 'Password Updated',
         description: 'Your password has been successfully reset.',
       });
+
+      return { success: true, error: null };
     } catch (error) {
       console.error('Password update error:', error);
       toast({
@@ -557,7 +668,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: 'Password Update Failed',
         description: error instanceof Error ? error.message : 'Failed to update password',
       });
-      throw error;
+      return { success: false, error: error instanceof Error ? error : new Error('Failed to update password') };
     } finally {
       setLoading(false);
     }
@@ -618,6 +729,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: 'Account setup complete!',
         description: 'Your account has been successfully set up.',
       });
+
+      return { success: true, error: null };
     } catch (error) {
       console.error('Complete Google sign-up error:', error);
       toast({
@@ -625,7 +738,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: 'Sign Up Failed',
         description: error instanceof Error ? error.message : 'Failed to complete account setup',
       });
-      throw error;
+      return { success: false, error: error instanceof Error ? error : new Error('Failed to complete account setup') };
     } finally {
       setLoading(false);
     }
@@ -644,7 +757,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       forgotPassword,
       resetPassword,
       completeGoogleSignUp,
-      clearAuthStorage
+      clearAuthStorage,
+      refreshUserSession,
+      checkSessionStatus
     }}>
       {children}
     </AuthContext.Provider>

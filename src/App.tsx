@@ -1,11 +1,12 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { Toaster } from "@/components/ui/toaster";
 import { Navigation } from "@/components/Navigation";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { Suspense, lazy } from "react";
-// import { SpeedInsights } from "@vercel/speed-insights/react";
+import { Suspense, lazy, useEffect, useState } from "react";
+import { ErrorBoundary } from "react-error-boundary";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 // Pages
 import Index from "@/pages/Index";
@@ -22,16 +23,74 @@ const DreamWall = lazy(() => import("@/pages/DreamWall"));
 const DreamDetail = lazy(() => import("@/pages/DreamDetail"));
 const Settings = lazy(() => import("@/pages/Settings"));
 
+// Create a Query client with robust error handling and retry logic
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry: (failureCount, error) => {
+        // Don't retry on 404s or 401s
+        if (
+          error instanceof Error && 
+          'status' in error && 
+          (error.status === 404 || error.status === 401)
+        ) {
+          return false;
+        }
+        // Otherwise retry up to 3 times with exponential backoff
+        return failureCount < 3;
+      },
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff capped at 30s
       refetchOnWindowFocus: false,
       refetchOnMount: true,
-      staleTime: 1000 * 30, // 30 seconds
+      staleTime: 1000 * 60, // 1 minute
+      gcTime: 1000 * 60 * 10, // 10 minutes (renamed from cacheTime in v5)
+    },
+    mutations: {
+      retry: 1,
+      retryDelay: 1000,
     },
   },
 });
+
+// Custom Error Fallback Component
+const ErrorFallback = ({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) => {
+  const navigate = useNavigate();
+  
+  const handleGoHome = () => {
+    navigate('/');
+    resetErrorBoundary();
+  };
+  
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-card p-6 rounded-lg shadow-lg">
+        <h2 className="text-2xl font-bold mb-4 text-destructive">Something went wrong</h2>
+        <p className="mb-4">We're sorry, but something unexpected happened. Please try again.</p>
+        <div className="flex gap-4">
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
+          >
+            Reload Page
+          </button>
+          <button
+            onClick={handleGoHome}
+            className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/90"
+          >
+            Go Home
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Global error logger
+const logError = (error: Error, info: { componentStack: string }) => {
+  console.error("Error caught by boundary:", error);
+  console.error("Component stack:", info.componentStack);
+  // In production, you might want to send this to an error tracking service
+};
 
 // Loading component
 const LoadingSpinner = () => (
@@ -45,24 +104,51 @@ const LoadingSpinner = () => (
 
 // Protected route component with better loading handling
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, checkSessionStatus } = useAuth();
   const location = useLocation();
+  const [checking, setChecking] = useState(true);
+  
+  useEffect(() => {
+    let isMounted = true;
+    
+    const verifySession = async () => {
+      if (!user) {
+        // If no user is in context, verify session validity
+        const valid = await checkSessionStatus();
+        if (isMounted && !valid) {
+          setChecking(false);
+        }
+      } else {
+        if (isMounted) {
+          setChecking(false);
+        }
+      }
+    };
+    
+    verifySession();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [user, checkSessionStatus]);
   
   // Show loading spinner only during initial authentication check
-  if (loading) {
+  if (loading || checking) {
     return <LoadingSpinner />;
   }
   
   // If not authenticated, redirect to auth page and remember the intended destination
   if (!user) {
-    return <Navigate to="/auth" state={{ from: location }} replace />;
+    return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
   }
   
-  // Render children wrapped in Suspense for lazy loading
+  // Render children wrapped in ErrorBoundary and Suspense for lazy loading
   return (
-    <Suspense fallback={<LoadingSpinner />}>
-      {children}
-    </Suspense>
+    <ErrorBoundary FallbackComponent={ErrorFallback} onError={logError}>
+      <Suspense fallback={<LoadingSpinner />}>
+        {children}
+      </Suspense>
+    </ErrorBoundary>
   );
 };
 
@@ -116,9 +202,7 @@ function AppRoutes() {
         path="/dream/:dreamId" 
         element={
           <ProtectedRoute>
-            <Suspense fallback={<LoadingSpinner />}>
-              <DreamDetail />
-            </Suspense>
+            <DreamDetail />
           </ProtectedRoute>
         } 
       />
@@ -139,6 +223,20 @@ function AppRoutes() {
 function AppContent() {
   const location = useLocation();
   
+  // Global error handler for uncaught errors
+  useEffect(() => {
+    const handleGlobalError = (event: ErrorEvent) => {
+      console.error("Global error:", event.error);
+      // You could send this to an error tracking service in production
+    };
+
+    window.addEventListener('error', handleGlobalError);
+    
+    return () => {
+      window.removeEventListener('error', handleGlobalError);
+    };
+  }, []);
+  
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
@@ -147,11 +245,13 @@ function AppContent() {
             <Navigation />
             <main className="pt-16">
               {/* Add key prop using pathname to force re-rendering when route changes */}
-              <AppRoutes key={location.pathname} />
+              <ErrorBoundary FallbackComponent={ErrorFallback} onError={logError}>
+                <AppRoutes key={location.pathname} />
+              </ErrorBoundary>
             </main>
             <Toaster />
-            {/* SpeedInsights has been temporarily disabled */}
-            {/* <SpeedInsights /> */}
+            {/* Enable SpeedInsights for production performance monitoring */}
+            <SpeedInsights />
           </div>
         </AuthProvider>
       </QueryClientProvider>
