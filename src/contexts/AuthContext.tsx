@@ -180,6 +180,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           
           if (session) {
+            console.log('Active session found');
+            
+            // Important: Update user state only after we have session
             setSession(session);
             setUser(session.user);
             
@@ -187,16 +190,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await ensureUserProfile(session.user);
           } else {
             console.log('No active session found');
+            // Make sure user and session are null if no session found
+            setSession(null);
+            setUser(null);
           }
           
+          // Set up auth state change listener
           const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (_event, session) => {
-              setSession(session);
-              setUser(session?.user || null);
+            async (event, newSession) => {
+              console.log('Auth state change event:', event);
+              console.log('New session:', newSession ? 'Available' : 'None');
               
-              // If there's a user in the session, ensure they have a profile
-              if (session?.user) {
-                await ensureUserProfile(session.user);
+              // Update state based on the event
+              if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                if (newSession) {
+                  setSession(newSession);
+                  setUser(newSession.user);
+                  
+                  // Ensure profile exists for the user
+                  if (newSession.user) {
+                    await ensureUserProfile(newSession.user);
+                  }
+                }
+              } else if (event === 'SIGNED_OUT') {
+                // Clear user and session state on sign out
+                setSession(null);
+                setUser(null);
               }
             }
           );
@@ -262,6 +281,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.log('Starting sign-in process...');
       setLoading(true);
       
       // Use Promise.race to add a timeout to the sign in call
@@ -271,20 +291,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Sign in request timed out. Please try again.')), 10000)
+        setTimeout(() => reject(new Error('Sign in request timed out. Please try again.')), 15000)
       );
       
-      const { data, error } = await Promise.race([
+      // First get the response
+      const response = await Promise.race([
         signInPromise,
         timeoutPromise
       ]) as any;
-
+      
+      const { data, error } = response;
+      console.log('Sign-in response received:', error ? 'Error' : 'Success');
+      
       if (error) throw error;
-
-      toast({
-        title: 'Welcome back!',
-        description: 'You have successfully signed in.',
-      });
+      
+      // Verify we have the expected data
+      if (!data?.session || !data?.user) {
+        console.error('Sign-in succeeded but no user or session returned:', data);
+        throw new Error('Authentication succeeded but failed to retrieve user information');
+      }
+      
+      // Explicitly update the authentication state
+      console.log('Setting session and user state...');
+      setSession(data.session);
+      setUser(data.user);
+      
+      // Force a refresh of the session to ensure it's properly set
+      console.log('Refreshing session...');
+      const { data: refreshedSession, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.warn('Session refresh warning:', refreshError);
+      } else if (refreshedSession) {
+        console.log('Session refreshed successfully');
+        setSession(refreshedSession.session);
+      }
+      
+      // Wait a moment before showing success message to allow state update
+      setTimeout(() => {
+        toast({
+          title: 'Welcome back!',
+          description: 'You have successfully signed in.',
+        });
+        console.log('Authentication completed successfully');
+        
+        // Verify user is set properly
+        console.log('Auth state after sign-in:', { 
+          userSet: !!user, 
+          sessionSet: !!session 
+        });
+      }, 500);
+      
+      return data;
     } catch (error) {
       console.error('Sign in error:', error);
       
@@ -304,14 +361,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
       
-      toast({
-        variant: 'destructive',
-        title: 'Sign In Failed',
-        description: errorMessage,
-      });
+      // Reset loading state and show error
+      setTimeout(() => {
+        toast({
+          variant: 'destructive',
+          title: 'Sign In Failed',
+          description: errorMessage,
+        });
+      }, 100);
+      
       throw error;
     } finally {
-      setLoading(false);
+      // Add a short delay before resetting loading state to avoid UI flicker
+      setTimeout(() => {
+        setLoading(false);
+        console.log('Sign-in loading state reset');
+      }, 300);
     }
   };
 
