@@ -150,9 +150,6 @@ function AppContent() {
               <AppRoutes key={location.pathname} />
             </main>
             <Toaster />
-            <SpeedInsights 
-                sampleRate={1.0} // 100% of users tracked
-            />
           </div>
         </AuthProvider>
       </QueryClientProvider>
@@ -164,6 +161,9 @@ function App() {
   return (
     <Router>
       <AppContent />
+      <SpeedInsights 
+                sampleRate={1.0} // 100% of users tracked
+            />
     </Router>
   );
 }
