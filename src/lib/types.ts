@@ -7,6 +7,8 @@ export interface Profile {
   username: string;
   full_name: string | null;
   avatar_url: string | null;
+  website?: string | null;
+  bio?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -23,6 +25,7 @@ export interface Dream {
   updated_at: string;
   image_url?: string | null;
   enhanced_description?: string | null;
+  profiles?: Profile; // Added profiles property to hold user profile info when joined
 }
 
 export interface DreamAnalysis {
