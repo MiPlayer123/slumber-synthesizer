@@ -18,7 +18,48 @@ export const supabase = createClient<Database>(
     },
     // Global configuration for improved reliability
     global: {
-      fetch: fetch, // Use the browser's fetch
+      fetch: (url, options) => {
+        // Add retry logic for network failures
+        const maxRetries = 3;
+        let retryCount = 0;
+        
+        const retryFetch = async (url: RequestInfo | URL, options?: RequestInit): Promise<Response> => {
+          try {
+            // Use the browser's fetch with a timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-second timeout
+            
+            if (options) {
+              options.signal = controller.signal;
+            } else {
+              options = { signal: controller.signal };
+            }
+            
+            const response = await fetch(url, options);
+            clearTimeout(timeoutId);
+            
+            // If we hit a 401 error, try to refresh the session once
+            if (response.status === 401 && !url.toString().includes('/auth/')) {
+              await refreshSession();
+              // Retry the fetch with the new token
+              return fetch(url, options);
+            }
+            
+            return response;
+          } catch (error) {
+            if (retryCount < maxRetries) {
+              retryCount++;
+              // Exponential backoff
+              const delay = Math.pow(2, retryCount) * 100;
+              await new Promise(resolve => setTimeout(resolve, delay));
+              return retryFetch(url, options);
+            }
+            throw error;
+          }
+        };
+        
+        return retryFetch(url, options);
+      },
       headers: {
         'X-Client-Info': 'slumber-synthesizer/1.0.0'
       },
@@ -32,12 +73,25 @@ export const supabase = createClient<Database>(
 
 // Export a function to refresh the session
 export const refreshSession = async () => {
-  const { data, error } = await supabase.auth.refreshSession();
-  return { data, error };
+  try {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error) {
+      console.error('Error refreshing session:', error);
+    }
+    return { data, error };
+  } catch (e) {
+    console.error('Exception refreshing session:', e);
+    return { data: null, error: e instanceof Error ? e : new Error('Unknown error') };
+  }
 };
 
 // Export additional helper functions
 export const getCurrentUser = async () => {
-  const { data, error } = await supabase.auth.getUser();
-  return { user: data.user, error };
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    return { user: data.user, error };
+  } catch (e) {
+    console.error('Error getting current user:', e);
+    return { user: null, error: e instanceof Error ? e : new Error('Unknown error') };
+  }
 };

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Dream, Profile } from "@/lib/types";
 import {
@@ -14,17 +14,21 @@ import { CommentsSection } from "@/components/dreams/CommentsSection";
 import { MessageSquare, MoreHorizontal } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { useCallback } from "react";
 
 const Community = () => {
   // Fetch public dreams with their authors
-  const { data: publicDreams, isLoading } = useQuery({
-    queryKey: ['public-dreams'],
+  const { data: publicDreams = [], isLoading } = useQuery({
+    queryKey: ['dreams', 'community'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('dreams')
         .select(`
           *,
-          profiles!dreams_user_id_fkey(username, avatar_url)
+          profiles:user_id (
+            username,
+            avatar_url
+          )
         `)
         .eq('is_public', true)
         .order('created_at', { ascending: false });
@@ -32,6 +36,10 @@ const Community = () => {
       if (error) throw error;
       return data as (Dream & { profiles: Pick<Profile, 'username' | 'avatar_url'> })[];
     },
+    // Ensure data is fetched when the component mounts
+    refetchOnMount: 'always',
+    // Don't rely on stale data when navigating to this page
+    staleTime: 0
   });
 
   return (
@@ -62,10 +70,19 @@ interface DreamCardProps {
 }
 
 function DreamCard({ dream }: DreamCardProps) {
-  const { likesCount, hasLiked, toggleLike, isLoading: isLikeLoading } = useDreamLikes(dream.id);
+  const queryClient = useQueryClient();
+  const refreshLikes = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['dream-likes-count', dream.id] });
+  }, [queryClient, dream.id]);
+  
+  const { likesCount, hasLiked, toggleLike, isLoading: isLikeLoading } = useDreamLikes(dream.id, refreshLikes);
   
   // Get the first letter of the username for avatar fallback
   const avatarFallback = dream.profiles.username.charAt(0).toUpperCase();
+
+  const handleLikeClick = () => {
+    toggleLike();
+  };
 
   return (
     <Card key={dream.id} className="overflow-hidden border-none shadow-md dark:shadow-lg dark:shadow-slate-700/50">
@@ -120,7 +137,7 @@ function DreamCard({ dream }: DreamCardProps) {
             <LikeButton 
               isLiked={hasLiked}
               likesCount={likesCount}
-              onClick={toggleLike}
+              onClick={handleLikeClick}
               isLoading={isLikeLoading}
             />
             <Button variant="ghost" size="sm" className="px-2 h-8 hover:bg-transparent">
