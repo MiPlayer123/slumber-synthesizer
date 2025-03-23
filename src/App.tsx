@@ -105,7 +105,9 @@ function App() {
                 <AppRoutes />
               </main>
               <Toaster />
-              <SpeedInsights />
+              <SpeedInsights 
+                sampleRate={1.0} // 100% of users tracked
+              />
             </div>
           </AuthProvider>
         </QueryClientProvider>
