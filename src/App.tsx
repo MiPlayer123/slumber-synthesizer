@@ -5,7 +5,7 @@ import { Navigation } from "@/components/Navigation";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { Suspense, lazy } from "react";
-// import { SpeedInsights } from "@vercel/speed-insights/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 // Pages
 import Index from "@/pages/Index";
@@ -150,9 +150,6 @@ function AppContent() {
               <AppRoutes key={location.pathname} />
             </main>
             <Toaster />
-            <SpeedInsights 
-                sampleRate={1.0} // 100% of users tracked
-            />
           </div>
         </AuthProvider>
       </QueryClientProvider>
@@ -164,6 +161,9 @@ function App() {
   return (
     <Router>
       <AppContent />
+      <SpeedInsights 
+                sampleRate={1.0} // 100% of users tracked
+            />
     </Router>
   );
 }
