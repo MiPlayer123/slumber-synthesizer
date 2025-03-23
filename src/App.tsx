@@ -150,8 +150,9 @@ function AppContent() {
               <AppRoutes key={location.pathname} />
             </main>
             <Toaster />
-            {/* SpeedInsights has been temporarily disabled */}
-            {/* <SpeedInsights /> */}
+            <SpeedInsights 
+                sampleRate={1.0} // 100% of users tracked
+            />
           </div>
         </AuthProvider>
       </QueryClientProvider>
