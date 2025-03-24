@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">rem</string>
+    <string name="title_activity_main">rem</string>
+    <string name="package_name">com.dreams.rem</string>
+    <string name="custom_url_scheme">com.dreams.rem</string>
+</resources>
