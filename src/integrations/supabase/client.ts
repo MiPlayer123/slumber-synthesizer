@@ -70,7 +70,18 @@ export const supabase = createClient<Database>(
     } : {})
   }
 );
-
+export const isSessionValid = async (): Promise<boolean> => {
+  try {
+    const { data } = await supabase.auth.getSession();
+    // Check if session exists AND if its expiration time is in the future
+    // Use Date.now() for comparison
+    return !!data.session && (data.session.expires_at * 1000) > Date.now();
+  } catch (e) {
+    // Log error but don't necessarily throw, return false
+    console.error("[Supabase isSessionValid]:", e instanceof Error ? e.message : String(e));
+    return false;
+  }
+};
 // Export a function to refresh the session
 export const refreshSession = async () => {
   try {
