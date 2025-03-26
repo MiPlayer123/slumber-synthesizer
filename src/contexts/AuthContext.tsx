@@ -316,21 +316,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
- const signOut = async () => {
-    // No need to set loading here, listener handles state changes including loading
+  const signOut = async () => {
+    setLoading(true);
     setError(null);
     try {
-      const { error: signOutError } = await supabase.auth.signOut();
-      if (signOutError) throw signOutError;
-      // onAuthStateChange handles state clearing and setLoading(false)
-      toast({ title: 'Signed Out' });
+      // Clear auth storage first to ensure clean state
+      clearAuthStorage();
+      
+      // Then sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
+      }
+      
+      // Manually clear state in case the event doesn't fire
+      if (isMountedRef.current) {
+        setUser(null);
+        setSession(null);
+        setNeedsProfileCompletion(false);
+        setLoading(false);
+      }
+      
+      toast({ title: 'Signed Out', description: 'You have been successfully signed out.' });
     } catch (error) {
       logAuthError('signOut', error);
-      // If listener somehow fails, ensure loading stops
-      if (isMountedRef.current && loading) setLoading(false);
+      if (isMountedRef.current) setLoading(false);
     }
   };
-
   const signInWithGoogle = async () => {
     // No need to set loading here, redirect happens or error occurs
     setError(null);
