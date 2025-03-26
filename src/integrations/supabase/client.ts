@@ -130,9 +130,12 @@ export const getCurrentUser = async () => {
 export const isSessionValid = async (): Promise<boolean> => {
   try {
     const { data } = await supabase.auth.getSession();
-    return !!data.session && new Date(data.session.expires_at * 1000) > new Date();
+    // Check if session exists AND if its expiration time is in the future
+    // Use Date.now() for comparison
+    return !!data.session && (data.session.expires_at * 1000) > Date.now();
   } catch (e) {
-    logAndReturnError('isSessionValid', e);
+    // Log error but don't necessarily throw, return false
+    console.error("[Supabase isSessionValid]:", e instanceof Error ? e.message : String(e));
     return false;
   }
 };
