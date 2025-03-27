@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Dream, Profile } from '@/lib/types';
@@ -20,12 +20,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageCircle, Filter, Search, Sparkles, Wand2, Share } from "lucide-react";
+import { MessageCircle, Filter, Search, Sparkles, Wand2, Share, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { DreamLikeButton } from '@/components/dreams/DreamLikeButton';
 import { LikeButton } from '@/components/dreams/LikeButton';
 import { useDreamLikes } from '@/hooks/use-dream-likes';
+import { usePublicDreams } from '@/hooks/use-dreams';
 
 export default function DreamWall() {
   const { user } = useAuth();
@@ -40,6 +41,23 @@ export default function DreamWall() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [emotionFilter, setEmotionFilter] = useState('');
+  
+  // Reference for infinite scrolling
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  
+  // Use the paginated public dreams hook
+  const { 
+    data: dreamPages, 
+    isLoading, 
+    error, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage 
+  } = usePublicDreams(20);
+  
+  // Extract all dreams from pages
+  const dreams = dreamPages ? dreamPages.pages.flatMap(page => page.dreams) : [];
   
   const refreshLikes = useCallback((dreamId?: string) => {
     if (dreamId) {
@@ -59,37 +77,27 @@ export default function DreamWall() {
     refetch: refetchSelectedDreamLikes
   } = useDreamLikes(selectedDream?.id || '', refreshLikes);
   
-  const { data: dreams = [], isLoading, error } = useQuery({
-    queryKey: ['dreams', 'public'],
-    queryFn: async () => {
-      console.log('Fetching public dreams...');
-      const { data, error } = await supabase
-        .from('dreams')
-        .select(`
-          *,
-          profiles:user_id (
-            id, 
-            username,
-            avatar_url,
-            full_name,
-            created_at,
-            updated_at
-          )
-        `)
-        .eq('is_public', true)
-        .order('created_at', { ascending: false });
-        
-      if (error) {
-        console.error('Error fetching dreams:', error);
-        throw new Error('Failed to fetch dreams');
+  // Setup intersection observer for infinite scrolling
+  useEffect(() => {
+    const observerCallback = (entries: IntersectionObserverEntry[]) => {
+      const [entry] = entries;
+      if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
       }
-      
-      console.log('Fetched dreams:', data);
-      return data || [];
-    },
-    refetchOnMount: 'always',
-    staleTime: 0
-  });
+    };
+    
+    const observer = new IntersectionObserver(observerCallback, { threshold: 0.1 });
+    
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+    
+    return () => {
+      if (observer) {
+        observer.disconnect();
+      }
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
   
   const filteredDreams = dreams.filter(dream => {
     const matchesSearch = searchQuery ? 
@@ -361,7 +369,7 @@ export default function DreamWall() {
         </div>
       </div>
       
-      {isLoading ? (
+      {isLoading && dreams.length === 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {[...Array(8)].map((_, i) => (
             <Card key={i} className="overflow-hidden">
@@ -406,17 +414,36 @@ export default function DreamWall() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredDreams.map((dream) => (
-            <DreamTile 
-              key={dream.id} 
-              dream={dream} 
-              onDreamClick={() => setSelectedDream(dream)}
-              onShare={() => handleShareDream(dream.id)}
-              refreshLikes={refreshLikes}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredDreams.map((dream) => (
+              <DreamTile 
+                key={dream.id} 
+                dream={dream} 
+                onDreamClick={() => setSelectedDream(dream)}
+                onShare={() => handleShareDream(dream.id)}
+                refreshLikes={refreshLikes}
+              />
+            ))}
+          </div>
+          
+          {/* Load more indicator - ref is attached here */}
+          <div 
+            ref={loadMoreRef} 
+            className="py-8 text-center"
+          >
+            {isFetchingNextPage ? (
+              <div className="flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                <span>Loading more dreams...</span>
+              </div>
+            ) : hasNextPage ? (
+              <span className="text-muted-foreground">Scroll to load more dreams</span>
+            ) : (
+              <span className="text-muted-foreground">You've reached the end of dreams</span>
+            )}
+          </div>
+        </>
       )}
       
       <Dialog 
