@@ -36,13 +36,16 @@ export const DreamCard = ({
   const analysis = analyses?.find(a => a.dream_id === dream.id);
   const needsAnalysis = isPersonalView && !analysis && onAnalyze;
   const hasImage = !!dream.image_url;
+  // Generate image is loading when isGeneratingImage is true and no image exists yet
+  const isImageLoading = isGeneratingImage && !hasImage;
 
   return (
     <Card className="animate-fade-in">
       <CardContent className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Left column - Image (if exists) or description with themes underneath */}
+          {/* Left column - Image (or image loading state) or description with themes underneath */}
           <div className="flex flex-col space-y-6">
+            {/* Image area */}
             {hasImage ? (
               // When an image exists, show it
               <div className="relative w-full aspect-square rounded-lg overflow-hidden">
@@ -52,16 +55,16 @@ export const DreamCard = ({
                   className="object-cover w-full h-full"
                 />
               </div>
-            ) : isGeneratingImage ? (
-              // When image is generating, show loading state
+            ) : isImageLoading ? (
+              // When image is generating, show loading state only in image area
               <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted/30 flex flex-col items-center justify-center">
                 <Loader2 className="h-10 w-10 text-primary animate-spin mb-2" />
                 <p className="text-sm text-muted-foreground mb-4">Generating dream image...</p>
                 <Progress className="w-3/4" value={undefined} />
               </div>
             ) : (
-              // When no image exists and not generating, show description and themes
-              <div className="flex flex-col space-y-6 h-full">
+              // When no image and not generating, show description in left column
+              <>
                 <div className="flex-grow">
                   <h2 className="text-2xl font-semibold mb-3">{dream.title}</h2>
                   <p className="whitespace-pre-wrap text-base leading-relaxed">
@@ -93,7 +96,7 @@ export const DreamCard = ({
                     </div>
                   </div>
                 )}
-              </div>
+              </>
             )}
             
             {/* Themes section - Only visible on desktop when image exists */}
@@ -124,8 +127,8 @@ export const DreamCard = ({
           
           {/* Right column - Dream details and analysis */}
           <div className="space-y-8">
-            {hasImage ? (
-              // When image exists, show title and date at the top
+            {hasImage || isImageLoading ? (
+              // When image exists or is loading, show title and date at the top
               <div>
                 <div className="flex justify-between items-start mb-6">
                   <div>
@@ -148,7 +151,7 @@ export const DreamCard = ({
                 </p>
               </div>
             ) : (
-              // When no image exists, just show date and categories
+              // When no image exists and not generating, just show date and categories
               <div>
                 <div className="flex justify-between items-start mb-6">
                   <p className="text-sm text-muted-foreground">

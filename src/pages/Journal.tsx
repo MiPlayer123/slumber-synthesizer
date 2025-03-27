@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,16 @@ const Journal = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [dreamToDelete, setDreamToDelete] = useState<string | null>(null);
   const [generatingImageForDreams, setGeneratingImageForDreams] = useState<Set<string>>(new Set());
+  
+  // Reference to the top of the page
+  const topRef = useRef<HTMLDivElement>(null);
+
+  // Effect to scroll to top when editing a dream
+  useEffect(() => {
+    if (editingDreamId && topRef.current) {
+      topRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [editingDreamId]);
 
   // Handle auth redirection
   if (!user) {
@@ -81,7 +91,7 @@ const Journal = () => {
         // Update the dream with the image URL only
         const { data: updatedDream, error: updateError } = await supabase
           .from('dreams')
-          .update({ image_url: publicUrl, image_status: 'complete' })
+          .update({ image_url: publicUrl })
           .eq('id', dreamId)
           .select()
           .single();
@@ -193,7 +203,11 @@ const Journal = () => {
       if (file) {
         uploadMedia.mutate({ dreamId: newDream.id, file });
       } else {
-        generateImage.mutate(newDream);
+        // Add a small delay before starting image generation
+        // This helps ensure the dream is fully saved before generating the image
+        setTimeout(() => {
+          generateImage.mutate(newDream);
+        }, 500);
       }
     },
     onError: (error) => {
@@ -231,18 +245,13 @@ const Journal = () => {
         emotion: updatedDream.emotion,
         is_public: updatedDream.is_public,
       };
-
-      // If file is provided, update image status
-      const dataToUpdate = file 
-        ? { ...sanitizedUpdate, image_status: 'uploading' } 
-        : sanitizedUpdate;
       
-      console.log('Data being sent to Supabase:', dataToUpdate);
+      console.log('Data being sent to Supabase:', sanitizedUpdate);
 
       try {
         const { data, error } = await supabase
           .from('dreams')
-          .update(dataToUpdate)
+          .update(sanitizedUpdate)
           .eq('id', dreamId)
           .eq('user_id', user.id)
           .select()
@@ -307,17 +316,71 @@ const Journal = () => {
         return newSet;
       });
       
+      // Helper function to check for image periodically with retries
+      const checkForImageCompletion = async (dreamId: string, retries = 3, delayMs = 5000): Promise<Dream | null> => {
+        let attempt = 1;
+        const maxAttempts = retries;
+        
+        console.log(`Starting image completion check sequence (${maxAttempts} attempts, ${delayMs}ms intervals)`);
+        
+        while (attempt <= maxAttempts) {
+          console.log(`Checking for image completion (attempt ${attempt}/${maxAttempts})...`);
+          
+          try {
+            // Wait before checking to give the server time to process
+            if (attempt > 1) {
+              await new Promise(resolve => setTimeout(resolve, delayMs));
+            }
+            
+            const { data, error } = await supabase
+              .from('dreams')
+              .select('*')
+              .eq('id', dreamId)
+              .single();
+              
+            if (error) {
+              console.error(`Error checking dream data (attempt ${attempt}):`, error);
+              // Continue to next attempt instead of throwing
+              attempt++;
+              continue;
+            }
+            
+            if (data.image_url) {
+              console.log(`✅ Image found on attempt ${attempt}:`, data.image_url);
+              return data;
+            }
+            
+            console.log(`No image found on attempt ${attempt}, ${maxAttempts - attempt} attempts remaining`);
+            attempt++;
+          } catch (err) {
+            console.error(`Exception during image check (attempt ${attempt}):`, err);
+            attempt++;
+          }
+        }
+        
+        console.log(`❌ Image not found after ${maxAttempts} attempts`);
+        return null;
+      };
+      
       try {
-        const { data, error } = await supabase.functions.invoke('generate-dream-image', {
+        // Invoke the Supabase function to generate the image
+        const { error } = await supabase.functions.invoke('generate-dream-image', {
           body: { 
             dreamId: dream.id,
             description: `${dream.title} - ${dream.description}`
-          },
+          }
         });
 
-        if (error) throw error;
+        if (error) {
+          console.warn('Error from image generation function, but will check if image was generated anyway:', error);
+        }
         
-        // Fetch the updated dream with the new image URL
+        // Wait a moment to allow the image generation to complete on the server
+        // even if the client response times out
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Regardless of the function response, fetch the dream to check if the image was actually generated
+        // This handles cases where the function completed but the response timed out
         const { data: updatedDream, error: fetchError } = await supabase
           .from('dreams')
           .select('*')
@@ -326,9 +389,105 @@ const Journal = () => {
           
         if (fetchError) throw fetchError;
         
+        // If we got an image URL, consider it successful even if there was an error from the function
+        if (updatedDream.image_url) {
+          console.log('Image found immediately after generation!', updatedDream.image_url);
+          return updatedDream;
+        }
+        
+        // If we didn't get an image immediately, start the retry process in background
+        console.log('No image found immediately, starting background checks...');
+        // This runs asynchronously in the background and won't block the function
+        checkForImageCompletion(dream.id, 5, 5000).then(result => {
+          if (result) {
+            console.log('Background check found image later:', result.image_url);
+            // Update the query cache with the new image
+            queryClient.setQueryData(['dreams', user?.id], (oldData: Dream[] | undefined) => {
+              if (!oldData) return oldData;
+              return oldData.map(d => d.id === result.id ? result : d);
+            });
+            
+            // Also invalidate to ensure everyone has the latest
+            queryClient.invalidateQueries({ queryKey: ['dreams', user?.id] });
+          }
+        }).catch(err => {
+          console.error('Error in background image check:', err);
+        });
+        
+        // If no image URL and there was an error from the function, throw it
+        if (error) throw error;
+        
+        // Return the current dream state while checks continue in background
         return updatedDream;
       } catch (err) {
-        console.error('Error invoking generate-dream-image function:', err);
+        console.error('Error in generate-dream-image process:', err);
+        
+        // Check if this is a network error or timeout when calling the function
+        if (err.message?.includes('Failed to send a request to the Edge Function')) {
+          console.log('Network error when calling Edge Function, will check for image later');
+          
+          // Wait longer and check if the image was generated anyway
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          
+          try {
+            const { data: checkDream, error: checkError } = await supabase
+              .from('dreams')
+              .select('*')
+              .eq('id', dream.id)
+              .single();
+              
+            if (!checkError && checkDream.image_url) {
+              console.log('Image was generated successfully despite network error');
+              return checkDream;
+            }
+            
+            // Start more comprehensive background retry process with longer intervals
+            console.log('No image found after network error, starting extended background checks');
+            checkForImageCompletion(dream.id, 8, 10000).then(result => {
+              if (result) {
+                console.log('Background check found image later:', result.image_url);
+                // Update the query cache with the new image
+                queryClient.setQueryData(['dreams', user?.id], (oldData: Dream[] | undefined) => {
+                  if (!oldData) return oldData;
+                  return oldData.map(d => d.id === result.id ? result : d);
+                });
+                
+                // Also invalidate to ensure everyone has the latest
+                queryClient.invalidateQueries({ queryKey: ['dreams', user?.id] });
+                
+                // Clear from generating set
+                setGeneratingImageForDreams(prev => {
+                  const newSet = new Set(prev);
+                  newSet.delete(dream.id);
+                  return newSet;
+                });
+                
+                // Show success toast
+                toast({
+                  title: "Image Generated",
+                  description: "Dream image has been generated successfully.",
+                });
+              }
+            }).catch(err => {
+              console.error('Error in extended background image check:', err);
+              
+              // Ensure dream is removed from generating state even if all retries fail
+              setGeneratingImageForDreams(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(dream.id);
+                return newSet;
+              });
+            });
+            
+            // For network errors, we'll continue but return the current dream
+            // This helps prevent the UI from showing an error when image might still be generated
+            throw new Error('Network error during image generation - please wait for image to appear or refresh');
+          } catch (checkErr) {
+            console.error('Error checking for image after network error:', checkErr);
+            throw checkErr;
+          }
+        }
+        
         if (err.message?.includes('404') || err.status === 404) {
           throw new Error('The image generation endpoint was not found. Please ensure your Supabase function is deployed correctly.');
         }
@@ -349,26 +508,102 @@ const Journal = () => {
       // Also invalidate the query to trigger a background refresh
       queryClient.invalidateQueries({ queryKey: ['dreams', user?.id] });
       
-      toast({
-        title: "Image Generated",
-        description: "Dream image has been generated successfully.",
+      // Remove the dream ID from the generating set regardless of success
+      setGeneratingImageForDreams(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(updatedDream.id);
+        return newSet;
       });
+      
+      // Only show success toast if we actually have an image URL
+      if (updatedDream.image_url) {
+        toast({
+          title: "Image Generated",
+          description: "Dream image has been generated successfully.",
+        });
+      } else {
+        // Set up a sequence of retries to check for the image
+        const retryIntervals = [3000, 6000, 10000, 15000];
+        
+        retryIntervals.forEach((delay, index) => {
+          setTimeout(() => {
+            console.log(`Scheduled refresh attempt ${index + 1}/${retryIntervals.length}`);
+            // Refresh data to check if image has been generated
+            queryClient.invalidateQueries({ queryKey: ['dreams', user?.id] });
+            
+            // Check if the image exists now
+            const currentDreams = queryClient.getQueryData(['dreams', user?.id]) as Dream[] | undefined;
+            const currentDream = currentDreams?.find(d => d.id === updatedDream.id);
+            
+            if (currentDream?.image_url) {
+              // If this is the first time we're seeing the image, show a toast
+              if (!updatedDream.image_url) {
+                toast({
+                  title: "Image Generated",
+                  description: "Dream image has been generated successfully.",
+                });
+              }
+              
+              // Remove from generating set if still there
+              setGeneratingImageForDreams(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(updatedDream.id);
+                return newSet;
+              });
+            } else if (index === retryIntervals.length - 1) {
+              // Last retry and still no image
+              toast({
+                title: "Image Generation Status",
+                description: "Your image is still being processed. It may appear after refreshing the page.",
+              });
+              
+              // Remove from generating set on last retry even if failed
+              setGeneratingImageForDreams(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(updatedDream.id);
+                return newSet;
+              });
+            }
+          }, delay);
+        });
+      }
     },
-    onError: (error) => {
+    onError: (error, dream) => {
       console.error('Image generation error:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to generate dream image. Please try again.",
-      });
-    },
-    onSettled: (updatedDream, _, dream) => {
-      // Remove the dream ID from the generating set regardless of success/failure
+      
+      // Remove the dream ID from the generating set on error
       setGeneratingImageForDreams(prev => {
         const newSet = new Set(prev);
         newSet.delete(dream.id);
         return newSet;
       });
+      
+      // Custom message for network errors
+      const isNetworkError = error.message?.includes('Failed to send a request to the Edge Function');
+      
+      toast({
+        variant: "destructive",
+        title: isNetworkError ? "Connection Issue" : "Error",
+        description: isNetworkError 
+          ? "Network issue while connecting to image generator. Your image may still be generated and appear after refreshing."
+          : "Failed to generate dream image. The image may still appear after refreshing the page.",
+      });
+      
+      // Even on error, invalidate the query after a delay to check if the image appeared
+      // Use a longer delay for network errors
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['dreams', user?.id] });
+      }, isNetworkError ? 10000 : 5000);
+    },
+    onSettled: (updatedDream, error, dream) => {
+      // This ensures the dream is removed from the generating set in all cases
+      if (dream) {
+        setGeneratingImageForDreams(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(dream.id);
+          return newSet;
+        });
+      }
     }
   });
 
@@ -515,54 +750,57 @@ const Journal = () => {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <DreamHeader onCreateClick={() => setIsCreating(!isCreating)} />
+      <div className="max-w-6xl mx-auto">
+        <div ref={topRef} className="mb-6"></div>
+        <DreamHeader onCreateClick={() => setIsCreating(!isCreating)} />
 
-      {isCreating && <CreateDreamForm onSubmit={(dream, file) => createDream.mutate({ dream, file })} />}
+        {isCreating && <CreateDreamForm onSubmit={(dream, file) => createDream.mutate({ dream, file })} />}
 
-      {editingDreamId && dreamBeingEdited && (
-        <EditDreamForm 
-          dream={dreamBeingEdited} 
-          onSubmit={(dreamId, updatedDream, file) => {
-            console.log('EditDreamForm onSubmit called with:', { dreamId, updatedDream, hasFile: !!file });
-            handleUpdateDream(dreamId, updatedDream, file);
-          }} 
-          onCancel={handleCancelEdit} 
+        {editingDreamId && dreamBeingEdited && (
+          <EditDreamForm 
+            dream={dreamBeingEdited} 
+            onSubmit={(dreamId, updatedDream, file) => {
+              console.log('EditDreamForm onSubmit called with:', { dreamId, updatedDream, hasFile: !!file });
+              handleUpdateDream(dreamId, updatedDream, file);
+            }} 
+            onCancel={handleCancelEdit} 
+          />
+        )}
+
+        <DreamsList 
+          dreams={dreams || []} 
+          analyses={analyses} 
+          onAnalyze={handleAnalyzeDream}
+          onEdit={handleEditDream}
+          onDelete={handleDeleteDream}
+          isLoading={isLoading}
+          generatingImageForDreams={generatingImageForDreams}
         />
-      )}
 
-      <DreamsList 
-        dreams={dreams || []} 
-        analyses={analyses} 
-        onAnalyze={handleAnalyzeDream}
-        onEdit={handleEditDream}
-        onDelete={handleDeleteDream}
-        isLoading={isLoading}
-        generatingImageForDreams={generatingImageForDreams}
-      />
-
-      <AnalyzingDialog 
-        isOpen={isAnalyzing}
-        onOpenChange={(open) => {
-          if (!open) {
-            setIsAnalyzing(false);
-          }
-        }}
-      />
-
-      {deleteDialogOpen && (
-        <ConfirmDialog
-          isOpen={deleteDialogOpen}
-          onClose={() => setDeleteDialogOpen(false)}
-          onConfirm={confirmDelete}
-          title="Delete Dream"
-          description="Are you sure you want to delete this dream? This action cannot be undone."
-          confirmText="Delete"
-          cancelText="Cancel"
+        <AnalyzingDialog 
+          isOpen={isAnalyzing}
+          onOpenChange={(open) => {
+            if (!open) {
+              setIsAnalyzing(false);
+            }
+          }}
         />
-      )}
-      
-      {/* Feedback Banner */}
-      <FeedbackBanner feedbackUrl="https://forms.gle/aMFrfqbqiMMBSEKr9" />
+
+        {deleteDialogOpen && (
+          <ConfirmDialog
+            isOpen={deleteDialogOpen}
+            onClose={() => setDeleteDialogOpen(false)}
+            onConfirm={confirmDelete}
+            title="Delete Dream"
+            description="Are you sure you want to delete this dream? This action cannot be undone."
+            confirmText="Delete"
+            cancelText="Cancel"
+          />
+        )}
+        
+        {/* Feedback Banner */}
+        <FeedbackBanner feedbackUrl="https://forms.gle/aMFrfqbqiMMBSEKr9" />
+      </div>
     </div>
   );
 };
