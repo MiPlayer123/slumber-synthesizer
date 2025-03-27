@@ -102,12 +102,12 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
   };
 
   return (
-    <Card className="mb-8 max-w-3xl mx-auto">
-      <CardHeader>
+    <Card className="mb-6 max-w-3xl mx-auto">
+      <CardHeader className="px-4 sm:px-6 pt-4 pb-2 sm:pt-6 sm:pb-4">
         <CardTitle>Record New Dream</CardTitle>
         <CardDescription>Document your dream experience</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-4 sm:px-6 pt-2 pb-4 sm:pb-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">Dream Title</Label>
@@ -122,7 +122,7 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
 
           <Tabs value={inputMethod} onValueChange={(value) => setInputMethod(value as "text" | "voice")}>
             <div className="space-y-2">
-              <div className="flex justify-between items-center mb-2">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-2">
                 <Label htmlFor="description">What was your dream about?</Label>
                 <TabsList>
                   <TabsTrigger value="text">Type</TabsTrigger>

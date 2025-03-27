@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,16 @@ const Journal = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [dreamToDelete, setDreamToDelete] = useState<string | null>(null);
   const [generatingImageForDreams, setGeneratingImageForDreams] = useState<Set<string>>(new Set());
+  
+  // Reference to the top of the page
+  const topRef = useRef<HTMLDivElement>(null);
+
+  // Effect to scroll to top when editing a dream
+  useEffect(() => {
+    if (editingDreamId && topRef.current) {
+      topRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [editingDreamId]);
 
   // Handle auth redirection
   if (!user) {
@@ -740,54 +750,57 @@ const Journal = () => {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <DreamHeader onCreateClick={() => setIsCreating(!isCreating)} />
+      <div className="max-w-6xl mx-auto">
+        <div ref={topRef} className="mb-6"></div>
+        <DreamHeader onCreateClick={() => setIsCreating(!isCreating)} />
 
-      {isCreating && <CreateDreamForm onSubmit={(dream, file) => createDream.mutate({ dream, file })} />}
+        {isCreating && <CreateDreamForm onSubmit={(dream, file) => createDream.mutate({ dream, file })} />}
 
-      {editingDreamId && dreamBeingEdited && (
-        <EditDreamForm 
-          dream={dreamBeingEdited} 
-          onSubmit={(dreamId, updatedDream, file) => {
-            console.log('EditDreamForm onSubmit called with:', { dreamId, updatedDream, hasFile: !!file });
-            handleUpdateDream(dreamId, updatedDream, file);
-          }} 
-          onCancel={handleCancelEdit} 
+        {editingDreamId && dreamBeingEdited && (
+          <EditDreamForm 
+            dream={dreamBeingEdited} 
+            onSubmit={(dreamId, updatedDream, file) => {
+              console.log('EditDreamForm onSubmit called with:', { dreamId, updatedDream, hasFile: !!file });
+              handleUpdateDream(dreamId, updatedDream, file);
+            }} 
+            onCancel={handleCancelEdit} 
+          />
+        )}
+
+        <DreamsList 
+          dreams={dreams || []} 
+          analyses={analyses} 
+          onAnalyze={handleAnalyzeDream}
+          onEdit={handleEditDream}
+          onDelete={handleDeleteDream}
+          isLoading={isLoading}
+          generatingImageForDreams={generatingImageForDreams}
         />
-      )}
 
-      <DreamsList 
-        dreams={dreams || []} 
-        analyses={analyses} 
-        onAnalyze={handleAnalyzeDream}
-        onEdit={handleEditDream}
-        onDelete={handleDeleteDream}
-        isLoading={isLoading}
-        generatingImageForDreams={generatingImageForDreams}
-      />
-
-      <AnalyzingDialog 
-        isOpen={isAnalyzing}
-        onOpenChange={(open) => {
-          if (!open) {
-            setIsAnalyzing(false);
-          }
-        }}
-      />
-
-      {deleteDialogOpen && (
-        <ConfirmDialog
-          isOpen={deleteDialogOpen}
-          onClose={() => setDeleteDialogOpen(false)}
-          onConfirm={confirmDelete}
-          title="Delete Dream"
-          description="Are you sure you want to delete this dream? This action cannot be undone."
-          confirmText="Delete"
-          cancelText="Cancel"
+        <AnalyzingDialog 
+          isOpen={isAnalyzing}
+          onOpenChange={(open) => {
+            if (!open) {
+              setIsAnalyzing(false);
+            }
+          }}
         />
-      )}
-      
-      {/* Feedback Banner */}
-      <FeedbackBanner feedbackUrl="https://forms.gle/aMFrfqbqiMMBSEKr9" />
+
+        {deleteDialogOpen && (
+          <ConfirmDialog
+            isOpen={deleteDialogOpen}
+            onClose={() => setDeleteDialogOpen(false)}
+            onConfirm={confirmDelete}
+            title="Delete Dream"
+            description="Are you sure you want to delete this dream? This action cannot be undone."
+            confirmText="Delete"
+            cancelText="Cancel"
+          />
+        )}
+        
+        {/* Feedback Banner */}
+        <FeedbackBanner feedbackUrl="https://forms.gle/aMFrfqbqiMMBSEKr9" />
+      </div>
     </div>
   );
 };
