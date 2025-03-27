@@ -13,6 +13,7 @@ import { EditDreamForm } from "@/components/dreams/EditDreamForm";
 import { useDreams } from "@/hooks/use-dreams";
 import { useDreamAnalyses } from "@/hooks/use-dream-analyses";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { FeedbackBanner } from "@/components/ui/feedback-banner";
 
 const Journal = () => {
   const { user } = useAuth();
@@ -456,6 +457,9 @@ const Journal = () => {
           cancelText="Cancel"
         />
       )}
+      
+      {/* Feedback Banner */}
+      <FeedbackBanner feedbackUrl="https://forms.gle/aMFrfqbqiMMBSEKr9" />
     </div>
   );
 };
