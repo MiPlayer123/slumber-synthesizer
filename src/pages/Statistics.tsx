@@ -247,7 +247,7 @@ const Statistics = () => {
 
   return (
     <div className="container mx-auto px-4 py-6">
-      <h1 className="text-3xl md:text-4xl font-bold mb-6 text-purple-500">Dream Statistics</h1>
+      <h1 className="text-3xl md:text-4xl font-bold mb-6 text-purple-600">Dream Statistics</h1>
       
       {/* Tab navigation for desktop, hidden on mobile */}
       <div className="hidden md:block mb-6">

@@ -11,10 +11,17 @@ import { Badge } from "@/components/ui/badge";
 import { useDreamLikes } from "@/hooks/use-dream-likes";
 import { LikeButton } from "@/components/dreams/LikeButton";
 import { CommentsSection } from "@/components/dreams/CommentsSection";
-import { MessageSquare, MoreHorizontal } from "lucide-react";
+import { MessageSquare, MoreHorizontal, Share } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useCallback } from "react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Community = () => {
   // Fetch public dreams with their authors
@@ -44,7 +51,7 @@ const Community = () => {
 
   return (
     <div className="container max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Dream Community</h1>
+      <h1 className="text-3xl font-bold mb-6 text-purple-600">Dream Community</h1>
       
       <div className="space-y-8">
         {isLoading ? (
@@ -71,6 +78,8 @@ interface DreamCardProps {
 
 function DreamCard({ dream }: DreamCardProps) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
   const refreshLikes = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['dream-likes-count', dream.id] });
   }, [queryClient, dream.id]);
@@ -82,6 +91,17 @@ function DreamCard({ dream }: DreamCardProps) {
 
   const handleLikeClick = () => {
     toggleLike();
+  };
+
+  const handleShareDream = () => {
+    const shareUrl = `${window.location.origin}/dream/${dream.id}`;
+    
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      toast({
+        title: 'Link copied',
+        description: 'Dream link copied to clipboard!',
+      });
+    });
   };
 
   return (
@@ -108,9 +128,20 @@ function DreamCard({ dream }: DreamCardProps) {
             <Badge variant="outline">{dream.category}</Badge>
             <Badge variant="outline">{dream.emotion}</Badge>
           </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <MoreHorizontal className="h-5 w-5" />
-          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreHorizontal className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleShareDream}>
+                <Share className="h-4 w-4 mr-2" />
+                Share
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardHeader>
       
