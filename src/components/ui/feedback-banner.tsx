@@ -16,7 +16,7 @@ export function FeedbackBanner({ feedbackUrl, className }: FeedbackBannerProps) 
   return (
     <div 
       className={cn(
-        "fixed bottom-0 left-0 right-0 bg-primary text-primary-foreground py-2 px-3 z-50 flex items-center justify-between shadow-lg",
+        "fixed bottom-0 left-0 right-0 bg-primary text-primary-foreground py-1 px-2 z-50 flex items-center justify-between shadow-lg",
         className
       )}
     >
