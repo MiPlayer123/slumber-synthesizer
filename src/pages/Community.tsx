@@ -11,10 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { useDreamLikes } from "@/hooks/use-dream-likes";
 import { LikeButton } from "@/components/dreams/LikeButton";
 import { CommentsSection } from "@/components/dreams/CommentsSection";
-import { MessageSquare, MoreHorizontal, Share } from "lucide-react";
+import { MessageSquare, MoreHorizontal, Share, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { useCallback } from "react";
+import { useCallback, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
@@ -22,50 +22,91 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useCommunityDreams } from "@/hooks/use-dreams";
 
 const Community = () => {
-  // Fetch public dreams with their authors
-  const { data: publicDreams = [], isLoading } = useQuery({
-    queryKey: ['dreams', 'community'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('dreams')
-        .select(`
-          *,
-          profiles:user_id (
-            username,
-            avatar_url
-          )
-        `)
-        .eq('is_public', true)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as (Dream & { profiles: Pick<Profile, 'username' | 'avatar_url'> })[];
-    },
-    // Ensure data is fetched when the component mounts
-    refetchOnMount: 'always',
-    // Don't rely on stale data when navigating to this page
-    staleTime: 0
-  });
+  // References for infinite scrolling
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  
+  // Use the paginated community dreams hook
+  const { 
+    data: dreamPages, 
+    isLoading, 
+    error, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage 
+  } = useCommunityDreams(10);
+  
+  // Extract all dreams from pages
+  const publicDreams = dreamPages ? dreamPages.pages.flatMap(page => page.dreams) : [];
+  
+  // Setup intersection observer for infinite scrolling
+  useEffect(() => {
+    const observerCallback = (entries: IntersectionObserverEntry[]) => {
+      const [entry] = entries;
+      if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    };
+    
+    const observer = new IntersectionObserver(observerCallback, { threshold: 0.1 });
+    
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+    
+    return () => {
+      if (observer) {
+        observer.disconnect();
+      }
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return (
     <div className="container max-w-2xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6 text-purple-600">Dream Community</h1>
       
       <div className="space-y-8">
-        {isLoading ? (
+        {isLoading && publicDreams.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-muted-foreground">Loading dreams...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-8 border rounded-lg">
+            <p className="text-destructive">Failed to load dreams. Please try again.</p>
+            <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
+              Reload
+            </Button>
           </div>
         ) : publicDreams?.length === 0 ? (
           <div className="text-center py-8 border rounded-lg">
             <p className="text-muted-foreground">No public dreams found.</p>
           </div>
         ) : (
-          publicDreams?.map((dream) => (
-            <DreamCard key={dream.id} dream={dream} />
-          ))
+          <>
+            {publicDreams?.map((dream) => (
+              <DreamCard key={dream.id} dream={dream} />
+            ))}
+            
+            {/* Load more indicator - ref is attached here */}
+            <div 
+              ref={loadMoreRef} 
+              className="py-4 text-center"
+            >
+              {isFetchingNextPage ? (
+                <div className="flex items-center justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  <span>Loading more dreams...</span>
+                </div>
+              ) : hasNextPage ? (
+                <span className="text-muted-foreground text-sm">Scroll to load more dreams</span>
+              ) : publicDreams.length > 5 && (
+                <span className="text-muted-foreground text-sm">You've reached the end of dreams</span>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>
