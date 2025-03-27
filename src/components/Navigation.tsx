@@ -19,6 +19,12 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export const Navigation = () => {
   const { theme, setTheme } = useTheme();
@@ -50,40 +56,75 @@ export const Navigation = () => {
   return (
     <nav className="fixed top-0 w-full bg-background/80 backdrop-blur-lg border-b z-50 animate-fade-in">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center space-x-2">
+        <Link to={user ? "/journal" : "/"} className="flex items-center space-x-2">
           <span className="text-2xl font-bold text-dream-600">REM</span>
         </Link>
         
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-6">
-          <Link to="/">
-            <Button variant="ghost" size="icon">
-              <Home className="h-5 w-5" />
-            </Button>
-          </Link>
+          {!user && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link to="/">
+                    <Button variant="ghost" size="icon">
+                      <Home className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Home</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           
           {user ? (
             <>
-              <Link to="/journal">
-                <Button variant="ghost" size="icon">
-                  <BookMarked className="h-5 w-5" />
-                </Button>
-              </Link>
-              <Link to="/statistics">
-                <Button variant="ghost" size="icon">
-                  <BarChart className="h-5 w-5" />
-                </Button>
-              </Link>
-              <Link to="/community">
-                <Button variant="ghost" size="icon">
-                  <Users className="h-5 w-5" />
-                </Button>
-              </Link>
-              <Link to="/dream-wall">
-                <Button variant="ghost" size="icon">
-                  <Grid className="h-5 w-5" />
-                </Button>
-              </Link>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link to="/journal">
+                      <Button variant="ghost" size="icon">
+                        <BookMarked className="h-5 w-5" />
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Journal</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link to="/statistics">
+                      <Button variant="ghost" size="icon">
+                        <BarChart className="h-5 w-5" />
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Statistics</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link to="/dream-wall">
+                      <Button variant="ghost" size="icon">
+                        <Grid className="h-5 w-5" />
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Dream Wall</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -128,32 +169,99 @@ export const Navigation = () => {
             </Link>
           )}
           
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          >
-            {theme === "dark" ? (
-              <Sun className="h-5 w-5" />
-            ) : (
-              <Moon className="h-5 w-5" />
-            )}
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                >
+                  {theme === "dark" ? (
+                    <Sun className="h-5 w-5" />
+                  ) : (
+                    <Moon className="h-5 w-5" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{theme === "dark" ? "Light Mode" : "Dark Mode"}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         {/* Mobile Navigation */}
         <div className="flex md:hidden items-center space-x-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          >
-            {theme === "dark" ? (
-              <Sun className="h-5 w-5" />
-            ) : (
-              <Moon className="h-5 w-5" />
-            )}
-          </Button>
+          {user && (
+            <>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link to="/journal">
+                      <Button variant="ghost" size="icon">
+                        <BookMarked className="h-5 w-5" />
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Journal</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link to="/statistics">
+                      <Button variant="ghost" size="icon">
+                        <BarChart className="h-5 w-5" />
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Statistics</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link to="/community">
+                      <Button variant="ghost" size="icon">
+                        <Users className="h-5 w-5" />
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Community</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </>
+          )}
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                >
+                  {theme === "dark" ? (
+                    <Sun className="h-5 w-5" />
+                  ) : (
+                    <Moon className="h-5 w-5" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{theme === "dark" ? "Light Mode" : "Dark Mode"}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
@@ -163,39 +271,17 @@ export const Navigation = () => {
             </SheetTrigger>
             <SheetContent side="right" className="pt-10">
               <div className="flex flex-col space-y-4 mt-8">
-                <Link to="/" onClick={() => setIsOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start" size="lg">
-                    <Home className="h-5 w-5 mr-2" />
-                    <span>Home</span>
-                  </Button>
-                </Link>
+                {!user && (
+                  <Link to="/" onClick={() => setIsOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start" size="lg">
+                      <Home className="h-5 w-5 mr-2" />
+                      <span>Home</span>
+                    </Button>
+                  </Link>
+                )}
                 
                 {user ? (
                   <>
-                    <Link to="/journal" onClick={() => setIsOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start" size="lg">
-                        <BookMarked className="h-5 w-5 mr-2" />
-                        <span>Journal</span>
-                      </Button>
-                    </Link>
-                    <Link to="/statistics" onClick={() => setIsOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start" size="lg">
-                        <BarChart className="h-5 w-5 mr-2" />
-                        <span>Statistics</span>
-                      </Button>
-                    </Link>
-                    <Link to="/community" onClick={() => setIsOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start" size="lg">
-                        <Users className="h-5 w-5 mr-2" />
-                        <span>Community</span>
-                      </Button>
-                    </Link>
-                    <Link to="/dream-wall" onClick={() => setIsOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start" size="lg">
-                        <Grid className="h-5 w-5 mr-2" />
-                        <span>Dream Wall</span>
-                      </Button>
-                    </Link>
                     <Link to="/profile" onClick={() => setIsOpen(false)}>
                       <Button variant="ghost" className="w-full justify-start" size="lg">
                         <User className="h-5 w-5 mr-2" />
