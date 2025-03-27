@@ -308,32 +308,48 @@ const Journal = () => {
       
       // Helper function to check for image periodically with retries
       const checkForImageCompletion = async (dreamId: string, retries = 3, delayMs = 5000): Promise<Dream | null> => {
-        console.log(`Checking for image completion (retry ${4-retries}/${3})...`);
-        try {
-          const { data, error } = await supabase
-            .from('dreams')
-            .select('*')
-            .eq('id', dreamId)
-            .single();
+        let attempt = 1;
+        const maxAttempts = retries;
+        
+        console.log(`Starting image completion check sequence (${maxAttempts} attempts, ${delayMs}ms intervals)`);
+        
+        while (attempt <= maxAttempts) {
+          console.log(`Checking for image completion (attempt ${attempt}/${maxAttempts})...`);
+          
+          try {
+            // Wait before checking to give the server time to process
+            if (attempt > 1) {
+              await new Promise(resolve => setTimeout(resolve, delayMs));
+            }
             
-          if (error) throw error;
-          
-          if (data.image_url) {
-            console.log('Image found on retry check:', data.image_url);
-            return data;
+            const { data, error } = await supabase
+              .from('dreams')
+              .select('*')
+              .eq('id', dreamId)
+              .single();
+              
+            if (error) {
+              console.error(`Error checking dream data (attempt ${attempt}):`, error);
+              // Continue to next attempt instead of throwing
+              attempt++;
+              continue;
+            }
+            
+            if (data.image_url) {
+              console.log(`✅ Image found on attempt ${attempt}:`, data.image_url);
+              return data;
+            }
+            
+            console.log(`No image found on attempt ${attempt}, ${maxAttempts - attempt} attempts remaining`);
+            attempt++;
+          } catch (err) {
+            console.error(`Exception during image check (attempt ${attempt}):`, err);
+            attempt++;
           }
-          
-          if (retries > 1) {
-            // Wait and retry
-            await new Promise(resolve => setTimeout(resolve, delayMs));
-            return checkForImageCompletion(dreamId, retries - 1, delayMs);
-          }
-          
-          return null;
-        } catch (err) {
-          console.error('Error checking for image completion:', err);
-          return null;
         }
+        
+        console.log(`❌ Image not found after ${maxAttempts} attempts`);
+        return null;
       };
       
       try {
@@ -342,7 +358,7 @@ const Journal = () => {
           body: { 
             dreamId: dream.id,
             description: `${dream.title} - ${dream.description}`
-          },
+          }
         });
 
         if (error) {
@@ -365,12 +381,28 @@ const Journal = () => {
         
         // If we got an image URL, consider it successful even if there was an error from the function
         if (updatedDream.image_url) {
+          console.log('Image found immediately after generation!', updatedDream.image_url);
           return updatedDream;
         }
         
-        // If we didn't get an image immediately, start the retry process
-        // This runs in the background and will be picked up by onSuccess
-        const checkPromise = checkForImageCompletion(dream.id);
+        // If we didn't get an image immediately, start the retry process in background
+        console.log('No image found immediately, starting background checks...');
+        // This runs asynchronously in the background and won't block the function
+        checkForImageCompletion(dream.id, 5, 5000).then(result => {
+          if (result) {
+            console.log('Background check found image later:', result.image_url);
+            // Update the query cache with the new image
+            queryClient.setQueryData(['dreams', user?.id], (oldData: Dream[] | undefined) => {
+              if (!oldData) return oldData;
+              return oldData.map(d => d.id === result.id ? result : d);
+            });
+            
+            // Also invalidate to ensure everyone has the latest
+            queryClient.invalidateQueries({ queryKey: ['dreams', user?.id] });
+          }
+        }).catch(err => {
+          console.error('Error in background image check:', err);
+        });
         
         // If no image URL and there was an error from the function, throw it
         if (error) throw error;
@@ -399,10 +431,50 @@ const Journal = () => {
               return checkDream;
             }
             
-            // Start background retry process
-            checkForImageCompletion(dream.id, 5, 10000);
+            // Start more comprehensive background retry process with longer intervals
+            console.log('No image found after network error, starting extended background checks');
+            checkForImageCompletion(dream.id, 8, 10000).then(result => {
+              if (result) {
+                console.log('Background check found image later:', result.image_url);
+                // Update the query cache with the new image
+                queryClient.setQueryData(['dreams', user?.id], (oldData: Dream[] | undefined) => {
+                  if (!oldData) return oldData;
+                  return oldData.map(d => d.id === result.id ? result : d);
+                });
+                
+                // Also invalidate to ensure everyone has the latest
+                queryClient.invalidateQueries({ queryKey: ['dreams', user?.id] });
+                
+                // Clear from generating set
+                setGeneratingImageForDreams(prev => {
+                  const newSet = new Set(prev);
+                  newSet.delete(dream.id);
+                  return newSet;
+                });
+                
+                // Show success toast
+                toast({
+                  title: "Image Generated",
+                  description: "Dream image has been generated successfully.",
+                });
+              }
+            }).catch(err => {
+              console.error('Error in extended background image check:', err);
+              
+              // Ensure dream is removed from generating state even if all retries fail
+              setGeneratingImageForDreams(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(dream.id);
+                return newSet;
+              });
+            });
+            
+            // For network errors, we'll continue but return the current dream
+            // This helps prevent the UI from showing an error when image might still be generated
+            throw new Error('Network error during image generation - please wait for image to appear or refresh');
           } catch (checkErr) {
             console.error('Error checking for image after network error:', checkErr);
+            throw checkErr;
           }
         }
         
@@ -425,6 +497,13 @@ const Journal = () => {
       
       // Also invalidate the query to trigger a background refresh
       queryClient.invalidateQueries({ queryKey: ['dreams', user?.id] });
+      
+      // Remove the dream ID from the generating set regardless of success
+      setGeneratingImageForDreams(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(updatedDream.id);
+        return newSet;
+      });
       
       // Only show success toast if we actually have an image URL
       if (updatedDream.image_url) {
@@ -454,19 +533,40 @@ const Journal = () => {
                   description: "Dream image has been generated successfully.",
                 });
               }
+              
+              // Remove from generating set if still there
+              setGeneratingImageForDreams(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(updatedDream.id);
+                return newSet;
+              });
             } else if (index === retryIntervals.length - 1) {
               // Last retry and still no image
               toast({
                 title: "Image Generation Status",
                 description: "Your image is still being processed. It may appear after refreshing the page.",
               });
+              
+              // Remove from generating set on last retry even if failed
+              setGeneratingImageForDreams(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(updatedDream.id);
+                return newSet;
+              });
             }
           }, delay);
         });
       }
     },
-    onError: (error) => {
+    onError: (error, dream) => {
       console.error('Image generation error:', error);
+      
+      // Remove the dream ID from the generating set on error
+      setGeneratingImageForDreams(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(dream.id);
+        return newSet;
+      });
       
       // Custom message for network errors
       const isNetworkError = error.message?.includes('Failed to send a request to the Edge Function');
@@ -485,13 +585,15 @@ const Journal = () => {
         queryClient.invalidateQueries({ queryKey: ['dreams', user?.id] });
       }, isNetworkError ? 10000 : 5000);
     },
-    onSettled: (updatedDream, _, dream) => {
-      // Remove the dream ID from the generating set regardless of success/failure
-      setGeneratingImageForDreams(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(dream.id);
-        return newSet;
-      });
+    onSettled: (updatedDream, error, dream) => {
+      // This ensures the dream is removed from the generating set in all cases
+      if (dream) {
+        setGeneratingImageForDreams(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(dream.id);
+          return newSet;
+        });
+      }
     }
   });
 
