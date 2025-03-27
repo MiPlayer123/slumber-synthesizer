@@ -81,7 +81,7 @@ const Journal = () => {
         // Update the dream with the image URL only
         const { data: updatedDream, error: updateError } = await supabase
           .from('dreams')
-          .update({ image_url: publicUrl, image_status: 'complete' })
+          .update({ image_url: publicUrl })
           .eq('id', dreamId)
           .select()
           .single();
@@ -193,7 +193,11 @@ const Journal = () => {
       if (file) {
         uploadMedia.mutate({ dreamId: newDream.id, file });
       } else {
-        generateImage.mutate(newDream);
+        // Add a small delay before starting image generation
+        // This helps ensure the dream is fully saved before generating the image
+        setTimeout(() => {
+          generateImage.mutate(newDream);
+        }, 500);
       }
     },
     onError: (error) => {
@@ -231,18 +235,13 @@ const Journal = () => {
         emotion: updatedDream.emotion,
         is_public: updatedDream.is_public,
       };
-
-      // If file is provided, update image status
-      const dataToUpdate = file 
-        ? { ...sanitizedUpdate, image_status: 'uploading' } 
-        : sanitizedUpdate;
       
-      console.log('Data being sent to Supabase:', dataToUpdate);
+      console.log('Data being sent to Supabase:', sanitizedUpdate);
 
       try {
         const { data, error } = await supabase
           .from('dreams')
-          .update(dataToUpdate)
+          .update(sanitizedUpdate)
           .eq('id', dreamId)
           .eq('user_id', user.id)
           .select()
@@ -307,17 +306,55 @@ const Journal = () => {
         return newSet;
       });
       
+      // Helper function to check for image periodically with retries
+      const checkForImageCompletion = async (dreamId: string, retries = 3, delayMs = 5000): Promise<Dream | null> => {
+        console.log(`Checking for image completion (retry ${4-retries}/${3})...`);
+        try {
+          const { data, error } = await supabase
+            .from('dreams')
+            .select('*')
+            .eq('id', dreamId)
+            .single();
+            
+          if (error) throw error;
+          
+          if (data.image_url) {
+            console.log('Image found on retry check:', data.image_url);
+            return data;
+          }
+          
+          if (retries > 1) {
+            // Wait and retry
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            return checkForImageCompletion(dreamId, retries - 1, delayMs);
+          }
+          
+          return null;
+        } catch (err) {
+          console.error('Error checking for image completion:', err);
+          return null;
+        }
+      };
+      
       try {
-        const { data, error } = await supabase.functions.invoke('generate-dream-image', {
+        // Invoke the Supabase function to generate the image
+        const { error } = await supabase.functions.invoke('generate-dream-image', {
           body: { 
             dreamId: dream.id,
             description: `${dream.title} - ${dream.description}`
           },
         });
 
-        if (error) throw error;
+        if (error) {
+          console.warn('Error from image generation function, but will check if image was generated anyway:', error);
+        }
         
-        // Fetch the updated dream with the new image URL
+        // Wait a moment to allow the image generation to complete on the server
+        // even if the client response times out
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Regardless of the function response, fetch the dream to check if the image was actually generated
+        // This handles cases where the function completed but the response timed out
         const { data: updatedDream, error: fetchError } = await supabase
           .from('dreams')
           .select('*')
@@ -326,9 +363,49 @@ const Journal = () => {
           
         if (fetchError) throw fetchError;
         
+        // If we got an image URL, consider it successful even if there was an error from the function
+        if (updatedDream.image_url) {
+          return updatedDream;
+        }
+        
+        // If we didn't get an image immediately, start the retry process
+        // This runs in the background and will be picked up by onSuccess
+        const checkPromise = checkForImageCompletion(dream.id);
+        
+        // If no image URL and there was an error from the function, throw it
+        if (error) throw error;
+        
+        // Return the current dream state while checks continue in background
         return updatedDream;
       } catch (err) {
-        console.error('Error invoking generate-dream-image function:', err);
+        console.error('Error in generate-dream-image process:', err);
+        
+        // Check if this is a network error or timeout when calling the function
+        if (err.message?.includes('Failed to send a request to the Edge Function')) {
+          console.log('Network error when calling Edge Function, will check for image later');
+          
+          // Wait longer and check if the image was generated anyway
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          
+          try {
+            const { data: checkDream, error: checkError } = await supabase
+              .from('dreams')
+              .select('*')
+              .eq('id', dream.id)
+              .single();
+              
+            if (!checkError && checkDream.image_url) {
+              console.log('Image was generated successfully despite network error');
+              return checkDream;
+            }
+            
+            // Start background retry process
+            checkForImageCompletion(dream.id, 5, 10000);
+          } catch (checkErr) {
+            console.error('Error checking for image after network error:', checkErr);
+          }
+        }
+        
         if (err.message?.includes('404') || err.status === 404) {
           throw new Error('The image generation endpoint was not found. Please ensure your Supabase function is deployed correctly.');
         }
@@ -349,18 +426,64 @@ const Journal = () => {
       // Also invalidate the query to trigger a background refresh
       queryClient.invalidateQueries({ queryKey: ['dreams', user?.id] });
       
-      toast({
-        title: "Image Generated",
-        description: "Dream image has been generated successfully.",
-      });
+      // Only show success toast if we actually have an image URL
+      if (updatedDream.image_url) {
+        toast({
+          title: "Image Generated",
+          description: "Dream image has been generated successfully.",
+        });
+      } else {
+        // Set up a sequence of retries to check for the image
+        const retryIntervals = [3000, 6000, 10000, 15000];
+        
+        retryIntervals.forEach((delay, index) => {
+          setTimeout(() => {
+            console.log(`Scheduled refresh attempt ${index + 1}/${retryIntervals.length}`);
+            // Refresh data to check if image has been generated
+            queryClient.invalidateQueries({ queryKey: ['dreams', user?.id] });
+            
+            // Check if the image exists now
+            const currentDreams = queryClient.getQueryData(['dreams', user?.id]) as Dream[] | undefined;
+            const currentDream = currentDreams?.find(d => d.id === updatedDream.id);
+            
+            if (currentDream?.image_url) {
+              // If this is the first time we're seeing the image, show a toast
+              if (!updatedDream.image_url) {
+                toast({
+                  title: "Image Generated",
+                  description: "Dream image has been generated successfully.",
+                });
+              }
+            } else if (index === retryIntervals.length - 1) {
+              // Last retry and still no image
+              toast({
+                title: "Image Generation Status",
+                description: "Your image is still being processed. It may appear after refreshing the page.",
+              });
+            }
+          }, delay);
+        });
+      }
     },
     onError: (error) => {
       console.error('Image generation error:', error);
+      
+      // Custom message for network errors
+      const isNetworkError = error.message?.includes('Failed to send a request to the Edge Function');
+      
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to generate dream image. Please try again.",
+        title: isNetworkError ? "Connection Issue" : "Error",
+        description: isNetworkError 
+          ? "Network issue while connecting to image generator. Your image may still be generated and appear after refreshing."
+          : "Failed to generate dream image. The image may still appear after refreshing the page.",
       });
+      
+      // Even on error, invalidate the query after a delay to check if the image appeared
+      // Use a longer delay for network errors
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['dreams', user?.id] });
+      }, isNetworkError ? 10000 : 5000);
     },
     onSettled: (updatedDream, _, dream) => {
       // Remove the dream ID from the generating set regardless of success/failure
