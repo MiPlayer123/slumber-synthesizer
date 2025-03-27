@@ -1,639 +1,467 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Session, User } from '@supabase/supabase-js';
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
+import { supabase, isSessionValid, refreshSession } from '@/integrations/supabase/client'; // Ensure isSessionValid and refreshSession are exported
+import { Session, User, AuthError } from '@supabase/supabase-js';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  loading: boolean;
+  loading: boolean; // True during initial load or async auth actions
   error: Error | null;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, username: string, fullName: string) => Promise<void>;
+  needsProfileCompletion: boolean; // Added from previous fixes
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error: AuthError | Error | null }>;
+  signUp: (email: string, password: string, username: string, fullName: string) => Promise<{ success: boolean; error: AuthError | Error | null }>;
   signOut: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  forgotPassword: (email: string) => Promise<void>;
-  resetPassword: (password: string) => Promise<void>;
-  completeGoogleSignUp: (username: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<{ success: boolean; error: AuthError | Error | null }>;
+  resetPassword: (password: string) => Promise<{ success: boolean; error: AuthError | Error | null }>;
+  completeGoogleSignUp: (username: string) => Promise<{ success: boolean; error: AuthError | Error | null }>;
   clearAuthStorage: () => boolean;
+  // Removed refreshUserSession and checkSessionStatus as they are less needed with simpler logic
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const AUTH_STORAGE_PREFIX = 'slumber-synthesizer-';
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Start loading
   const [error, setError] = useState<Error | null>(null);
+  const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
   const { toast } = useToast();
+  const isMountedRef = useRef(true); // Track mount status
 
-  // Function to clear auth storage and reset state
-  const clearAuthStorage = () => {
+  // --- Utility Functions --- (Include logAuthError, clearAuthStorage from previous version)
+  const logAuthError = useCallback((context: string, error: unknown, showToast = true) => {
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error(`[AuthContext ${context}]:`, err?.message, err);
+    setError(err);
+    if (showToast) {
+      toast({ variant: 'destructive', title: `Auth Error (${context})`, description: err.message || 'An unexpected error occurred.' });
+    }
+    return err;
+  }, [toast]);
+
+  const clearAuthStorage = useCallback(() => {
     try {
-      // Clear any persisted Supabase auth data from local storage
-      localStorage.removeItem('supabase.auth.token');
-      localStorage.removeItem('sb-refresh-token');
-      localStorage.removeItem('sb-access-token');
-      localStorage.removeItem('supabase.auth.expires_at');
-      
-      // Clear any app-specific auth storage items if they exist
-      localStorage.removeItem('auth-user');
-      
-      console.log('Auth storage cleared');
-      
-      // Reset auth state
-      setUser(null);
-      setSession(null);
-      setError(null);
-      
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-') || key.startsWith('supabase.') || key.startsWith(AUTH_STORAGE_PREFIX)) {
+          localStorage.removeItem(key);
+        }
+      });
+      if (isMountedRef.current) {
+        setUser(null); setSession(null); setError(null); setNeedsProfileCompletion(false);
+      }
+      console.log("Auth storage cleared.");
       return true;
     } catch (error) {
-      console.error('Error clearing auth storage:', error);
+      logAuthError('clearAuthStorage', error);
       return false;
     }
-  };
+  }, [logAuthError]);
 
-  // Function to ensure user profile exists
-  const ensureUserProfile = async (user: User) => {
+
+  // --- Profile Check Logic --- (Include ensureUserProfile from previous version)
+ const ensureUserProfile = useCallback(async (currentUser: User): Promise<boolean> => {
+    if (!currentUser) return false;
+
     try {
-      // First check if profile already exists
       const { data: existingProfile, error: fetchError } = await supabase
         .from('profiles')
-        .select('*')
-        .eq('id', user.id)
+        .select('id')
+        .eq('id', currentUser.id)
         .maybeSingle();
 
       if (fetchError) {
-        console.error('Error checking for existing profile:', fetchError);
-        return;
+        logAuthError('ensureUserProfile:fetch', fetchError, false); // Don't toast bg checks
+        return false;
       }
 
-      // If profile exists, we're done
       if (existingProfile) {
-        console.log('User profile already exists');
-        return;
+        console.log('Profile check: Profile exists for user:', currentUser.id);
+        return true;
       }
 
-      // For Google auth, we need to check if we have a username
-      // If not, we don't try to create a profile yet - the Auth component will handle this
-      const metadata = user.user_metadata;
-      const provider = metadata?.provider;
-      
-      if (provider === 'google' && (!metadata?.username)) {
-        console.log('Google auth user without username, skipping profile creation');
-        return;
+      const provider = currentUser.app_metadata?.provider;
+      const metadataUsername = currentUser.user_metadata?.username;
+
+      // If Google user lacks username in metadata, defer creation
+      if (provider === 'google' && !metadataUsername) {
+        console.log('Profile check: New Google user requires username completion.');
+        return false; // Signal completion needed
       }
 
-      // Extract user data from metadata
-      const userEmail = user.email || '';
-      const fullName = metadata?.full_name || metadata?.name || '';
-      // For Google users, we'll use the username they provided in the second step
-      // For email users, their username comes from the signup form
-      const username = metadata?.username || metadata?.preferred_username || userEmail.split('@')[0];
-      
+      // Proceed to create profile if necessary (e.g., for email signup, or Google if somehow missed)
+      const userEmail = currentUser.email || '';
+      const username = metadataUsername || userEmail.split('@')[0] + Math.random().toString(36).substring(2, 6);
+      const fullName = currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || '';
+      const avatarUrl = currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || '';
+
       if (!username || username.trim() === '') {
-        console.error('Cannot create profile: username is empty');
-        return;
+        logAuthError('ensureUserProfile:create', new Error('Cannot create profile: calculated username is empty.'), false);
+        return false;
       }
-      
-      // Create profile if it doesn't exist
+
+      console.log('Profile check: Attempting to create profile for user:', currentUser.id, 'with username:', username);
       const { error: insertError } = await supabase
         .from('profiles')
         .insert([{
-          id: user.id,
-          username,
+          id: currentUser.id,
+          username: username.trim(),
           full_name: fullName,
-          email: userEmail,
-          avatar_url: metadata?.avatar_url || metadata?.picture || ''
+          // email: userEmail, // Removed based on previous fix
+          avatar_url: avatarUrl,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         }]);
 
       if (insertError) {
-        console.error('Error creating user profile:', insertError);
-        toast({
-          variant: 'destructive',
-          title: 'Profile Creation Error',
-          description: 'There was an error creating your profile.',
-        });
-      } else {
-        console.log('Created new user profile');
+         // Handle specific common errors like unique username violation if needed
+         if (insertError.code === '23505' && insertError.message.includes('profiles_username_key')) {
+           logAuthError('ensureUserProfile:insert', new Error(`Fallback username "${username}" was already taken.`), false);
+           return false; // Indicate failure, user might need to provide one
+         }
+         logAuthError('ensureUserProfile:insert', insertError, false);
+         return false; // Profile creation failed
       }
+
+      console.log('Profile check: Profile created successfully for user:', currentUser.id);
+      return true; // Profile created
+
     } catch (err) {
-      console.error('Error in ensureUserProfile:', err);
+      logAuthError('ensureUserProfile:general', err, false);
+      return false;
     }
-  };
+  }, [logAuthError]); // Assuming supabase is stable, logAuthError is stable via useCallback
 
+
+  // --- Simplified Initialization and Auth State Listener ---
   useEffect(() => {
-    // Create a reference to store the auth subscription
-    let authSubscription: { unsubscribe: () => void } | null = null;
-    
-    const initializeAuth = async () => {
-      // Track retry attempts
-      let retryCount = 0;
-      const maxRetries = 3;
-      const retryDelay = 2000; // 2 seconds between retries
-      
-      // Increase timeout to 20 seconds
-      const timeoutId = setTimeout(() => {
-        console.error('Auth initialization timeout reached after 20 seconds');
-        setLoading(false);
-        
-        toast({
-          variant: 'destructive',
-          title: 'Authentication Error',
-          description: 'Failed to initialize authentication. Try clearing your auth data or refreshing the page.',
-          action: (
-            <div className="mt-2">
-              <Button 
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  clearAuthStorage();
-                  window.location.reload();
-                }}
-              >
-                Clear Auth Data
-              </Button>
-            </div>
-          ),
-        });
-      }, 20000);
+    isMountedRef.current = true;
+    setLoading(true); // Start loading
+    let authListener: { unsubscribe: () => void } | null = null;
 
-      const attemptInitialization = async (): Promise<void> => {
-        try {
-          console.log(`Auth initialization attempt ${retryCount + 1}/${maxRetries + 1}`);
-          
-          // Add timeout to the Supabase call to prevent it from hanging indefinitely
-          const sessionPromise = supabase.auth.getSession();
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Supabase getSession timeout')), 8000)
-          );
-          
-          // Race between the actual call and a timeout
-          const { data: { session }, error: sessionError } = await Promise.race([
-            sessionPromise,
-            timeoutPromise
-          ]) as any;
-          
-          if (sessionError) {
-            throw sessionError;
-          }
-          
-          if (session) {
-            console.log('Active session found');
-            
-            // Important: Update user state only after we have session
-            setSession(session);
-            setUser(session.user);
-            
-            // Ensure profile exists for the authenticated user
-            await ensureUserProfile(session.user);
-          } else {
-            console.log('No active session found');
-            // Make sure user and session are null if no session found
-            setSession(null);
-            setUser(null);
-          }
-          
-          // Set up auth state change listener
-          const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (event, newSession) => {
-              console.log('Auth state change event:', event);
-              console.log('New session:', newSession ? 'Available' : 'None');
-              
-              // Update state based on the event
-              if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                if (newSession) {
-                  setSession(newSession);
-                  setUser(newSession.user);
-                  
-                  // Ensure profile exists for the user
-                  if (newSession.user) {
-                    await ensureUserProfile(newSession.user);
+    // 1. Initial Session Check
+    supabase.auth.getSession().then(async ({ data: { session: initialSession }, error: sessionError }) => {
+      if (!isMountedRef.current) return; // Component unmounted? Bail.
+
+      if (sessionError) {
+        logAuthError('initialGetSession', sessionError, false); // Log but don't necessarily block UI
+      }
+
+      // Update state based on initial check
+      if (initialSession?.user) {
+        console.log("Initial load: Session found for user:", initialSession.user.id);
+        setUser(initialSession.user);
+        setSession(initialSession);
+        setNeedsProfileCompletion(false); // Reset
+
+        // Check profile status on load
+        const profileExists = await ensureUserProfile(initialSession.user);
+         if (!profileExists && initialSession.user.app_metadata?.provider === 'google') {
+             const { data: checkProfileAgain } = await supabase.from('profiles').select('id').eq('id', initialSession.user.id).maybeSingle();
+             if (!checkProfileAgain && isMountedRef.current) {
+                console.log("Initial load: Determined Google user needs profile completion.");
+                setNeedsProfileCompletion(true);
+             }
+         }
+      } else {
+        console.log("Initial load: No active session.");
+        setUser(null);
+        setSession(null);
+        setNeedsProfileCompletion(false);
+      }
+
+       // 2. Set up the Listener (AFTER initial check state is set)
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+        if (!isMountedRef.current) return; // Check mount status in listener
+        console.log(`onAuthStateChange: Event = ${event}, User = ${currentSession?.user?.id ?? 'null'}`);
+
+        switch (event) {
+          case 'SIGNED_IN':
+            if (currentSession?.user) {
+              setUser(currentSession.user);
+              setSession(currentSession);
+              setNeedsProfileCompletion(false); // Reset on sign-in
+
+              const profileEnsured = await ensureUserProfile(currentSession.user);
+              if (!profileEnsured && currentSession.user.app_metadata?.provider === 'google') {
+                  const { data: checkProfileAgain } = await supabase.from('profiles').select('id').eq('id', currentSession.user.id).maybeSingle();
+                  if (!checkProfileAgain && isMountedRef.current) {
+                      console.log("SIGNED_IN: Determined Google user needs profile completion.");
+                      setNeedsProfileCompletion(true);
                   }
-                }
-              } else if (event === 'SIGNED_OUT') {
-                // Clear user and session state on sign out
-                setSession(null);
-                setUser(null);
               }
+            } else {
+               setUser(null); setSession(null); setNeedsProfileCompletion(false); // Clear if no user
             }
-          );
-          
-          // Store the subscription for cleanup
-          authSubscription = subscription;
-          
-          clearTimeout(timeoutId);
-          setLoading(false);
-        } catch (error) {
-          console.error(`Auth initialization error (attempt ${retryCount + 1}/${maxRetries + 1}):`, error);
-          
-          // If we haven't reached max retries, try again
-          if (retryCount < maxRetries) {
-            retryCount++;
-            console.log(`Retrying authentication in ${retryDelay/1000} seconds...`);
-            setTimeout(() => attemptInitialization(), retryDelay);
-          } else {
-            // Max retries reached, show error
-            clearTimeout(timeoutId);
-            console.error('Authentication failed after multiple attempts');
-            setError(error instanceof Error ? error : new Error('Unknown auth error'));
-            setLoading(false);
-            
-            toast({
-              variant: 'destructive',
-              title: 'Authentication Error',
-              description: 'Failed to connect to authentication service. Please check your network connection and try again.',
-              action: (
-                <div className="mt-2">
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      clearAuthStorage();
-                      window.location.reload();
-                    }}
-                  >
-                    Clear Auth Data
-                  </Button>
-                </div>
-              ),
-            });
-          }
-        }
-      };
-      
-      // Start the first attempt
-      attemptInitialization();
-      
-      // Cleanup function
-      return () => {
-        clearTimeout(timeoutId);
-        // Unsubscribe from auth changes if subscription exists
-        if (authSubscription) {
-          authSubscription.unsubscribe();
-        }
-      };
-    };
+            // We are now definitely finished with any post-sign-in logic
+            if (isMountedRef.current) setLoading(false);
+            break;
 
-    initializeAuth();
-  }, []);
+          case 'SIGNED_OUT':
+            setUser(null);
+            setSession(null);
+            setNeedsProfileCompletion(false);
+            if (isMountedRef.current) setLoading(false); // Also stop loading on sign out
+            break;
+
+          case 'TOKEN_REFRESHED':
+             // Update session, maybe user if different
+            if (currentSession) {
+              setSession(currentSession);
+              if (currentSession.user && currentSession.user.id !== user?.id) {
+                  setUser(currentSession.user);
+              }
+            } else {
+              // Treat failed refresh as sign out
+              setUser(null); setSession(null); setNeedsProfileCompletion(false);
+              if (isMountedRef.current) setLoading(false);
+            }
+            // Don't change loading state for background refresh
+            break;
+
+           case 'USER_UPDATED':
+               if (currentSession?.user) setUser(currentSession.user);
+               // Don't change loading state
+               break;
+           case 'PASSWORD_RECOVERY':
+                // Usually handled by UI routing based on URL hash
+                if (isMountedRef.current) setLoading(false); // Stop loading if we land here
+               break;
+          default:
+            console.log(`Unhandled auth event: ${event}`);
+            // If it's an unknown event, maybe stop loading just in case?
+            if (isMountedRef.current) setLoading(false);
+        }
+      });
+      authListener = subscription;
+
+      // 3. Initial loading complete AFTER initial check AND listener setup
+      // setLoading(false); // Moved into the listener's SIGNED_IN/SIGNED_OUT etc.
+
+    }).catch(err => {
+      // Catch errors during initial getSession promise
+      if (isMountedRef.current) {
+        logAuthError('initialAuthSetupPromise', err);
+        setLoading(false); // Ensure loading stops on error
+      }
+    });
+
+    // Cleanup function
+    return () => {
+      console.log("AuthContext unmounting. Cleaning up listener.");
+      isMountedRef.current = false;
+      authListener?.unsubscribe();
+    };
+  }, [ensureUserProfile, logAuthError]); // Rerun if these stable functions change (they shouldn't)
+
+
+  // --- Auth Action Implementations (Simplified) ---
 
   const signIn = async (email: string, password: string) => {
+    setLoading(true);
+    setError(null);
     try {
-      console.log('Starting sign-in process...');
-      setLoading(true);
-      
-      // Use Promise.race to add a timeout to the sign in call
-      const signInPromise = supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Sign in request timed out. Please try again.')), 15000)
-      );
-      
-      // First get the response
-      const response = await Promise.race([
-        signInPromise,
-        timeoutPromise
-      ]) as any;
-      
-      const { data, error } = response;
-      console.log('Sign-in response received:', error ? 'Error' : 'Success');
-      
-      if (error) throw error;
-      
-      // Verify we have the expected data
-      if (!data?.session || !data?.user) {
-        console.error('Sign-in succeeded but no user or session returned:', data);
-        throw new Error('Authentication succeeded but failed to retrieve user information');
-      }
-      
-      // Explicitly update the authentication state
-      console.log('Setting session and user state...');
-      setSession(data.session);
-      setUser(data.user);
-      
-      // Force a refresh of the session to ensure it's properly set
-      console.log('Refreshing session...');
-      const { data: refreshedSession, error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) {
-        console.warn('Session refresh warning:', refreshError);
-      } else if (refreshedSession) {
-        console.log('Session refreshed successfully');
-        setSession(refreshedSession.session);
-      }
-      
-      // Wait a moment before showing success message to allow state update
-      setTimeout(() => {
-        toast({
-          title: 'Welcome back!',
-          description: 'You have successfully signed in.',
-        });
-        console.log('Authentication completed successfully');
-        
-        // Verify user is set properly
-        console.log('Auth state after sign-in:', { 
-          userSet: !!user, 
-          sessionSet: !!session 
-        });
-      }, 500);
-      
-      return data;
+      // Let Supabase handle the sign-in
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) throw signInError;
+
+      // SUCCESS: onAuthStateChange will handle setting user/session and setLoading(false)
+      toast({ title: 'Welcome back!', description: 'Signed in successfully.' });
+      return { success: true, error: null };
+
     } catch (error) {
-      console.error('Sign in error:', error);
-      
-      // Provide more specific error messages based on the error type
-      let errorMessage = 'Failed to sign in';
-      
-      if (error instanceof Error) {
-        errorMessage = error.message;
-        
-        // Add specific error detection
-        if (errorMessage.includes('timeout')) {
-          errorMessage = 'Sign in request timed out. Please check your network connection and try again.';
-        } else if (errorMessage.includes('Invalid login')) {
-          errorMessage = 'Invalid email or password. Please try again.';
-        } else if (errorMessage.includes('network')) {
-          errorMessage = 'Network error. Please check your internet connection.';
-        }
-      }
-      
-      // Reset loading state and show error
-      setTimeout(() => {
-        toast({
-          variant: 'destructive',
-          title: 'Sign In Failed',
-          description: errorMessage,
-        });
-      }, 100);
-      
-      throw error;
-    } finally {
-      // Add a short delay before resetting loading state to avoid UI flicker
-      setTimeout(() => {
-        setLoading(false);
-        console.log('Sign-in loading state reset');
-      }, 300);
+        // FAILURE: Log error, set loading false
+        const loggedError = logAuthError('signIn', error);
+        if (isMountedRef.current) setLoading(false); // Ensure loading stops on error path
+        return { success: false, error: loggedError };
     }
+    // No finally block needed as success path relies on listener to stop loading
   };
 
   const signUp = async (email: string, password: string, username: string, fullName: string) => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      
-      // Validate username is not empty (this is required by the database)
-      if (!username || username.trim() === '') {
-        throw new Error('Username cannot be empty');
-      }
-      
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username,
-            full_name: fullName,
-          }
-        }
-      });
+        // Check username availability
+        const { data: existingUsername, error: usernameCheckError } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('username', username.trim())
+            .maybeSingle();
+        if (usernameCheckError) throw new Error(`Username check failed: ${usernameCheckError.message}`);
+        if (existingUsername) throw new Error('Username is already taken.');
 
-      if (error) throw error;
+        // Sign up user
+        const { error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: { data: { username: username.trim(), full_name: fullName } }
+        });
+        if (signUpError) throw signUpError;
 
-      if (data.user) {
-        // Create profile record after successful signup
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: data.user.id,
-              username, // Ensure username is included
-              full_name: fullName,
-              email
-            }
-          ]);
+        // SUCCESS: onAuthStateChange will handle profile creation via ensureUserProfile and setLoading(false)
+        toast({ title: 'Account Created!', description: 'Please check your email for verification if required.' });
+        return { success: true, error: null };
 
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-          throw new Error(`Profile creation failed: ${profileError.message}`);
-        }
-      }
-
-      toast({
-        title: 'Account created!',
-        description: 'Your account has been successfully created.',
-      });
     } catch (error) {
-      console.error('Sign up error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Sign Up Failed',
-        description: error instanceof Error ? error.message : 'Failed to create account',
-      });
-      throw error;
-    } finally {
-      setLoading(false);
+        // FAILURE: Log error, set loading false
+        const loggedError = logAuthError('signUp', error);
+        if (isMountedRef.current) setLoading(false);
+        return { success: false, error: loggedError };
     }
   };
 
   const signOut = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      // Clear auth storage first to ensure clean state
+      clearAuthStorage();
       
-      toast({
-        title: 'Signed out',
-        description: 'You have been successfully signed out.',
-      });
+      // Then sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
+      }
+      
+      // Manually clear state in case the event doesn't fire
+      if (isMountedRef.current) {
+        setUser(null);
+        setSession(null);
+        setNeedsProfileCompletion(false);
+        setLoading(false);
+      }
+      
+      toast({ title: 'Signed Out', description: 'You have been successfully signed out.' });
     } catch (error) {
-      console.error('Sign out error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Sign Out Failed',
-        description: error instanceof Error ? error.message : 'Failed to sign out',
-      });
-    } finally {
-      setLoading(false);
+      logAuthError('signOut', error);
+      if (isMountedRef.current) setLoading(false);
     }
   };
-
   const signInWithGoogle = async () => {
+    // No need to set loading here, redirect happens or error occurs
+    setError(null);
     try {
-      setLoading(true);
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          redirectTo: window.location.origin + '/auth',
-          queryParams: {
-            // Ensure the auth flow includes enough privileges
-            access_type: 'offline',
-            prompt: 'consent',
-          }
-        }
+        options: { redirectTo: `${window.location.origin}/auth` },
       });
-
-      if (error) throw error;
-
-      toast({
-        title: "Google authentication initiated",
-        description: "You'll be redirected to Google for authentication.",
-      });
+      if (oauthError) throw oauthError;
+      // Redirect initiated by Supabase...
     } catch (error) {
-      console.error('Google sign in error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Sign In Failed',
-        description: error instanceof Error ? error.message : 'Failed to sign in with Google',
-      });
-      throw error;
-    } finally {
-      setLoading(false);
+      logAuthError('signInWithGoogle', error);
+      // Stop loading ONLY if an error prevented redirect
+      if (isMountedRef.current && loading) setLoading(false);
     }
   };
+
+    // --- Other actions (forgotPassword, resetPassword, completeGoogleSignUp) ---
+    // Keep these as they were in the previous correct version,
+    // ensuring setLoading(true) at start and setLoading(false) in finally.
+    // Example for completeGoogleSignUp structure:
 
   const forgotPassword = async (email: string) => {
+    setLoading(true); setError(null);
     try {
-      setLoading(true);
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/reset-password',
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: 'Password Reset Email Sent',
-        description: 'Check your email for a password reset link.',
-      });
-    } catch (error) {
-      console.error('Password reset error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Password Reset Failed',
-        description: error instanceof Error ? error.message : 'Failed to send password reset email',
-      });
-      throw error;
-    } finally {
-      setLoading(false);
-    }
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` });
+      if (resetError) throw resetError;
+      toast({ title: 'Check Your Email', description: 'Password reset instructions sent.' });
+      return { success: true, error: null };
+    } catch (error) { return { success: false, error: logAuthError('forgotPassword', error) }; }
+    finally { if (isMountedRef.current) setLoading(false); }
   };
 
   const resetPassword = async (password: string) => {
+    setLoading(true); setError(null);
     try {
-      setLoading(true);
-      const { error } = await supabase.auth.updateUser({
-        password: password,
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: 'Password Updated',
-        description: 'Your password has been successfully reset.',
-      });
-    } catch (error) {
-      console.error('Password update error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Password Update Failed',
-        description: error instanceof Error ? error.message : 'Failed to update password',
-      });
-      throw error;
-    } finally {
-      setLoading(false);
-    }
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      if (updateError) throw updateError;
+      toast({ title: 'Password Updated', description: 'You can now sign in.' });
+      return { success: true, error: null };
+    } catch (error) { return { success: false, error: logAuthError('resetPassword', error) }; }
+    finally { if (isMountedRef.current) setLoading(false); }
   };
 
-  // Function to complete Google sign-up with a username
-  const completeGoogleSignUp = async (username: string) => {
-    try {
-      setLoading(true);
-      
-      if (!username || username.trim() === '') {
-        throw new Error('Username cannot be empty');
-      }
-      
-      // Get the current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError) throw userError;
-      if (!user) throw new Error('No authenticated user found');
-      
-      // Update user metadata to include the username
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: { 
-          username: username.trim(),
-          provider: 'google' // Mark that this is a Google auth user
-        }
-      });
-      
-      if (updateError) {
-        console.error('Error updating user metadata:', updateError);
-        throw updateError;
-      }
-      
-      // Create or update the profile with the provided username
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert([
-          {
-            id: user.id,
-            username: username.trim(),
-            full_name: user.user_metadata?.name || '',
-            email: user.email || '',
-            avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || ''
-          }
-        ]);
-      
-      if (profileError) {
-        throw new Error(`Profile creation failed: ${profileError.message}`);
-      }
-      
-      // Force refresh the session to update user info
-      await supabase.auth.refreshSession();
-      
-      // Redirect to the journal page after completion
-      window.location.href = '/journal';
-      
-      toast({
-        title: 'Account setup complete!',
-        description: 'Your account has been successfully set up.',
-      });
-    } catch (error) {
-      console.error('Complete Google sign-up error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Sign Up Failed',
-        description: error instanceof Error ? error.message : 'Failed to complete account setup',
-      });
-      throw error;
-    } finally {
-      setLoading(false);
-    }
+
+   const completeGoogleSignUp = async (username: string) => {
+     setLoading(true); setError(null);
+     const currentUser = user; // Capture user state
+
+     if (!currentUser) { setLoading(false); return { success: false, error: logAuthError('completeGoogleSignUp', new Error('User session not found.'))}; }
+     if (!username || username.trim() === '') { setLoading(false); return { success: false, error: logAuthError('completeGoogleSignUp', new Error('Username cannot be empty.'))}; }
+
+     try {
+       // 1. Check Username Availability
+       const { data: existingUsername, error: usernameCheckError } = await supabase.from('profiles').select('username').eq('username', username.trim()).neq('id', currentUser.id).maybeSingle();
+       if (usernameCheckError) throw new Error(`Username check failed: ${usernameCheckError.message}`);
+       if (existingUsername) throw new Error('Username is already taken.');
+
+       // 2. Check if profile exists (shouldn't, but check again)
+       const { data: existingProfile, error: profileCheckError } = await supabase.from('profiles').select('id').eq('id', currentUser.id).maybeSingle();
+       if (profileCheckError) throw profileCheckError;
+
+       if (existingProfile) {
+         console.warn('completeGoogleSignUp: Profile found unexpectedly. Updating username.');
+         const { error: updateExistingError } = await supabase.from('profiles').update({ username: username.trim(), updated_at: new Date().toISOString() }).eq('id', currentUser.id);
+         if (updateExistingError) { logAuthError('completeGoogleSignUp:updateExisting', updateExistingError, false); }
+       } else {
+         // 3. Update Auth Metadata FIRST
+         const { error: updateMetaError } = await supabase.auth.updateUser({ data: { username: username.trim(), full_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || '', avatar_url: currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || '' }});
+         if (updateMetaError) { logAuthError('completeGoogleSignUp:updateMeta', updateMetaError, false); }
+
+         // 4. Create Profile
+         const { error: insertError } = await supabase.from('profiles').insert({ id: currentUser.id, username: username.trim(), full_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || '', avatar_url: currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || '', created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+         if (insertError) throw new Error(`Failed to create profile: ${insertError.message}`);
+       }
+
+       // --- Success ---
+       if (isMountedRef.current) setNeedsProfileCompletion(false);
+
+       // Refresh user state to get updated metadata
+       const { data: refreshed } = await supabase.auth.refreshSession();
+       if (refreshed?.user && isMountedRef.current) setUser(refreshed.user);
+
+       toast({ title: 'Account Setup Complete!', description: 'Welcome!' });
+       return { success: true, error: null };
+
+     } catch (error) {
+       return { success: false, error: logAuthError('completeGoogleSignUp', error) };
+     } finally {
+       if (isMountedRef.current) setLoading(false);
+     }
+   };
+
+  // --- Provide Context Value ---
+  const value = {
+    user,
+    session,
+    loading,
+    error,
+    needsProfileCompletion,
+    signIn,
+    signUp,
+    signOut,
+    signInWithGoogle,
+    forgotPassword,
+    resetPassword,
+    completeGoogleSignUp,
+    clearAuthStorage,
+    // Removed refreshUserSession, checkSessionStatus from value
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      session,
-      loading,
-      error,
-      signIn,
-      signUp,
-      signOut,
-      signInWithGoogle,
-      forgotPassword,
-      resetPassword,
-      completeGoogleSignUp,
-      clearAuthStorage
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
 }
 
+// --- useAuth Hook --- (Keep as is)
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
