@@ -28,7 +28,7 @@ export function FeedbackBanner({ feedbackUrl, className }: FeedbackBannerProps) 
           rel="noopener noreferrer" 
           className="font-medium underline underline-offset-4 hover:text-primary-foreground/90"
         >
-          Share your feedback!
+          Share your feedback
         </a>
       </div>
       <Button 
