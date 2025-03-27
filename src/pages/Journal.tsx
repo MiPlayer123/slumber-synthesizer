@@ -79,10 +79,12 @@ const Journal = () => {
           .getPublicUrl(filePath);
           
         // Update the dream with the image URL only
-        const { error: updateError } = await supabase
+        const { data: updatedDream, error: updateError } = await supabase
           .from('dreams')
-          .update({ image_url: publicUrl })
-          .eq('id', dreamId);
+          .update({ image_url: publicUrl, image_status: 'complete' })
+          .eq('id', dreamId)
+          .select()
+          .single();
           
         if (updateError) {
           console.error('Error updating dream with image URL:', updateError);
@@ -90,14 +92,26 @@ const Journal = () => {
         }
         
         console.log('Media uploaded successfully:', publicUrl);
-        return publicUrl;
+        return updatedDream;
       } catch (error) {
         console.error('Full upload error details:', error);
         throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dreams'] });
+    onSuccess: (updatedDream) => {
+      // Optimistically update the dreams in cache
+      queryClient.setQueryData(['dreams', user?.id], (oldData: Dream[] | undefined) => {
+        if (!oldData) return oldData;
+        
+        // Replace the updated dream in the array
+        return oldData.map(dream => 
+          dream.id === updatedDream.id ? updatedDream : dream
+        );
+      });
+      
+      // Also invalidate the query to trigger a background refresh
+      queryClient.invalidateQueries({ queryKey: ['dreams', user?.id] });
+      
       toast({
         title: "Media Uploaded",
         description: "Your image or video has been uploaded successfully.",
@@ -158,7 +172,17 @@ const Journal = () => {
       }
     },
     onSuccess: ({ dream: newDream, file }) => {
-      queryClient.invalidateQueries({ queryKey: ['dreams'] });
+      // Optimistically update the dreams in cache
+      queryClient.setQueryData(['dreams', user?.id], (oldData: Dream[] | undefined) => {
+        if (!oldData) return [newDream];
+        
+        // Add the new dream to the beginning of the array (newest first)
+        return [newDream, ...oldData];
+      });
+      
+      // Also invalidate the query to trigger a background refresh
+      queryClient.invalidateQueries({ queryKey: ['dreams', user?.id] });
+      
       setIsCreating(false);
       toast({
         title: "Dream Created",
@@ -193,35 +217,63 @@ const Journal = () => {
       updatedDream: Partial<Dream>,
       file?: File
     }) => {
-      console.log('Updating dream:', dreamId, updatedDream);
+      console.log('Updating dream - details:', { dreamId, updatedDream, fileProvided: !!file });
       
       if (!user) {
         throw new Error('User must be logged in to edit a dream');
       }
 
+      // Ensure all fields are properly formatted
+      const sanitizedUpdate = {
+        title: updatedDream.title,
+        description: updatedDream.description,
+        category: updatedDream.category,
+        emotion: updatedDream.emotion,
+        is_public: updatedDream.is_public,
+      };
+
       // If file is provided, update image status
       const dataToUpdate = file 
-        ? { ...updatedDream, image_status: 'uploading' } 
-        : updatedDream;
+        ? { ...sanitizedUpdate, image_status: 'uploading' } 
+        : sanitizedUpdate;
+      
+      console.log('Data being sent to Supabase:', dataToUpdate);
 
-      const { data, error } = await supabase
-        .from('dreams')
-        .update(dataToUpdate)
-        .eq('id', dreamId)
-        .eq('user_id', user.id)
-        .select()
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from('dreams')
+          .update(dataToUpdate)
+          .eq('id', dreamId)
+          .eq('user_id', user.id)
+          .select()
+          .single();
 
-      if (error) {
-        console.error('Error updating dream:', error);
+        if (error) {
+          console.error('Error updating dream:', error);
+          throw error;
+        }
+
+        console.log('Dream updated successfully:', data);
+        return { dream: data, file };
+      } catch (error) {
+        console.error('Full error details for update:', error);
         throw error;
       }
-
-      console.log('Dream updated successfully:', data);
-      return { dream: data, file };
     },
     onSuccess: ({ dream: updatedDream, file }) => {
-      queryClient.invalidateQueries({ queryKey: ['dreams'] });
+      // Optimistically update the dreams in cache to ensure immediate UI update
+      queryClient.setQueryData(['dreams', user?.id], (oldData: Dream[] | undefined) => {
+        if (!oldData) return oldData;
+        
+        // Replace the updated dream in the array
+        return oldData.map(dream => 
+          dream.id === updatedDream.id ? updatedDream : dream
+        );
+      });
+      
+      // Also invalidate the query to trigger a background refresh
+      queryClient.invalidateQueries({ queryKey: ['dreams', user?.id] });
+      
       setEditingDreamId(null);
       toast({
         title: "Dream Updated",
@@ -264,7 +316,17 @@ const Journal = () => {
         });
 
         if (error) throw error;
-        return data;
+        
+        // Fetch the updated dream with the new image URL
+        const { data: updatedDream, error: fetchError } = await supabase
+          .from('dreams')
+          .select('*')
+          .eq('id', dream.id)
+          .single();
+          
+        if (fetchError) throw fetchError;
+        
+        return updatedDream;
       } catch (err) {
         console.error('Error invoking generate-dream-image function:', err);
         if (err.message?.includes('404') || err.status === 404) {
@@ -273,8 +335,20 @@ const Journal = () => {
         throw err;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dreams'] });
+    onSuccess: (updatedDream) => {
+      // Optimistically update the dreams in cache
+      queryClient.setQueryData(['dreams', user?.id], (oldData: Dream[] | undefined) => {
+        if (!oldData) return oldData;
+        
+        // Replace the updated dream in the array
+        return oldData.map(dream => 
+          dream.id === updatedDream.id ? updatedDream : dream
+        );
+      });
+      
+      // Also invalidate the query to trigger a background refresh
+      queryClient.invalidateQueries({ queryKey: ['dreams', user?.id] });
+      
       toast({
         title: "Image Generated",
         description: "Dream image has been generated successfully.",
@@ -288,7 +362,7 @@ const Journal = () => {
         description: "Failed to generate dream image. Please try again.",
       });
     },
-    onSettled: (_, __, dream) => {
+    onSettled: (updatedDream, _, dream) => {
       // Remove the dream ID from the generating set regardless of success/failure
       setGeneratingImageForDreams(prev => {
         const newSet = new Set(prev);
@@ -368,7 +442,17 @@ const Journal = () => {
       return dreamId;
     },
     onSuccess: (dreamId) => {
-      queryClient.invalidateQueries({ queryKey: ['dreams'] });
+      // Optimistically update the dreams in cache
+      queryClient.setQueryData(['dreams', user?.id], (oldData: Dream[] | undefined) => {
+        if (!oldData) return oldData;
+        
+        // Remove the deleted dream from the array
+        return oldData.filter(dream => dream.id !== dreamId);
+      });
+      
+      // Also invalidate the query to trigger a background refresh
+      queryClient.invalidateQueries({ queryKey: ['dreams', user?.id] });
+      
       toast({
         title: "Dream Deleted",
         description: "Your dream has been successfully deleted.",
@@ -393,7 +477,23 @@ const Journal = () => {
   };
 
   const handleUpdateDream = (dreamId: string, updatedDream: Partial<Dream>, file?: File) => {
-    editDream.mutate({ dreamId, updatedDream, file });
+    console.log('handleUpdateDream called with:', { dreamId, updatedDream, hasFile: !!file });
+    
+    if (!dreamId) {
+      console.error('Missing dreamId in handleUpdateDream');
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Missing dream ID. Please try again.",
+      });
+      return;
+    }
+    
+    editDream.mutate({ 
+      dreamId, 
+      updatedDream, 
+      file 
+    });
   };
 
   const handleCancelEdit = () => {
@@ -422,7 +522,10 @@ const Journal = () => {
       {editingDreamId && dreamBeingEdited && (
         <EditDreamForm 
           dream={dreamBeingEdited} 
-          onSubmit={(dreamId: string, updatedDream: Partial<Dream>, file?: File) => handleUpdateDream(dreamId, updatedDream, file)} 
+          onSubmit={(dreamId, updatedDream, file) => {
+            console.log('EditDreamForm onSubmit called with:', { dreamId, updatedDream, hasFile: !!file });
+            handleUpdateDream(dreamId, updatedDream, file);
+          }} 
           onCancel={handleCancelEdit} 
         />
       )}

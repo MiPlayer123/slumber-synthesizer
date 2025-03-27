@@ -23,7 +23,6 @@ import { Switch } from "@/components/ui/switch";
 import { VoiceRecorder } from "@/components/audio/VoiceRecorder";
 import { Mic, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { titleGenerationService } from "@/services/titleGenerationService";
 import { useToast } from "@/hooks/use-toast";
 
 type CreateDreamFormProps = {
@@ -37,7 +36,7 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
   const { toast } = useToast();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [newDream, setNewDream] = useState({
-    title: "", // Still keeping the title property, but it will be auto-generated
+    title: "", // User will now directly input the title
     description: "",
     category: "normal" as DreamCategory,
     emotion: "neutral" as DreamEmotion,
@@ -50,7 +49,7 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Don't proceed if there's no description
+    // Don't proceed if there's no description or title
     if (!newDream.description.trim()) {
       toast({
         title: "Description Required",
@@ -59,21 +58,21 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
       });
       return;
     }
+
+    if (!newDream.title.trim()) {
+      toast({
+        title: "Title Required",
+        description: "Please provide a title for your dream.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     setIsSubmitting(true);
     
     try {
-      // Generate a title based on the description
-      const generatedTitle = await titleGenerationService.generateTitle(newDream.description);
-      
-      // Create the dream object with the generated title
-      const dreamToSubmit = {
-        ...newDream,
-        title: generatedTitle
-      };
-      
-      // Submit the dream with the file
-      onSubmit(dreamToSubmit, selectedFile || undefined);
+      // Submit the dream with the user-provided title
+      onSubmit(newDream, selectedFile || undefined);
     } catch (error) {
       console.error('Error during dream submission:', error);
       toast({
@@ -110,6 +109,17 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">Dream Title</Label>
+            <Input
+              id="title"
+              value={newDream.title}
+              onChange={(e) => setNewDream({ ...newDream, title: e.target.value })}
+              required
+              placeholder="Enter a title for your dream"
+            />
+          </div>
+
           <Tabs value={inputMethod} onValueChange={(value) => setInputMethod(value as "text" | "voice")}>
             <div className="space-y-2">
               <div className="flex justify-between items-center mb-2">
@@ -225,7 +235,7 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating Title...
+                Saving...
               </>
             ) : (
               'Save Dream'

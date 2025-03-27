@@ -34,18 +34,43 @@ const dreamEmotions: DreamEmotion[] = ['neutral', 'joy', 'fear', 'confusion', 'a
 
 export function EditDreamForm({ dream, onSubmit, onCancel }: EditDreamFormProps) {
   const [formData, setFormData] = useState({
-    title: dream.title,
-    description: dream.description,
-    category: dream.category,
-    emotion: dream.emotion,
-    is_public: dream.is_public,
+    title: dream.title || "",
+    description: dream.description || "",
+    category: dream.category || "normal" as DreamCategory,
+    emotion: dream.emotion || "neutral" as DreamEmotion,
+    is_public: dream.is_public || false,
   });
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(dream.id, formData, selectedFile || undefined);
+    setIsSubmitting(true);
+    
+    console.log('Edit form submitted with data:', formData);
+    console.log('Dream ID being updated:', dream.id);
+    console.log('Selected file:', selectedFile);
+    
+    setTimeout(() => {
+      try {
+        if (!dream.id) {
+          console.error('Missing dream ID in form submission');
+          setIsSubmitting(false);
+          return;
+        }
+        
+        onSubmit(dream.id, {
+          title: formData.title,
+          description: formData.description,
+          category: formData.category,
+          emotion: formData.emotion,
+          is_public: formData.is_public
+        }, selectedFile || undefined);
+      } catch (error) {
+        console.error('Error submitting form:', error);
+        setIsSubmitting(false);
+      }
+    }, 0);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -174,8 +199,8 @@ export function EditDreamForm({ dream, onSubmit, onCancel }: EditDreamFormProps)
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancel
             </Button>
-            <Button type="submit">
-              Save Changes
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Saving..." : "Save Changes"}
             </Button>
           </div>
         </form>
