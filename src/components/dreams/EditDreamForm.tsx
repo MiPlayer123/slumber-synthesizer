@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { X } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 type EditDreamFormProps = {
   dream: Dream;
@@ -33,44 +35,53 @@ const dreamCategories: DreamCategory[] = ['normal', 'nightmare', 'lucid', 'recur
 const dreamEmotions: DreamEmotion[] = ['neutral', 'joy', 'fear', 'confusion', 'anxiety', 'peace', 'excitement', 'sadness'];
 
 export function EditDreamForm({ dream, onSubmit, onCancel }: EditDreamFormProps) {
-  const [formData, setFormData] = useState({
-    title: dream.title || "",
-    description: dream.description || "",
-    category: dream.category || "normal" as DreamCategory,
-    emotion: dream.emotion || "neutral" as DreamEmotion,
-    is_public: dream.is_public || false,
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [updatedDream, setUpdatedDream] = useState({
+    title: dream.title,
+    description: dream.description,
+    category: dream.category,
+    emotion: dream.emotion,
+    is_public: dream.is_public,
+  });
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Don't proceed if there's no description or title
+    if (!updatedDream.description.trim()) {
+      toast({
+        title: "Description Required",
+        description: "Please tell us about your dream before saving.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!updatedDream.title.trim()) {
+      toast({
+        title: "Title Required",
+        description: "Please provide a title for your dream.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
     
-    console.log('Edit form submitted with data:', formData);
-    console.log('Dream ID being updated:', dream.id);
-    console.log('Selected file:', selectedFile);
-    
-    setTimeout(() => {
-      try {
-        if (!dream.id) {
-          console.error('Missing dream ID in form submission');
-          setIsSubmitting(false);
-          return;
-        }
-        
-        onSubmit(dream.id, {
-          title: formData.title,
-          description: formData.description,
-          category: formData.category,
-          emotion: formData.emotion,
-          is_public: formData.is_public
-        }, selectedFile || undefined);
-      } catch (error) {
-        console.error('Error submitting form:', error);
-        setIsSubmitting(false);
-      }
-    }, 0);
+    try {
+      onSubmit(dream.id, updatedDream, selectedFile || undefined);
+    } catch (error) {
+      console.error('Error during dream update:', error);
+      toast({
+        title: "Update Error",
+        description: "There was a problem updating your dream. Please try again.",
+        variant: "destructive"
+      });
+      setIsSubmitting(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,38 +93,33 @@ export function EditDreamForm({ dream, onSubmit, onCancel }: EditDreamFormProps)
   };
 
   return (
-    <Card className="mb-8 max-w-3xl mx-auto">
-      <CardHeader className="relative">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="absolute right-4 top-4" 
-          onClick={onCancel}
-        >
-          <X className="h-4 w-4" />
-        </Button>
+    <Card className="mb-6 max-w-3xl mx-auto">
+      <CardHeader className="px-4 sm:px-6 pt-4 pb-2 sm:pt-6 sm:pb-4">
         <CardTitle>Edit Dream</CardTitle>
-        <CardDescription>Update your dream record</CardDescription>
+        <CardDescription>Update your dream details</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-4 sm:px-6 pt-2 pb-4 sm:pb-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">Dream Title</Label>
             <Input
               id="title"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              value={updatedDream.title}
+              onChange={(e) => setUpdatedDream({ ...updatedDream, title: e.target.value })}
               required
+              placeholder="Enter a title for your dream"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Dream Description</Label>
+            <Label htmlFor="description">What was your dream about?</Label>
             <Textarea
               id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              value={updatedDream.description}
+              onChange={(e) => setUpdatedDream({ ...updatedDream, description: e.target.value })}
               required
+              rows={8}
+              placeholder="Describe your dream in as much detail as you can remember..."
             />
           </div>
 
@@ -121,9 +127,9 @@ export function EditDreamForm({ dream, onSubmit, onCancel }: EditDreamFormProps)
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
               <Select
-                value={formData.category}
+                value={updatedDream.category}
                 onValueChange={(value: DreamCategory) =>
-                  setFormData({ ...formData, category: value })
+                  setUpdatedDream({ ...updatedDream, category: value })
                 }
               >
                 <SelectTrigger>
@@ -142,9 +148,9 @@ export function EditDreamForm({ dream, onSubmit, onCancel }: EditDreamFormProps)
             <div className="space-y-2">
               <Label htmlFor="emotion">Emotion</Label>
               <Select
-                value={formData.emotion}
+                value={updatedDream.emotion}
                 onValueChange={(value: DreamEmotion) =>
-                  setFormData({ ...formData, emotion: value })
+                  setUpdatedDream({ ...updatedDream, emotion: value })
                 }
               >
                 <SelectTrigger>
@@ -164,16 +170,16 @@ export function EditDreamForm({ dream, onSubmit, onCancel }: EditDreamFormProps)
           <div className="flex items-center space-x-2">
             <Switch
               id="is_public"
-              checked={formData.is_public}
+              checked={updatedDream.is_public}
               onCheckedChange={(checked) =>
-                setFormData({ ...formData, is_public: checked })
+                setUpdatedDream({ ...updatedDream, is_public: checked })
               }
             />
             <Label htmlFor="is_public">Make this dream public</Label>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="media">Upload New Image or Video (Optional)</Label>
+            <Label htmlFor="media">Replace Image (Optional)</Label>
             <Input 
               id="media" 
               type="file" 
@@ -181,26 +187,23 @@ export function EditDreamForm({ dream, onSubmit, onCancel }: EditDreamFormProps)
               onChange={handleFileChange} 
             />
             <p className="text-sm text-muted-foreground">
-              Upload a new image or video to replace the current one.
+              Upload a new image or keep the existing one.
             </p>
-            {selectedFile && (
-              <div className="mt-2">
-                <p>Selected file: {selectedFile.name}</p>
-              </div>
-            )}
-            {dream.image_url && !selectedFile && (
-              <div className="mt-2">
-                <p>Current media will be kept if no new file is selected.</p>
-              </div>
-            )}
           </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onCancel}>
+          <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+            <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto order-2 sm:order-1">
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : "Save Changes"}
+            <Button type="submit" className="w-full sm:w-auto order-1 sm:order-2" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                'Update Dream'
+              )}
             </Button>
           </div>
         </form>
