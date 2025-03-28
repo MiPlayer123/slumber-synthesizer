@@ -292,11 +292,18 @@ const Journal = () => {
       });
       
       try {
+        // Get current session for auth
+        const { data: sessionData } = await supabase.auth.getSession();
+        
         const { data, error } = await supabase.functions.invoke('generate-dream-image', {
           body: { 
             dreamId: dream.id,
             description: `${dream.title} - ${dream.description}`
           },
+          // Add authentication headers to ensure the function can be called
+          headers: sessionData?.session ? {
+            Authorization: `Bearer ${sessionData.session.access_token}`
+          } : undefined
         });
 
         if (error) throw error;
@@ -370,11 +377,18 @@ const Journal = () => {
       try {
         setIsAnalyzing(true);
         
+        // Get current session for auth
+        const { data: sessionData } = await supabase.auth.getSession();
+        
         const { data, error } = await supabase.functions.invoke('analyze-dream', {
           body: { 
             dreamId: dream.id,
             dreamContent: `Title: ${dream.title}\n\nDescription: ${dream.description}\n\nCategory: ${dream.category}\n\nEmotion: ${dream.emotion}`
           },
+          // Add authentication headers to ensure the function can be called
+          headers: sessionData?.session ? {
+            Authorization: `Bearer ${sessionData.session.access_token}`
+          } : undefined
         });
 
         if (error) throw error;
