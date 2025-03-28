@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -23,10 +22,17 @@ export const titleGenerationService = {
         maxWords: 6
       };
 
+      // Get current session for auth
+      const { data: sessionData } = await supabase.auth.getSession();
+
       // Call the analyze-dream Edge Function
       // We use the existing Edge Function since it already has OpenAI access
       const { data, error } = await supabase.functions.invoke('analyze-dream', {
-        body: request
+        body: request,
+        // Add authentication headers to ensure the function can be called
+        headers: sessionData?.session ? {
+          Authorization: `Bearer ${sessionData.session.access_token}`
+        } : undefined
       });
 
       if (error) {
