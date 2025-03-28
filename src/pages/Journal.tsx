@@ -119,7 +119,7 @@ const Journal = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dreams'] });
+      queryClient.invalidateQueries({ queryKey: ['paginatedDreams'] });
       toast({
         title: "Media Uploaded",
         description: "Your image or video has been uploaded successfully.",
@@ -180,7 +180,14 @@ const Journal = () => {
       }
     },
     onSuccess: ({ dream: newDream, file }) => {
-      queryClient.invalidateQueries({ queryKey: ['dreams'] });
+      queryClient.invalidateQueries({ queryKey: ['paginatedDreams'] });
+      
+      // Optionally force a refetch of the first page to ensure immediate visibility
+      queryClient.refetchQueries({ 
+        queryKey: ['paginatedDreams', user.id], 
+        type: 'active'
+      });
+      
       setIsCreating(false);
       toast({
         title: "Dream Created",
@@ -243,7 +250,14 @@ const Journal = () => {
       return { dream: data, file };
     },
     onSuccess: ({ dream: updatedDream, file }) => {
-      queryClient.invalidateQueries({ queryKey: ['dreams'] });
+      queryClient.invalidateQueries({ queryKey: ['paginatedDreams'] });
+      
+      // Force a refetch of the active queries to ensure immediate visibility
+      queryClient.refetchQueries({ 
+        queryKey: ['paginatedDreams', user.id], 
+        type: 'active'
+      });
+      
       setEditingDreamId(null);
       toast({
         title: "Dream Updated",
@@ -278,11 +292,18 @@ const Journal = () => {
       });
       
       try {
+        // Get current session for auth
+        const { data: sessionData } = await supabase.auth.getSession();
+        
         const { data, error } = await supabase.functions.invoke('generate-dream-image', {
           body: { 
             dreamId: dream.id,
             description: `${dream.title} - ${dream.description}`
           },
+          // Add authentication headers to ensure the function can be called
+          headers: sessionData?.session ? {
+            Authorization: `Bearer ${sessionData.session.access_token}`
+          } : undefined
         });
 
         if (error) throw error;
@@ -295,26 +316,51 @@ const Journal = () => {
         throw err;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dreams'] });
+    onSuccess: (data, _, dream) => {
+      console.log('Image generation succeeded:', data);
+      queryClient.invalidateQueries({ queryKey: ['paginatedDreams'] });
+      queryClient.refetchQueries({ 
+        queryKey: ['paginatedDreams', user.id], 
+        type: 'active'
+      });
       toast({
         title: "Image Generated",
         description: "Dream image has been generated successfully.",
       });
     },
-    onError: (error) => {
-      console.error('Image generation error:', error);
+    onError: (error, dream) => {
+      console.error('Image generation error:', error, 'for dream:', dream);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to generate dream image. Please try again.",
+        title: "Image Generation Failed",
+        description: error instanceof Error ? error.message : "Failed to generate dream image. Your dream was saved successfully, but we couldn't create an image for it.",
+      });
+      
+      // Even on error, we should clean up the generating state
+      setGeneratingImageForDreams(prev => {
+        const newSet = new Set(prev);
+        if (dream) {
+          newSet.delete(dream.id);
+        }
+        return newSet;
+      });
+      
+      // Refresh the UI to show up-to-date state
+      queryClient.invalidateQueries({ queryKey: ['paginatedDreams'] });
+      queryClient.refetchQueries({ 
+        queryKey: ['paginatedDreams', user.id], 
+        type: 'active'
       });
     },
-    onSettled: (_, __, dream) => {
+    onSettled: (data, error, dream) => {
+      console.log('Image generation settled for dream:', dream?.id, 'with data:', data, 'error:', error);
+      
       // Remove the dream ID from the generating set regardless of success/failure
       setGeneratingImageForDreams(prev => {
         const newSet = new Set(prev);
-        newSet.delete(dream.id);
+        if (dream) {
+          newSet.delete(dream.id);
+        }
         return newSet;
       });
     }
@@ -331,11 +377,18 @@ const Journal = () => {
       try {
         setIsAnalyzing(true);
         
+        // Get current session for auth
+        const { data: sessionData } = await supabase.auth.getSession();
+        
         const { data, error } = await supabase.functions.invoke('analyze-dream', {
           body: { 
             dreamId: dream.id,
             dreamContent: `Title: ${dream.title}\n\nDescription: ${dream.description}\n\nCategory: ${dream.category}\n\nEmotion: ${dream.emotion}`
           },
+          // Add authentication headers to ensure the function can be called
+          headers: sessionData?.session ? {
+            Authorization: `Bearer ${sessionData.session.access_token}`
+          } : undefined
         });
 
         if (error) throw error;
@@ -376,21 +429,42 @@ const Journal = () => {
         throw new Error('User must be logged in to delete a dream');
       }
 
-      const { error } = await supabase
-        .from('dreams')
-        .delete()
-        .eq('id', dreamId)
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Error deleting dream:', error);
-        throw error;
+      if (!dreamId) {
+        throw new Error('Dream ID is required for deletion');
       }
 
-      return dreamId;
+      try {
+        const { error } = await supabase
+          .from('dreams')
+          .delete()
+          .eq('id', dreamId)
+          .eq('user_id', user.id);
+
+        if (error) {
+          console.error('Error deleting dream:', error);
+          throw error;
+        }
+
+        console.log('Dream deleted successfully:', dreamId);
+        return dreamId;
+      } catch (error) {
+        console.error('Full delete error details:', error);
+        throw error;
+      }
     },
     onSuccess: (dreamId) => {
-      queryClient.invalidateQueries({ queryKey: ['dreams'] });
+      console.log('Dream delete success for ID:', dreamId);
+      queryClient.invalidateQueries({ queryKey: ['paginatedDreams'] });
+      
+      // Force a refetch to update UI immediately
+      queryClient.refetchQueries({ 
+        queryKey: ['paginatedDreams', user.id], 
+        type: 'active'
+      });
+      
+      // Reset dream to delete
+      setDreamToDelete(null);
+      
       toast({
         title: "Dream Deleted",
         description: "Your dream has been successfully deleted.",
@@ -400,8 +474,8 @@ const Journal = () => {
       console.error('Delete error:', error);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete dream",
+        title: "Error Deleting Dream",
+        description: error instanceof Error ? error.message : "Failed to delete dream. Please try again.",
       });
     },
   });
@@ -428,11 +502,24 @@ const Journal = () => {
   };
 
   const confirmDelete = () => {
-    if (dreamToDelete) {
+    try {
+      if (!dreamToDelete) {
+        console.error('No dream selected for deletion');
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No dream selected for deletion.",
+        });
+        return;
+      }
+      
+      console.log('Confirming deletion of dream:', dreamToDelete);
       deleteDream.mutate(dreamToDelete);
+    } catch (error) {
+      console.error('Error in confirm delete:', error);
+    } finally {
+      setDeleteDialogOpen(false);
     }
-    setDeleteDialogOpen(false);
-    setDreamToDelete(null);
   };
 
   return (
@@ -444,6 +531,9 @@ const Journal = () => {
       {isCreating && (
         <CreateDreamForm
           onSubmit={(dream, file) => {
+            console.log('Dream form submitted:', dream, file);
+            // Ensure we're not submitting while already in progress
+            if (createDream.isPending) return;
             createDream.mutate({ dream, file });
           }}
         />
@@ -486,7 +576,10 @@ const Journal = () => {
         confirmText="Delete"
         cancelText="Cancel"
         onConfirm={confirmDelete}
-        onClose={() => setDeleteDialogOpen(false)}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setDreamToDelete(null);
+        }}
       />
     </div>
   );
