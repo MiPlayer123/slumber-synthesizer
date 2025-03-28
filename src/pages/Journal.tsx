@@ -517,6 +517,9 @@ const Journal = () => {
       {isCreating && (
         <CreateDreamForm
           onSubmit={(dream, file) => {
+            console.log('Dream form submitted:', dream, file);
+            // Ensure we're not submitting while already in progress
+            if (createDream.isPending) return;
             createDream.mutate({ dream, file });
           }}
         />
