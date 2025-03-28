@@ -1,20 +1,38 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 import { decode as base64Decode } from "https://deno.land/std@0.208.0/encoding/base64.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsHeaders } from '../_shared/cors.ts'
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    // Get authorization header from request
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'No authorization header' }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     const { dreamId, description } = await req.json();
+    
+    if (!dreamId || !description) {
+      return new Response(
+        JSON.stringify({ error: 'Dream ID and description are required' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
     
     console.log('Processing dream:', dreamId);
     console.log('Initial description:', description);
@@ -45,7 +63,13 @@ serve(async (req) => {
     if (!openAiResponse.ok) {
       const error = await openAiResponse.text();
       console.error('OpenAI API error:', error);
-      throw new Error(`OpenAI API error: ${error}`);
+      return new Response(
+        JSON.stringify({ error: `OpenAI API error: ${error}` }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     const openAiData = await openAiResponse.json();
@@ -72,14 +96,26 @@ serve(async (req) => {
     if (!imageResponse.ok) {
       const error = await imageResponse.text();
       console.error('DALL-E API error:', error);
-      throw new Error(`DALL-E API error: ${error}`);
+      return new Response(
+        JSON.stringify({ error: `DALL-E API error: ${error}` }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     const imageData = await imageResponse.json();
     console.log('Image generated successfully');
 
     if (!imageData.data || !imageData.data[0]?.b64_json) {
-      throw new Error('No image data in OpenAI response');
+      return new Response(
+        JSON.stringify({ error: 'No image data in OpenAI response' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Create Supabase client
@@ -103,7 +139,13 @@ serve(async (req) => {
 
     if (uploadError) {
       console.error('Storage upload error:', uploadError);
-      throw uploadError;
+      return new Response(
+        JSON.stringify({ error: `Storage upload error: ${uploadError.message}` }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Get public URL for the uploaded image
@@ -123,7 +165,13 @@ serve(async (req) => {
 
     if (updateError) {
       console.error('Error updating dream:', updateError);
-      throw updateError;
+      return new Response(
+        JSON.stringify({ error: `Database update error: ${updateError.message}` }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     return new Response(
@@ -139,8 +187,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       },
     );
   }
