@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
+import { track } from '@vercel/analytics/react';
 
 const ResetPassword = () => {
   const { user, resetPassword, loading } = useAuth();
@@ -32,19 +33,25 @@ const ResetPassword = () => {
     
     if (password !== confirmPassword) {
       setError('Passwords do not match');
+      track('password_reset_error', { type: 'password_mismatch' });
       return;
     }
     
     if (password.length < 6) {
       setError('Password must be at least 6 characters');
+      track('password_reset_error', { type: 'password_too_short' });
       return;
     }
     
     try {
       await resetPassword(password);
+      track('password_reset_success');
       navigate('/auth');
     } catch (error) {
-      // Error is already handled in the resetPassword function
+      track('password_reset_error', { 
+        type: 'reset_failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   };
 
