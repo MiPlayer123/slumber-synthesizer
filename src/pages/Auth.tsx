@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Separator } from "@/components/ui/separator";
+import { track } from '@vercel/analytics/react';
 import { 
   Dialog, 
   DialogContent, 
@@ -72,15 +73,18 @@ const Auth = () => {
       console.log(`Attempting to ${isSignUp ? 'sign up' : 'sign in'}...`);
       if (isSignUp) {
         await signUp(email, password, username, fullName);
+        track('user_signup', { method: 'email' });
       } else {
-        // Call sign-in but don't check the return type
         await signIn(email, password);
-        // Log success message - the auth context will handle state updates
-        console.log('Sign-in complete without errors');
+        track('user_signin', { method: 'email' });
       }
     } catch (error) {
       console.error("Authentication error:", error);
-      // Error is handled by the auth context
+      track('auth_error', { 
+        type: isSignUp ? 'signup' : 'signin',
+        method: 'email',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   };
 
@@ -88,14 +92,18 @@ const Auth = () => {
     e.preventDefault();
     
     if (!isGoogleSignUp) {
-      // Start the normal Google sign-in flow
       try {
         await signInWithGoogle();
+        track('user_signin', { method: 'google' });
       } catch (error) {
         console.error("Google authentication error:", error);
+        track('auth_error', { 
+          type: 'signin',
+          method: 'google',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
       }
     } else {
-      // Handle completing the Google sign-up with username
       if (!googleUsername || googleUsername.trim() === '') {
         setErrors({...errors, googleUsername: 'Username is required'});
         return;
@@ -103,15 +111,20 @@ const Auth = () => {
       
       try {
         await completeGoogleSignUp(googleUsername);
+        track('user_signup', { method: 'google' });
         setIsGoogleSignUp(false);
         setGoogleUsername('');
       } catch (error) {
         console.error("Google username registration error:", error);
+        track('auth_error', { 
+          type: 'signup',
+          method: 'google',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
         setErrors({...errors, googleUsername: 'Failed to register username, please try again'});
       }
     }
   };
-
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,9 +134,13 @@ const Auth = () => {
     
     try {
       await forgotPassword(resetEmail);
+      track('password_reset_requested');
       setIsResetDialogOpen(false);
     } catch (error) {
-      // Error is already handled in the forgotPassword function
+      track('auth_error', { 
+        type: 'password_reset',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   };
 

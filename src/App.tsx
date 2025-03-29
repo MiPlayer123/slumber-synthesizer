@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { Suspense, lazy } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
+import { Analytics, track } from "@vercel/analytics/react";
 
 // Pages
 import Index from "@/pages/Index";
@@ -164,6 +165,7 @@ function App() {
       <SpeedInsights 
           sampleRate={1.0} // 100% of users tracked
       />
+      <Analytics />
     </Router>
   );
 }
