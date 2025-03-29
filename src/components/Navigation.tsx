@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Moon, Sun, BookMarked, Home, Users, LogOut, User, BarChart, Settings, Grid, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/use-theme";
@@ -25,12 +25,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { track } from '@vercel/analytics/react';
 
 export const Navigation = () => {
   const { theme, setTheme } = useTheme();
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
 
   const handleSignOut = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -53,6 +55,14 @@ export const Navigation = () => {
     }
   };
 
+  const handleNavigation = (path: string) => {
+    track('navigation_click', { 
+      path,
+      is_mobile: window.innerWidth < 768
+    });
+    setIsOpen(false);
+  };
+
   return (
     <nav className="fixed top-0 w-full bg-background/80 backdrop-blur-lg border-b z-50 animate-fade-in">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -66,7 +76,7 @@ export const Navigation = () => {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Link to="/">
+                  <Link to="/" onClick={() => handleNavigation('/')}>
                     <Button variant="ghost" size="icon">
                       <Home className="h-5 w-5" />
                     </Button>
@@ -84,7 +94,7 @@ export const Navigation = () => {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link to="/journal">
+                    <Link to="/journal" onClick={() => handleNavigation('/journal')}>
                       <Button variant="ghost" size="icon">
                         <BookMarked className="h-5 w-5" />
                       </Button>
@@ -99,7 +109,7 @@ export const Navigation = () => {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link to="/statistics">
+                    <Link to="/statistics" onClick={() => handleNavigation('/statistics')}>
                       <Button variant="ghost" size="icon">
                         <BarChart className="h-5 w-5" />
                       </Button>
@@ -114,7 +124,7 @@ export const Navigation = () => {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link to="/dream-wall">
+                    <Link to="/dream-wall" onClick={() => handleNavigation('/dream-wall')}>
                       <Button variant="ghost" size="icon">
                         <Grid className="h-5 w-5" />
                       </Button>
@@ -164,7 +174,7 @@ export const Navigation = () => {
               </DropdownMenu>
             </>
           ) : (
-            <Link to="/auth">
+            <Link to="/auth" onClick={() => handleNavigation('/auth')}>
               <Button variant="default">Sign In</Button>
             </Link>
           )}
@@ -198,7 +208,7 @@ export const Navigation = () => {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link to="/journal">
+                    <Link to="/journal" onClick={() => handleNavigation('/journal')}>
                       <Button variant="ghost" size="icon">
                         <BookMarked className="h-5 w-5" />
                       </Button>
@@ -213,7 +223,7 @@ export const Navigation = () => {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link to="/statistics">
+                    <Link to="/statistics" onClick={() => handleNavigation('/statistics')}>
                       <Button variant="ghost" size="icon">
                         <BarChart className="h-5 w-5" />
                       </Button>
@@ -228,7 +238,7 @@ export const Navigation = () => {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link to="/community">
+                    <Link to="/community" onClick={() => handleNavigation('/community')}>
                       <Button variant="ghost" size="icon">
                         <Users className="h-5 w-5" />
                       </Button>
@@ -265,14 +275,14 @@ export const Navigation = () => {
 
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="md:hidden">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="pt-10">
               <div className="flex flex-col space-y-4 mt-8">
                 {!user && (
-                  <Link to="/" onClick={() => setIsOpen(false)}>
+                  <Link to="/" onClick={() => handleNavigation('/')}>
                     <Button variant="ghost" className="w-full justify-start" size="lg">
                       <Home className="h-5 w-5 mr-2" />
                       <span>Home</span>
@@ -282,13 +292,13 @@ export const Navigation = () => {
                 
                 {user ? (
                   <>
-                    <Link to="/profile" onClick={() => setIsOpen(false)}>
+                    <Link to="/profile" onClick={() => handleNavigation('/profile')}>
                       <Button variant="ghost" className="w-full justify-start" size="lg">
                         <User className="h-5 w-5 mr-2" />
                         <span>Profile</span>
                       </Button>
                     </Link>
-                    <Link to="/settings" onClick={() => setIsOpen(false)}>
+                    <Link to="/settings" onClick={() => handleNavigation('/settings')}>
                       <Button variant="ghost" className="w-full justify-start" size="lg">
                         <Settings className="h-5 w-5 mr-2" />
                         <span>Settings</span>
@@ -300,7 +310,7 @@ export const Navigation = () => {
                       size="lg"
                       onClick={(e) => {
                         handleSignOut(e);
-                        setIsOpen(false);
+                        handleNavigation('/');
                       }}
                     >
                       <LogOut className="h-5 w-5 mr-2" />
@@ -308,8 +318,11 @@ export const Navigation = () => {
                     </Button>
                   </>
                 ) : (
-                  <Link to="/auth" onClick={() => setIsOpen(false)}>
-                    <Button variant="default" className="w-full">Sign In</Button>
+                  <Link to="/auth" onClick={() => handleNavigation('/auth')}>
+                    <Button variant="ghost" className="w-full justify-start" size="lg">
+                      <LogOut className="h-5 w-5 mr-2" />
+                      <span>Sign In</span>
+                    </Button>
                   </Link>
                 )}
               </div>

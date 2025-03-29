@@ -15,6 +15,7 @@ import { useDreamAnalyses } from "@/hooks/use-dream-analyses";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FeedbackBanner } from "@/components/ui/feedback-banner";
 import { usePaginatedDreams } from "@/hooks/use-dreams";
+import { track } from '@vercel/analytics/react';
 
 const Journal = () => {
   const { user } = useAuth();
@@ -182,6 +183,15 @@ const Journal = () => {
     onSuccess: ({ dream: newDream, file }) => {
       queryClient.invalidateQueries({ queryKey: ['paginatedDreams'] });
       
+      // Track successful dream creation
+      track('dream_created', {
+        dream_id: newDream.id,
+        has_image: !!file,
+        category: newDream.category,
+        emotion: newDream.emotion,
+        is_public: newDream.is_public
+      });
+      
       // Optionally force a refetch of the first page to ensure immediate visibility
       queryClient.refetchQueries({ 
         queryKey: ['paginatedDreams', user.id], 
@@ -203,6 +213,9 @@ const Journal = () => {
     },
     onError: (error) => {
       console.error('Mutation error:', error);
+      track('dream_creation_error', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       toast({
         variant: "destructive",
         title: "Error",
@@ -252,6 +265,13 @@ const Journal = () => {
     onSuccess: ({ dream: updatedDream, file }) => {
       queryClient.invalidateQueries({ queryKey: ['paginatedDreams'] });
       
+      // Track successful dream update
+      track('dream_updated', {
+        dream_id: updatedDream.id,
+        has_image: !!file,
+        updated_fields: Object.keys(updatedDream).join(',')
+      });
+      
       // Force a refetch of the active queries to ensure immediate visibility
       queryClient.refetchQueries({ 
         queryKey: ['paginatedDreams', user.id], 
@@ -271,6 +291,9 @@ const Journal = () => {
     },
     onError: (error) => {
       console.error('Update error:', error);
+      track('dream_update_error', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       toast({
         variant: "destructive",
         title: "Error",
@@ -454,6 +477,8 @@ const Journal = () => {
     },
     onSuccess: (dreamId) => {
       console.log('Dream delete success for ID:', dreamId);
+      track('dream_deleted', { dream_id: dreamId });
+      
       queryClient.invalidateQueries({ queryKey: ['paginatedDreams'] });
       
       // Force a refetch to update UI immediately
@@ -472,6 +497,9 @@ const Journal = () => {
     },
     onError: (error) => {
       console.error('Delete error:', error);
+      track('dream_delete_error', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       toast({
         variant: "destructive",
         title: "Error Deleting Dream",
@@ -481,10 +509,12 @@ const Journal = () => {
   });
 
   const handleAnalyzeDream = (dreamId: string) => {
+    track('dream_analysis_started', { dream_id: dreamId });
     analyzeDream.mutate(dreamId);
   };
 
   const handleEditDream = (dreamId: string) => {
+    track('dream_edit_started', { dream_id: dreamId });
     setEditingDreamId(dreamId);
   };
 
@@ -493,10 +523,12 @@ const Journal = () => {
   };
 
   const handleCancelEdit = () => {
+    track('dream_edit_cancelled');
     setEditingDreamId(null);
   };
 
   const handleDeleteDream = (dreamId: string) => {
+    track('dream_delete_initiated', { dream_id: dreamId });
     setDreamToDelete(dreamId);
     setDeleteDialogOpen(true);
   };
