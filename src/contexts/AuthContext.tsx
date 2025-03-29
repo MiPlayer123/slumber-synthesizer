@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
-import { supabase, isSessionValid, refreshSession } from '@/integrations/supabase/client'; // Ensure isSessionValid and refreshSession are exported
+import { supabase, isSessionValid, refreshSession, isValidSupabaseConfig } from '@/integrations/supabase/client'; // Use the existing client
 import { Session, User, AuthError } from '@supabase/supabase-js';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -368,23 +368,139 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const forgotPassword = async (email: string) => {
     setLoading(true); setError(null);
     try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` });
-      if (resetError) throw resetError;
-      toast({ title: 'Check Your Email', description: 'Password reset instructions sent.' });
+      // Check if Supabase is properly configured
+      if (!isValidSupabaseConfig()) {
+        console.error('Supabase client is not properly configured. Missing configuration.');
+        throw new Error('Authentication service is not properly configured. Please contact support.');
+      }
+      
+      // Log the attempt for debugging
+      console.log(`Attempting to send password reset email to: ${email}`);
+      
+      // Use window.location.host to capture correct host:port combination
+      const baseUrl = `${window.location.protocol}//${window.location.host}`;
+      
+      // Set redirectTo directly to the root URL since we're now handling proper redirects in AuthRedirectHandler
+      // This ensures we handle the code parameter correctly in the root path handler
+      const redirectUrl = baseUrl;
+      console.log(`Using redirect URL: ${redirectUrl}`);
+      
+      // Add additional options to make the token last longer
+      const { data, error: resetError } = await supabase.auth.resetPasswordForEmail(email, { 
+        redirectTo: redirectUrl,
+      });
+      
+      if (resetError) {
+        console.error('Password reset API error:', resetError);
+        throw resetError;
+      }
+      
+      // Log success response
+      console.log('Password reset response:', data);
+      
+      toast({ 
+        title: 'Check Your Email', 
+        description: 'Reset link sent! Click it within 1 hour. Check spam folder if not found in inbox.'
+      });
       return { success: true, error: null };
-    } catch (error) { return { success: false, error: logAuthError('forgotPassword', error) }; }
-    finally { if (isMountedRef.current) setLoading(false); }
+    } catch (error) { 
+      console.error('Full password reset error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Password Reset Issue',
+        description: error instanceof Error ? error.message : 'We encountered a problem sending the reset email. Please try again or contact support if the issue persists.',
+      });
+      return { success: false, error: logAuthError('forgotPassword', error) }; 
+    } finally { 
+      if (isMountedRef.current) setLoading(false); 
+    }
   };
 
   const resetPassword = async (password: string) => {
     setLoading(true); setError(null);
     try {
-      const { error: updateError } = await supabase.auth.updateUser({ password });
-      if (updateError) throw updateError;
-      toast({ title: 'Password Updated', description: 'You can now sign in.' });
+      // Check if Supabase is properly configured
+      if (!isValidSupabaseConfig()) {
+        console.error('Supabase client is not properly configured. Missing configuration.');
+        throw new Error('Authentication service is not properly configured. Please contact support.');
+      }
+      
+      console.log('Attempting to reset password');
+      
+      // Get the code from URL if it exists (handle both auth flows)
+      const searchParams = new URLSearchParams(window.location.search);
+      const code = searchParams.get('code');
+      
+      if (code) {
+        console.log('Using auth code flow for password reset with code present');
+        
+        // With Supabase, we need to exchange the code for a session first
+        try {
+          console.log('Attempting to exchange code for session...');
+          const { data: exchangeData, error: codeError } = await supabase.auth.exchangeCodeForSession(code);
+          
+          if (codeError) {
+            console.error('Error exchanging code for session:', codeError);
+            throw codeError;
+          }
+          
+          console.log('Successfully exchanged code for session:', 
+            exchangeData ? 'Session created' : 'No session returned');
+        } catch (exchangeError) {
+          console.error('Exception during code exchange:', exchangeError);
+          throw new Error(`Failed to process reset code: ${exchangeError instanceof Error ? exchangeError.message : String(exchangeError)}`);
+        }
+      } else {
+        console.log('No code parameter found in URL, checking for existing session');
+      }
+      
+      // Verify we have a session token before updating - after code exchange
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Error getting session:', sessionError);
+        throw sessionError;
+      }
+      
+      if (!sessionData?.session) {
+        console.error('No active session found for password reset');
+        throw new Error('Your password reset session could not be established. Please request a new reset link.');
+      }
+      
+      console.log('Session verified, updating password now');
+      
+      // Force a new request rather than using a potentially stale session
+      const { error: updateError } = await supabase.auth.updateUser({ 
+        password: password 
+      });
+      
+      if (updateError) {
+        console.error('Password update error:', updateError);
+        throw updateError;
+      }
+      
+      console.log('Password reset successful');
+      toast({ 
+        title: 'Password Updated', 
+        description: 'Your password has been successfully reset. You can now sign in with your new password.' 
+      });
+      
+      // Force sign out to ensure clean state after password reset
+      try {
+        await supabase.auth.signOut();
+        console.log('Signed out after password reset');
+      } catch (signOutError) {
+        console.error('Error signing out after password reset:', signOutError);
+        // Continue anyway, as the password was updated successfully
+      }
+      
       return { success: true, error: null };
-    } catch (error) { return { success: false, error: logAuthError('resetPassword', error) }; }
-    finally { if (isMountedRef.current) setLoading(false); }
+    } catch (error) { 
+      console.error('Full password reset error details:', error);
+      return { success: false, error: logAuthError('resetPassword', error) }; 
+    } finally { 
+      if (isMountedRef.current) setLoading(false); 
+    }
   };
 
 

@@ -1,10 +1,10 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { Toaster } from "@/components/ui/toaster";
 import { Navigation } from "@/components/Navigation";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics, track } from "@vercel/analytics/react";
 
@@ -14,6 +14,8 @@ import Auth from "@/pages/Auth";
 import NotFound from "@/pages/NotFound";
 import { Profile } from "@/pages/Profile";
 import ResetPassword from "@/pages/ResetPassword";
+import PasswordResetTroubleshoot from "@/pages/PasswordResetTroubleshoot";
+import PasswordResetDebug from "@/pages/PasswordResetDebug";
 
 // Lazy loaded pages for performance
 const Journal = lazy(() => import("@/pages/Journal"));
@@ -67,12 +69,74 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
+// Auth handler component to process tokens at root path
+const AuthRedirectHandler = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    // Only run on mount
+    const searchParams = new URLSearchParams(location.search);
+    
+    console.log("Root path: Checking URL parameters", {
+      search: location.search,
+      hash: location.hash,
+      hasCode: searchParams.has('code')
+    });
+    
+    // Check for Supabase auth code (used in the password reset flow)
+    if (searchParams.has('code')) {
+      console.log('Detected Supabase auth code, redirecting to reset-password with code', {
+        code: searchParams.get('code')
+      });
+      
+      // Redirect to the reset password page with the code parameter
+      navigate(`/reset-password${location.search}${location.hash}`, { replace: true });
+      return;
+    }
+    
+    // Check for auth-related parameters
+    if (searchParams.has('error') || 
+        searchParams.has('access_token') || 
+        searchParams.has('refresh_token') ||
+        searchParams.has('token') ||
+        searchParams.has('type')) {
+      
+      // Check for recovery specifically
+      if (searchParams.get('type') === 'recovery' || location.hash.includes('type=recovery')) {
+        console.log('Detected recovery flow, redirecting to reset-password', {
+          search: location.search,
+          hash: location.hash 
+        });
+        
+        // Redirect to the reset password page with all query params and hash intact
+        navigate(`/reset-password${location.search}${location.hash}`, { replace: true });
+        return;
+      }
+      
+      // Check for error related to token expiration
+      if (searchParams.get('error') === 'access_denied' && 
+          searchParams.get('error_code') === 'otp_expired') {
+        console.log('Detected expired token');
+        navigate('/password-reset-troubleshoot?expired=true', { replace: true });
+        return;
+      }
+    }
+    
+    // Otherwise proceed to normal landing page
+  }, [location, navigate]);
+  
+  return <Index />;
+};
+
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Index />} />
+      <Route path="/" element={<AuthRedirectHandler />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/password-reset-troubleshoot" element={<PasswordResetTroubleshoot />} />
+      <Route path="/password-reset-debug" element={<PasswordResetDebug />} />
       <Route 
         path="/journal" 
         element={
