@@ -1,13 +1,24 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
+// Fixed values for Supabase URL and key
 const SUPABASE_URL = "https://jduzfrjhxfxiyajvpkus.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkdXpmcmpoeGZ4aXlhanZwa3VzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk2NTYyODMsImV4cCI6MjA1NTIzMjI4M30.gSYv1qXg4y3tTP3UjobDPjF9A1UldyOMjdYFVJlh47c";
 
+// Helper function to check if the configuration is valid
+export const isValidSupabaseConfig = () => {
+  return !!(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
+};
+
+// Log errors for missing configuration
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  console.error('Supabase configuration is incomplete. This will cause authentication errors.');
+}
+
 // Initialize the Supabase client with explicit options for session persistence
 export const supabase = createClient<Database>(
-  SUPABASE_URL, 
-  SUPABASE_PUBLISHABLE_KEY,
+  SUPABASE_URL || 'https://example.supabase.co', // Fallback to prevent crashes
+  SUPABASE_PUBLISHABLE_KEY || 'public-anon-key', // Fallback to prevent crashes
   {
     auth: {
       persistSession: true, // Enable session persistence (default is true)
@@ -70,7 +81,13 @@ export const supabase = createClient<Database>(
     } : {})
   }
 );
+
 export const isSessionValid = async (): Promise<boolean> => {
+  if (!isValidSupabaseConfig()) {
+    console.error('Cannot check session: Supabase is not properly configured');
+    return false;
+  }
+
   try {
     const { data } = await supabase.auth.getSession();
     // Check if session exists AND if its expiration time is in the future
@@ -82,8 +99,14 @@ export const isSessionValid = async (): Promise<boolean> => {
     return false;
   }
 };
+
 // Export a function to refresh the session
 export const refreshSession = async () => {
+  if (!isValidSupabaseConfig()) {
+    console.error('Cannot refresh session: Supabase is not properly configured');
+    return { data: null, error: new Error('Supabase is not properly configured') };
+  }
+
   try {
     const { data, error } = await supabase.auth.refreshSession();
     if (error) {
@@ -98,6 +121,11 @@ export const refreshSession = async () => {
 
 // Export additional helper functions
 export const getCurrentUser = async () => {
+  if (!isValidSupabaseConfig()) {
+    console.error('Cannot get current user: Supabase is not properly configured');
+    return { user: null, error: new Error('Supabase is not properly configured') };
+  }
+
   try {
     const { data, error } = await supabase.auth.getUser();
     return { user: data.user, error };

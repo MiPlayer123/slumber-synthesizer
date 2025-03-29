@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Separator } from "@/components/ui/separator";
 import { track } from '@vercel/analytics/react';
+import { useToast } from "@/hooks/use-toast";
 import { 
   Dialog, 
   DialogContent, 
@@ -16,9 +17,14 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from "@/components/ui/dialog";
+import { toast } from "@/components/ui/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { CheckCircle } from "lucide-react";
+import { PasswordResetInstructions } from '@/components/auth/PasswordResetInstructions';
 
 const Auth = () => {
   const { user, signIn, signUp, signInWithGoogle, forgotPassword, completeGoogleSignUp, loading } = useAuth();
+  const { toast } = useToast();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,17 +32,25 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const [resetEmail, setResetEmail] = useState('');
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [showPasswordResetSuccess, setShowPasswordResetSuccess] = useState(false);
 
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isGoogleSignUp, setIsGoogleSignUp] = useState(false);
   const [googleUsername, setGoogleUsername] = useState('');
   const location = useLocation();
 
-  // Check URL for error parameters when component mounts
+  // Check URL for error parameters and success states when component mounts
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const error = params.get('error');
     const errorDesc = params.get('error_description');
+    
+    // Check for location state that might have been passed during navigation
+    if (location.state && 'passwordReset' in location.state && location.state.passwordReset === true) {
+      setShowPasswordResetSuccess(true);
+      // Clear the state after showing to prevent repeat on refresh
+      window.history.replaceState({}, document.title);
+    }
     
     // If we detect the specific database error for new user, show username form
     if (error === 'server_error' && errorDesc?.includes('Database error saving new user')) {
@@ -128,19 +142,43 @@ const Auth = () => {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!resetEmail) {
+    
+    // Add proper validation for email
+    if (!resetEmail || !resetEmail.includes('@') || !resetEmail.includes('.')) {
+      setErrors({...errors, resetEmail: 'Please enter a valid email address'});
       return;
     }
     
     try {
+      console.log('Requesting password reset for:', resetEmail);
+      
+      // Show immediate feedback
+      toast({
+        title: "Sending reset email",
+        description: "Please wait...",
+      });
+      
       await forgotPassword(resetEmail);
-      track('password_reset_requested');
+      track('password_reset_requested', { email_domain: resetEmail.split('@')[1] });
+      
+      // Clear the input and reset dialog
+      setResetEmail('');
       setIsResetDialogOpen(false);
+      
+      // Show comprehensive instructions to the user
+      toast({
+        title: "Email Sent",
+        description: "Check your inbox and spam folder for the reset link. The link expires in 1 hour.",
+      });
     } catch (error) {
+      console.error('Error requesting password reset:', error);
       track('auth_error', { 
         type: 'password_reset',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
+      
+      // Keep dialog open on error
+      setErrors({...errors, resetEmail: 'Could not send reset email. Please try again.'});
     }
   };
 
@@ -203,6 +241,16 @@ const Auth = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {showPasswordResetSuccess && (
+            <Alert className="mb-4 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <AlertTitle className="text-green-600 dark:text-green-400">Password Reset Successful</AlertTitle>
+              <AlertDescription className="text-green-600 dark:text-green-400">
+                Your password has been reset. You can now sign in with your new password.
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -259,13 +307,22 @@ const Auth = () => {
                           onChange={(e) => setResetEmail(e.target.value)}
                           placeholder="you@example.com"
                           required
+                          className={errors.resetEmail ? "border-red-500" : ""}
                         />
+                        {errors.resetEmail && (
+                          <p className="text-red-500 text-xs mt-1">{errors.resetEmail}</p>
+                        )}
                       </div>
                       <DialogFooter>
                         <Button type="submit" disabled={loading}>
-                          Send Reset Link
+                          {loading ? "Sending..." : "Send Reset Link"}
                         </Button>
                       </DialogFooter>
+                      <div className="mt-4 text-center text-sm text-gray-500">
+                        Having trouble? <a href="/password-reset-help" className="text-dream-600 hover:underline">Visit our troubleshooter</a>
+                      </div>
+                      
+                      <PasswordResetInstructions />
                     </form>
                   </DialogContent>
                 </Dialog>
