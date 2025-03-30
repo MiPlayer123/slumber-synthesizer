@@ -16,6 +16,9 @@ import { Profile } from "@/pages/Profile";
 import ResetPassword from "@/pages/ResetPassword";
 import PasswordResetTroubleshoot from "@/pages/PasswordResetTroubleshoot";
 import PasswordResetDebug from "@/pages/PasswordResetDebug";
+import About from "@/pages/About";
+import Privacy from "@/pages/Privacy";
+import Terms from "@/pages/Terms";
 
 // Lazy loaded pages for performance
 const Journal = lazy(() => import("@/pages/Journal"));
@@ -137,6 +140,9 @@ function AppRoutes() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/password-reset-troubleshoot" element={<PasswordResetTroubleshoot />} />
       <Route path="/password-reset-debug" element={<PasswordResetDebug />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
       <Route 
         path="/journal" 
         element={

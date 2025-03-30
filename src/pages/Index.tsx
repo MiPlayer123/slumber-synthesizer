@@ -9,6 +9,21 @@ const Index = () => {
 
   useEffect(() => {
     document.title = "Rem";
+    
+    // Check if we need to scroll to features section
+    const shouldScrollToFeatures = sessionStorage.getItem("scrollToFeatures");
+    if (shouldScrollToFeatures === "true") {
+      // Remove the flag from storage
+      sessionStorage.removeItem("scrollToFeatures");
+      
+      // Scroll to features section with a slight delay to ensure the page is fully loaded
+      setTimeout(() => {
+        const featuresSection = document.getElementById("features");
+        if (featuresSection) {
+          featuresSection.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
+    }
   }, []);
 
   // Animation variants
@@ -103,7 +118,7 @@ const Index = () => {
       </div>
 
       {/* Features Section */}
-      <div className="container mx-auto px-4 py-24 bg-indigo-950/40 backdrop-blur-sm">
+      <div id="features" className="container mx-auto px-4 py-24 bg-indigo-950/40 backdrop-blur-sm">
         <motion.div
           variants={staggerContainer}
           initial="initial"
@@ -232,8 +247,7 @@ const Index = () => {
             </div>
             <div className="flex space-x-6">
               <a href="/about" className="text-purple-300 hover:text-white transition">About</a>
-              <a href="/blog" className="text-purple-300 hover:text-white transition">Blog</a>
-              <a href="/support" className="text-purple-300 hover:text-white transition">Support</a>
+              <a href="https://forms.gle/aMFrfqbqiMMBSEKr9" target="_blank" rel="noopener noreferrer" className="text-purple-300 hover:text-white transition">Support</a>
               <a href="/privacy" className="text-purple-300 hover:text-white transition">Privacy</a>
               <a href="/terms" className="text-purple-300 hover:text-white transition">Terms</a>
             </div>
