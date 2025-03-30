@@ -387,7 +387,13 @@ const Journal = () => {
       if (error?.name === 'FunctionsFetchError' || error?.message?.includes('Failed to send a request to the Edge Function')) {
         console.log('Detected FunctionsFetchError - checking if image was still generated...');
         
-        // Wait a bit longer since the function might still be processing despite the network error
+        // Show toast to inform user
+        toast({
+          title: "Checking image status",
+          description: "The image is still generating. Please wait a moment...",
+        });
+        
+        // Wait longer since the function might still be processing despite the network error
         setTimeout(() => {
           // Query the database to check if the image_url was updated
           supabase
@@ -425,12 +431,38 @@ const Journal = () => {
                   return newData;
                 });
               } else {
-                // Image truly doesn't exist, show error message
-                toast({
-                  variant: "destructive",
-                  title: "Image Generation Failed",
-                  description: "Failed to generate dream image. Your dream was saved successfully, but we couldn't create an image for it.",
-                });
+                // Try checking one more time after a delay
+                setTimeout(() => {
+                  supabase
+                    .from('dreams')
+                    .select('image_url')
+                    .eq('id', dream.id)
+                    .single()
+                    .then(({ data: finalCheck }) => {
+                      if (finalCheck && finalCheck.image_url) {
+                        // Image exists after second check
+                        console.log('Image found after second check:', finalCheck.image_url);
+                        toast({
+                          title: "Image Generated",
+                          description: "Dream image has been generated successfully.",
+                        });
+                        
+                        // Update the cache
+                        queryClient.invalidateQueries({ queryKey: ['paginatedDreams'] });
+                        queryClient.refetchQueries({ 
+                          queryKey: ['paginatedDreams', user.id], 
+                          type: 'active'
+                        });
+                      } else {
+                        // Image truly doesn't exist, show error message
+                        toast({
+                          variant: "destructive",
+                          title: "Image Generation Failed",
+                          description: "Failed to generate dream image. Your dream was saved successfully, but we couldn't create an image for it.",
+                        });
+                      }
+                    });
+                }, 5000); // Wait an additional 5 seconds for final check
               }
               
               // Refresh the UI
@@ -440,7 +472,7 @@ const Journal = () => {
                 type: 'active'
               });
             });
-        }, 3000); // Wait 3 seconds to give the function time to complete
+        }, 6000); // Wait 6 seconds to give the function more time to complete
       }
       // Check if the dream image actually exists despite other types of errors
       else if (dream && dream.id) {
