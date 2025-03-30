@@ -25,18 +25,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { 
-  Bell, 
   User, 
-  ShieldCheck, 
   PaintBucket, 
-  Volume2, 
-  Globe, 
   Cloud, 
-  HelpCircle, 
   Loader2,
   Moon,
-  Sun
+  Sun,
+  HelpCircle,
+  ExternalLink 
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Settings = () => {
   const { user, resetPassword } = useAuth();
@@ -52,16 +50,6 @@ const Settings = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [email, setEmail] = useState(user?.email || "");
-  const [isEmailPublic, setIsEmailPublic] = useState(false);
-  const [language, setLanguage] = useState("english");
-  const [dreamPrivacy, setDreamPrivacy] = useState("private");
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [dreamReminderNotifications, setDreamReminderNotifications] = useState(true);
-  const [commentNotifications, setCommentNotifications] = useState(true);
-  const [aiAnalysis, setAiAnalysis] = useState(true);
-  const [recordVoice, setRecordVoice] = useState(true);
-  const [dataBackup, setDataBackup] = useState(false);
   const [exportFormat, setExportFormat] = useState("json");
   
   // Loading states
@@ -241,39 +229,11 @@ const Settings = () => {
                     Account
                   </TabsTrigger>
                   <TabsTrigger 
-                    value="notifications" 
-                    className="w-full justify-start px-2 data-[state=active]:bg-muted"
-                  >
-                    <Bell className="mr-2 h-4 w-4" />
-                    Notifications
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="privacy" 
-                    className="w-full justify-start px-2 data-[state=active]:bg-muted"
-                  >
-                    <ShieldCheck className="mr-2 h-4 w-4" />
-                    Privacy & Security
-                  </TabsTrigger>
-                  <TabsTrigger 
                     value="appearance" 
                     className="w-full justify-start px-2 data-[state=active]:bg-muted"
                   >
                     <PaintBucket className="mr-2 h-4 w-4" />
                     Appearance
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="audio" 
-                    className="w-full justify-start px-2 data-[state=active]:bg-muted"
-                  >
-                    <Volume2 className="mr-2 h-4 w-4" />
-                    Audio & Voice
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="language" 
-                    className="w-full justify-start px-2 data-[state=active]:bg-muted"
-                  >
-                    <Globe className="mr-2 h-4 w-4" />
-                    Language
                   </TabsTrigger>
                   <TabsTrigger 
                     value="data" 
@@ -424,148 +384,6 @@ const Settings = () => {
               </Card>
             </TabsContent>
             
-            {/* Notifications Settings */}
-            <TabsContent value="notifications" className="space-y-4 mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Notification Preferences</CardTitle>
-                  <CardDescription>
-                    Choose what notifications you receive
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between pb-4 border-b">
-                    <div>
-                      <h3 className="text-lg font-medium">Email Notifications</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Receive email notifications about your account and dreams
-                      </p>
-                    </div>
-                    <Switch 
-                      checked={emailNotifications} 
-                      onCheckedChange={setEmailNotifications}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between pb-4 border-b">
-                    <div>
-                      <h3 className="text-lg font-medium">Push Notifications</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Receive push notifications on your devices
-                      </p>
-                    </div>
-                    <Switch 
-                      checked={pushNotifications} 
-                      onCheckedChange={setPushNotifications}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between pb-4 border-b">
-                    <div>
-                      <h3 className="text-lg font-medium">Dream Reminders</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Get reminders to record your dreams in the morning
-                      </p>
-                    </div>
-                    <Switch 
-                      checked={dreamReminderNotifications} 
-                      onCheckedChange={setDreamReminderNotifications}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-medium">Comment Notifications</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Get notified when someone comments on your shared dreams
-                      </p>
-                    </div>
-                    <Switch 
-                      checked={commentNotifications} 
-                      onCheckedChange={setCommentNotifications}
-                    />
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button>Save Preferences</Button>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-            
-            {/* Privacy Settings */}
-            <TabsContent value="privacy" className="space-y-4 mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Privacy Settings</CardTitle>
-                  <CardDescription>
-                    Manage your privacy and security preferences
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between pb-4 border-b">
-                    <div>
-                      <h3 className="text-lg font-medium">Dream Privacy</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Default privacy setting for new dreams
-                      </p>
-                    </div>
-                    <Select value={dreamPrivacy} onValueChange={setDreamPrivacy}>
-                      <SelectTrigger className="w-36">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="private">Private</SelectItem>
-                        <SelectItem value="public">Public</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="flex items-center justify-between pb-4 border-b">
-                    <div>
-                      <h3 className="text-lg font-medium">Show Email</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Allow others to see your email address
-                      </p>
-                    </div>
-                    <Switch 
-                      checked={isEmailPublic} 
-                      onCheckedChange={setIsEmailPublic}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-medium">AI Dream Analysis</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Allow AI to analyze your dreams for personalized insights
-                      </p>
-                    </div>
-                    <Switch 
-                      checked={aiAnalysis} 
-                      onCheckedChange={setAiAnalysis}
-                    />
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button>Save Privacy Settings</Button>
-                </CardFooter>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Account Security</CardTitle>
-                  <CardDescription>
-                    Manage additional security options
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Button variant="outline" className="w-full">Enable Two-Factor Authentication</Button>
-                  <Button variant="outline" className="w-full">Manage Connected Devices</Button>
-                  <Button variant="destructive" className="w-full">Delete Account</Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
             {/* Appearance Settings */}
             <TabsContent value="appearance" className="space-y-4 mt-0">
               <Card>
@@ -601,65 +419,6 @@ const Settings = () => {
               </Card>
             </TabsContent>
             
-            {/* Audio Settings */}
-            <TabsContent value="audio" className="space-y-4 mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Audio & Voice Settings</CardTitle>
-                  <CardDescription>
-                    Configure audio and voice features
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between pb-4 border-b">
-                    <div>
-                      <h3 className="text-lg font-medium">Voice Recording</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Enable voice recording for dream entries
-                      </p>
-                    </div>
-                    <Switch 
-                      checked={recordVoice} 
-                      onCheckedChange={setRecordVoice}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            {/* Language Settings */}
-            <TabsContent value="language" className="space-y-4 mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Language Preferences</CardTitle>
-                  <CardDescription>
-                    Choose your preferred language
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="language">Interface Language</Label>
-                    <Select value={language} onValueChange={setLanguage}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="english">English</SelectItem>
-                        <SelectItem value="spanish">Spanish</SelectItem>
-                        <SelectItem value="french">French</SelectItem>
-                        <SelectItem value="german">German</SelectItem>
-                        <SelectItem value="japanese">Japanese</SelectItem>
-                        <SelectItem value="chinese">Chinese</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button>Save Language</Button>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-            
             {/* Data & Backup Settings */}
             <TabsContent value="data" className="space-y-4 mt-0">
               <Card>
@@ -670,19 +429,6 @@ const Settings = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between pb-4 border-b">
-                    <div>
-                      <h3 className="text-lg font-medium">Auto Backup</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Automatically backup your dream data
-                      </p>
-                    </div>
-                    <Switch 
-                      checked={dataBackup} 
-                      onCheckedChange={setDataBackup}
-                    />
-                  </div>
-                  
                   <div className="space-y-2">
                     <Label htmlFor="export">Export Format</Label>
                     <Select value={exportFormat} onValueChange={setExportFormat}>
@@ -723,50 +469,47 @@ const Settings = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid gap-4">
-                    <Button variant="outline" className="justify-start h-auto py-4 px-6">
-                      <div className="flex flex-col items-start">
-                        <span className="font-medium">Documentation</span>
-                        <span className="text-sm text-muted-foreground">
-                          Read guides and documentation
-                        </span>
-                      </div>
-                    </Button>
+                    <Link to="/privacy">
+                      <Button variant="outline" className="justify-start h-auto py-4 px-6 w-full">
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium flex items-center">
+                            Privacy Policy
+                            <ExternalLink className="ml-2 h-3 w-3" />
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            Read our privacy policy
+                          </span>
+                        </div>
+                      </Button>
+                    </Link>
                     
-                    <Button variant="outline" className="justify-start h-auto py-4 px-6">
-                      <div className="flex flex-col items-start">
-                        <span className="font-medium">Frequently Asked Questions</span>
-                        <span className="text-sm text-muted-foreground">
-                          Find answers to common questions
-                        </span>
-                      </div>
-                    </Button>
+                    <Link to="/terms">
+                      <Button variant="outline" className="justify-start h-auto py-4 px-6 w-full">
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium flex items-center">
+                            Terms of Service
+                            <ExternalLink className="ml-2 h-3 w-3" />
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            Read our terms of service
+                          </span>
+                        </div>
+                      </Button>
+                    </Link>
                     
-                    <Button variant="outline" className="justify-start h-auto py-4 px-6">
-                      <div className="flex flex-col items-start">
-                        <span className="font-medium">Contact Support</span>
-                        <span className="text-sm text-muted-foreground">
-                          Get help from our support team
-                        </span>
-                      </div>
-                    </Button>
-                    
-                    <Button variant="outline" className="justify-start h-auto py-4 px-6">
-                      <div className="flex flex-col items-start">
-                        <span className="font-medium">Privacy Policy</span>
-                        <span className="text-sm text-muted-foreground">
-                          Read our privacy policy
-                        </span>
-                      </div>
-                    </Button>
-                    
-                    <Button variant="outline" className="justify-start h-auto py-4 px-6">
-                      <div className="flex flex-col items-start">
-                        <span className="font-medium">Terms of Service</span>
-                        <span className="text-sm text-muted-foreground">
-                          Read our terms of service
-                        </span>
-                      </div>
-                    </Button>
+                    <a href="https://forms.gle/aMFrfqbqiMMBSEKr9" target="_blank" rel="noopener noreferrer">
+                      <Button variant="outline" className="justify-start h-auto py-4 px-6 w-full">
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium flex items-center">
+                            Contact Support
+                            <ExternalLink className="ml-2 h-3 w-3" />
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            Get help from our support team
+                          </span>
+                        </div>
+                      </Button>
+                    </a>
                   </div>
                 </CardContent>
               </Card>
