@@ -7,14 +7,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { track } from '@vercel/analytics/react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 
 const ResetPassword = () => {
-  const { user, resetPassword, loading } = useAuth();
+  const { user, resetPassword, loading: authLoading, signOut } = useAuth();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [tokenStatus, setTokenStatus] = useState<'valid' | 'expired' | 'invalid' | 'checking'>('checking');
+  const [showRetry, setShowRetry] = useState(false);
+  const [isPasswordResetFlow, setIsPasswordResetFlow] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -22,11 +25,21 @@ const ResetPassword = () => {
   useEffect(() => {
     console.log('Processing URL parameters', { 
       search: location.search, 
-      hash: location.hash
+      hash: location.hash,
+      isUserLoggedIn: !!user
     });
     
-    // Check for explicit error parameters
     const searchParams = new URLSearchParams(location.search);
+    const code = searchParams.get('code');
+    
+    // If there's a code in the URL, we're in a password reset flow
+    // even if the user appears to be logged in (as Supabase auto-creates a session)
+    if (code) {
+      console.log('Password reset code detected, allowing reset flow even if user appears logged in');
+      setIsPasswordResetFlow(true);
+    }
+    
+    // Check for explicit error parameters
     if (searchParams.get('error') === 'access_denied' && 
         searchParams.get('error_code') === 'otp_expired') {
       setTokenStatus('expired');
@@ -47,7 +60,7 @@ const ResetPassword = () => {
     } else {
       console.log("Valid reset link detected");
     }
-  }, [location]);
+  }, [location, user]);
   
   // Function to check for valid reset parameters in multiple places
   const checkResetParameters = (): boolean => {
@@ -86,7 +99,8 @@ const ResetPassword = () => {
     return false;
   };
   
-  if (user) {
+  // Only redirect if user is logged in AND this is NOT a password reset flow
+  if (user && !isPasswordResetFlow) {
     return <Navigate to="/journal" replace />;
   }
   
@@ -123,7 +137,7 @@ const ResetPassword = () => {
               
               <Button 
                 variant="outline"
-                onClick={() => navigate('/password-reset-help')} 
+                onClick={() => navigate('/password-reset-troubleshoot')} 
                 className="w-full"
               >
                 Get Help
@@ -183,9 +197,17 @@ const ResetPassword = () => {
     );
   }
 
+  const handleRetry = () => {
+    // Clear error and reset retry state
+    setError('');
+    setShowRetry(false);
+    setIsSubmitting(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setShowRetry(false);
     
     if (password !== confirmPassword) {
       setError('Passwords do not match');
@@ -198,6 +220,8 @@ const ResetPassword = () => {
       track('password_reset_error', { type: 'password_too_short' });
       return;
     }
+    
+    setIsSubmitting(true);
     
     try {
       // Get the code parameter for additional logging
@@ -223,7 +247,18 @@ const ResetPassword = () => {
       
       console.log('Password reset successful, redirecting to auth page');
       track('password_reset_success');
-      navigate('/auth', { state: { passwordReset: true } });
+      
+      // Force reload the page to clear any potential active session state
+      window.localStorage.removeItem('supabase.auth.token');
+      
+      // Redirect to login with success message
+      navigate('/auth', { 
+        state: { 
+          passwordReset: true,
+          message: 'Your password has been reset successfully. Please sign in with your new password.'
+        },
+        replace: true  // Replace history to prevent back navigation to the reset page
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('Password reset error:', errorMessage);
@@ -233,14 +268,28 @@ const ResetPassword = () => {
           errorMessage.toLowerCase().includes('session') || 
           errorMessage.toLowerCase().includes('token')) {
         setTokenStatus('expired');
+      } else if (errorMessage.toLowerCase().includes('code challenge') ||
+                errorMessage.toLowerCase().includes('already been used')) {
+        // Special handling for PKCE errors - link already used
+        setError('This password reset link has already been used or can no longer be processed. Please request a new link.');
+        // Instead of retry, direct to auth page
+        setShowRetry(true);
+      } else if (errorMessage.toLowerCase().includes('time') || 
+                errorMessage.toLowerCase().includes('timeout')) {
+        // Show retry option for timeout errors
+        setError(`The request timed out. Please try again.`);
+        setShowRetry(true);
       } else {
         setError(`Failed to reset password: ${errorMessage}`);
+        setShowRetry(true);
       }
       
       track('password_reset_error', { 
         type: 'reset_failed',
         error: errorMessage
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -254,6 +303,16 @@ const ResetPassword = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {user && isPasswordResetFlow && (
+            <Alert className="mb-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+              <AlertTriangle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <AlertTitle className="text-blue-600 dark:text-blue-400">Password Reset Session</AlertTitle>
+              <AlertDescription className="text-blue-600 dark:text-blue-400">
+                You are currently in a password reset session. Complete the form below to reset your password.
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="password">New Password</Label>
@@ -278,19 +337,44 @@ const ResetPassword = () => {
             </div>
 
             {error && (
-              <div className="text-red-500 text-sm">{error}</div>
+              <Alert variant="destructive" className="mb-2">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
-
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Resetting Password..." : "Reset Password"}
-            </Button>
+            
+            {showRetry ? (
+              <div className="flex gap-2">
+                <Button 
+                  type="button" 
+                  className="flex-1" 
+                  onClick={handleRetry}
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Try Again
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => navigate('/password-reset-troubleshoot')}
+                >
+                  Get Help
+                </Button>
+              </div>
+            ) : (
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? "Resetting Password..." : "Reset Password"}
+              </Button>
+            )}
 
             {/* Add troubleshooter link */}
             <div className="mt-4 text-center">
               <p className="text-sm text-gray-500">
                 Having trouble resetting your password?{" "}
                 <a 
-                  href="/password-reset-help" 
+                  href="/password-reset-troubleshoot" 
                   className="text-dream-600 hover:underline"
                 >
                   Get help
