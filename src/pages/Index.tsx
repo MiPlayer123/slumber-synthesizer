@@ -3,12 +3,20 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import { MoonIcon, StarIcon, BookOpenIcon, BrainIcon, UsersIcon } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     document.title = "Rem";
+    
+    // Redirect to journal if user is already logged in
+    if (user) {
+      navigate("/journal");
+      return;
+    }
     
     // Check if we need to scroll to features section
     const shouldScrollToFeatures = sessionStorage.getItem("scrollToFeatures");
@@ -24,7 +32,7 @@ const Index = () => {
         }
       }, 100);
     }
-  }, []);
+  }, [user, navigate]);
 
   // Animation variants
   const fadeIn = {
