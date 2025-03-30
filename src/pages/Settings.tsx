@@ -32,7 +32,8 @@ import {
   Moon,
   Sun,
   HelpCircle,
-  ExternalLink 
+  ExternalLink,
+  Bell 
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -51,6 +52,12 @@ const Settings = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [email, setEmail] = useState(user?.email || "");
   const [exportFormat, setExportFormat] = useState("json");
+  
+  // Notification states (disabled for now)
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [pushNotifications, setPushNotifications] = useState(true);
+  const [dreamReminderNotifications, setDreamReminderNotifications] = useState(true);
+  const [commentNotifications, setCommentNotifications] = useState(true);
   
   // Loading states
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
@@ -205,6 +212,19 @@ const Settings = () => {
     }
   };
 
+  // Prevent switching to the notifications tab
+  const handleTabChange = (value: string) => {
+    if (value !== 'notifications') {
+      setActiveTab(value);
+    } else {
+      // Optionally show a toast to inform the user
+      toast({
+        title: "Coming Soon",
+        description: "Notification preferences will be available in a future update.",
+      });
+    }
+  };
+
   return (
     <div className="container py-10">
       <h1 className="text-4xl font-bold mb-6">Settings</h1>
@@ -217,7 +237,7 @@ const Settings = () => {
                 defaultValue="account" 
                 orientation="vertical" 
                 value={activeTab} 
-                onValueChange={setActiveTab}
+                onValueChange={handleTabChange}
                 className="w-full"
               >
                 <TabsList className="flex flex-col items-start h-auto bg-transparent border-r space-y-1">
@@ -227,6 +247,15 @@ const Settings = () => {
                   >
                     <User className="mr-2 h-4 w-4" />
                     Account
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="notifications" 
+                    className="w-full justify-start px-2 text-muted-foreground hover:text-muted-foreground cursor-not-allowed"
+                    disabled
+                  >
+                    <Bell className="mr-2 h-4 w-4" />
+                    Notifications
+                    <span className="ml-2 text-xs bg-secondary text-secondary-foreground rounded-full px-2 py-0.5">Soon</span>
                   </TabsTrigger>
                   <TabsTrigger 
                     value="appearance" 
@@ -256,7 +285,7 @@ const Settings = () => {
         </div>
         
         <div className="flex-1">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
             {/* Account Settings */}
             <TabsContent value="account" className="space-y-4 mt-0">
               <Card>
@@ -381,6 +410,80 @@ const Settings = () => {
                     </Button>
                   </form>
                 </CardContent>
+              </Card>
+            </TabsContent>
+            
+            {/* Notifications Settings - Disabled but shown for future reference */}
+            <TabsContent value="notifications" className="space-y-4 mt-0">
+              <Card className="opacity-70 pointer-events-none">
+                <CardHeader>
+                  <CardTitle>Notification Preferences</CardTitle>
+                  <CardDescription>
+                    Choose what notifications you receive
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between pb-4 border-b">
+                    <div>
+                      <h3 className="text-lg font-medium">Email Notifications</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Receive email notifications about your account and dreams
+                      </p>
+                    </div>
+                    <Switch 
+                      checked={emailNotifications} 
+                      onCheckedChange={setEmailNotifications}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between pb-4 border-b">
+                    <div>
+                      <h3 className="text-lg font-medium">Push Notifications</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Receive push notifications on your devices
+                      </p>
+                    </div>
+                    <Switch 
+                      checked={pushNotifications} 
+                      onCheckedChange={setPushNotifications}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between pb-4 border-b">
+                    <div>
+                      <h3 className="text-lg font-medium">Dream Reminders</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Get reminders to record your dreams in the morning
+                      </p>
+                    </div>
+                    <Switch 
+                      checked={dreamReminderNotifications} 
+                      onCheckedChange={setDreamReminderNotifications}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-medium">Comment Notifications</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Get notified when someone comments on your shared dreams
+                      </p>
+                    </div>
+                    <Switch 
+                      checked={commentNotifications} 
+                      onCheckedChange={setCommentNotifications}
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button>Save Preferences</Button>
+                </CardFooter>
+                <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10 rounded-lg">
+                  <div className="bg-background border rounded-lg p-4 text-center shadow-lg">
+                    <h3 className="text-lg font-semibold mb-2">Coming Soon</h3>
+                    <p className="text-sm text-muted-foreground">Notification preferences will be available in a future update.</p>
+                  </div>
+                </div>
               </Card>
             </TabsContent>
             
