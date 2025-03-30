@@ -76,6 +76,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AuthRedirectHandler = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
   
   useEffect(() => {
     // Only run on mount
@@ -126,9 +127,22 @@ const AuthRedirectHandler = () => {
       }
     }
     
+    // Redirect to journal if user is logged in and no auth params in URL
+    if (user && !loading) {
+      console.log('User already logged in, redirecting to journal');
+      navigate('/journal', { replace: true });
+      return;
+    }
+    
     // Otherwise proceed to normal landing page
-  }, [location, navigate]);
+  }, [location, navigate, user, loading]);
   
+  // If still loading auth state, show loading spinner
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+  
+  // Otherwise show the index page
   return <Index />;
 };
 
