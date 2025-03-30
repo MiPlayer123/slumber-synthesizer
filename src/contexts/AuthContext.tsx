@@ -437,24 +437,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // With Supabase, we need to exchange the code for a session first
         try {
           console.log('Attempting to exchange code for session...');
-          const { data: exchangeData, error: codeError } = await supabase.auth.exchangeCodeForSession(code);
+          
+          // Create a promise with timeout to prevent hanging
+          const exchangeWithTimeout = async () => {
+            // Set a 10-second timeout for the code exchange
+            const timeoutPromise = new Promise<never>((_, reject) => 
+              setTimeout(() => reject(new Error('Code exchange timed out after 10 seconds')), 10000)
+            );
+            
+            // Actual code exchange operation
+            const exchangePromise = supabase.auth.exchangeCodeForSession(code);
+            
+            // Race the promises - return whichever resolves/rejects first
+            return Promise.race([exchangePromise, timeoutPromise]) as Promise<{
+              data: { session: Session | null; user: User | null } | null;
+              error: AuthError | null;
+            }>;
+          };
+          
+          // Execute the exchange with timeout
+          const { data: exchangeData, error: codeError } = await exchangeWithTimeout();
           
           if (codeError) {
             console.error('Error exchanging code for session:', codeError);
+            
+            // Special handling for PKCE verification errors
+            if (codeError.message && codeError.message.includes('code challenge does not match')) {
+              console.log('Detected PKCE verification error - code has already been used or browser storage was cleared');
+              throw new Error('This reset link has already been used or your browser data was cleared. Please request a new password reset link.');
+            }
+            
             throw codeError;
           }
           
-          console.log('Successfully exchanged code for session:', 
-            exchangeData ? 'Session created' : 'No session returned');
+          if (!exchangeData || !exchangeData.session) {
+            console.error('Code exchange returned empty data or no session');
+            throw new Error('Failed to establish a session with the provided reset code. The code may be invalid or expired.');
+          }
+          
+          console.log('Successfully exchanged code for session, user ID:', 
+            exchangeData.session?.user?.id || 'unknown');
+            
         } catch (exchangeError) {
           console.error('Exception during code exchange:', exchangeError);
-          throw new Error(`Failed to process reset code: ${exchangeError instanceof Error ? exchangeError.message : String(exchangeError)}`);
+          if (exchangeError instanceof Error && exchangeError.message.includes('timed out')) {
+            // Handle timeout specifically
+            throw new Error('The password reset request timed out. Please try again or use the troubleshooter for assistance.');
+          } else {
+            // Handle other errors
+            throw new Error(`Failed to process reset code: ${exchangeError instanceof Error ? exchangeError.message : String(exchangeError)}`);
+          }
         }
       } else {
         console.log('No code parameter found in URL, checking for existing session');
       }
       
+      // Add a small delay to ensure session state is updated
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Verify we have a session token before updating - after code exchange
+      console.log('Verifying session after code exchange...');
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
@@ -467,7 +509,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Your password reset session could not be established. Please request a new reset link.');
       }
       
-      console.log('Session verified, updating password now');
+      console.log('Session verified, user ID:', sessionData.session.user.id);
+      console.log('Updating password now');
       
       // Force a new request rather than using a potentially stale session
       const { error: updateError } = await supabase.auth.updateUser({ 
@@ -480,19 +523,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       console.log('Password reset successful');
+      
+      // Force sign out to ensure clean state after password reset
+      try {
+        console.log('Signing out and clearing auth data after password reset...');
+        
+        // First, clear local storage for this domain to remove any session data
+        clearAuthStorage();
+        
+        // Then, explicitly sign out from Supabase
+        const { error: signOutError } = await supabase.auth.signOut({ 
+          scope: 'global' // Sign out from all tabs/windows
+        });
+        
+        if (signOutError) {
+          console.error('Error signing out after password reset:', signOutError);
+          // Log but continue - the password was updated successfully
+        } else {
+          console.log('Signed out successfully after password reset');
+        }
+        
+        // Manually clear state in case the event doesn't fire
+        if (isMountedRef.current) {
+          setUser(null);
+          setSession(null);
+        }
+      } catch (signOutError) {
+        console.error('Exception during sign-out after password reset:', signOutError);
+        // Continue anyway, as the password was updated successfully
+      }
+      
       toast({ 
         title: 'Password Updated', 
         description: 'Your password has been successfully reset. You can now sign in with your new password.' 
       });
-      
-      // Force sign out to ensure clean state after password reset
-      try {
-        await supabase.auth.signOut();
-        console.log('Signed out after password reset');
-      } catch (signOutError) {
-        console.error('Error signing out after password reset:', signOutError);
-        // Continue anyway, as the password was updated successfully
-      }
       
       return { success: true, error: null };
     } catch (error) { 

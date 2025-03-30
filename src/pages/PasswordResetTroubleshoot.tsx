@@ -74,6 +74,14 @@ const PasswordResetTroubleshoot = () => {
           </div>
           
           <div>
+            <h3 className="font-medium">Already Used Link</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Password reset links can only be used once. If you see an error about "code challenge", 
+              this means the link was already used or your browser data was cleared. Request a new link.
+            </p>
+          </div>
+          
+          <div>
             <h3 className="font-medium">Password Reset Not Working</h3>
             <p className="text-sm text-gray-600 dark:text-gray-300">
               If you're reaching the reset form but the new password isn't saving, try the "Advanced Reset" tool above.

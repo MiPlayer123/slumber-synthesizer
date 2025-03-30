@@ -48,6 +48,15 @@ const Auth = () => {
     // Check for location state that might have been passed during navigation
     if (location.state && 'passwordReset' in location.state && location.state.passwordReset === true) {
       setShowPasswordResetSuccess(true);
+      
+      // Show toast if there's a custom message
+      if (location.state.message) {
+        toast({
+          title: "Success",
+          description: location.state.message,
+        });
+      }
+      
       // Clear the state after showing to prevent repeat on refresh
       window.history.replaceState({}, document.title);
     }
@@ -56,7 +65,7 @@ const Auth = () => {
     if (error === 'server_error' && errorDesc?.includes('Database error saving new user')) {
       setIsGoogleSignUp(true);
     }
-  }, [location]);
+  }, [location, toast]);
 
   if (user) {
     return <Navigate to="/journal" replace />;

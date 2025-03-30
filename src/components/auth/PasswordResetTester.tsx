@@ -53,6 +53,12 @@ export const PasswordResetTester = () => {
       const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
       
       if (sessionError) {
+        // Special handling for PKCE verification errors
+        if (sessionError.message && sessionError.message.includes('code challenge does not match')) {
+          addLog(`Session exchange failed: This reset code has already been used or browser data was cleared`);
+          throw new Error(`This reset link can only be used once. Please request a new password reset link.`);
+        }
+        
         addLog(`Session exchange failed: ${sessionError.message}`);
         throw new Error(`Failed to exchange code: ${sessionError.message}`);
       }
