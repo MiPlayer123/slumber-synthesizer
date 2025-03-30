@@ -303,15 +303,6 @@ const ResetPassword = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {user && isPasswordResetFlow && (
-            <Alert className="mb-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-              <AlertTriangle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <AlertTitle className="text-blue-600 dark:text-blue-400">Password Reset Session</AlertTitle>
-              <AlertDescription className="text-blue-600 dark:text-blue-400">
-                You are currently in a password reset session. Complete the form below to reset your password.
-              </AlertDescription>
-            </Alert>
-          )}
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">

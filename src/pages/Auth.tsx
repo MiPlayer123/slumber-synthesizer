@@ -20,7 +20,6 @@ import {
 import { toast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckCircle } from "lucide-react";
-import { PasswordResetInstructions } from '@/components/auth/PasswordResetInstructions';
 
 const Auth = () => {
   const { user, signIn, signUp, signInWithGoogle, forgotPassword, completeGoogleSignUp, loading } = useAuth();
@@ -328,10 +327,8 @@ const Auth = () => {
                         </Button>
                       </DialogFooter>
                       <div className="mt-4 text-center text-sm text-gray-500">
-                        Having trouble? <a href="/password-reset-help" className="text-dream-600 hover:underline">Visit our troubleshooter</a>
+                        Having trouble? <a href="/password-reset-troubleshoot" className="text-dream-600 hover:underline">Visit our troubleshooter</a>
                       </div>
-                      
-                      <PasswordResetInstructions />
                     </form>
                   </DialogContent>
                 </Dialog>
