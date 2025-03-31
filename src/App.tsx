@@ -16,6 +16,9 @@ import { Profile } from "@/pages/Profile";
 import ResetPassword from "@/pages/ResetPassword";
 import PasswordResetTroubleshoot from "@/pages/PasswordResetTroubleshoot";
 import PasswordResetDebug from "@/pages/PasswordResetDebug";
+import About from "@/pages/About";
+import Privacy from "@/pages/Privacy";
+import Terms from "@/pages/Terms";
 
 // Lazy loaded pages for performance
 const Journal = lazy(() => import("@/pages/Journal"));
@@ -73,6 +76,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AuthRedirectHandler = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
   
   useEffect(() => {
     // Only run on mount
@@ -123,9 +127,22 @@ const AuthRedirectHandler = () => {
       }
     }
     
+    // Redirect to journal if user is logged in and no auth params in URL
+    if (user && !loading) {
+      console.log('User already logged in, redirecting to journal');
+      navigate('/journal', { replace: true });
+      return;
+    }
+    
     // Otherwise proceed to normal landing page
-  }, [location, navigate]);
+  }, [location, navigate, user, loading]);
   
+  // If still loading auth state, show loading spinner
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+  
+  // Otherwise show the index page
   return <Index />;
 };
 
@@ -137,6 +154,9 @@ function AppRoutes() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/password-reset-troubleshoot" element={<PasswordResetTroubleshoot />} />
       <Route path="/password-reset-debug" element={<PasswordResetDebug />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
       <Route 
         path="/journal" 
         element={
