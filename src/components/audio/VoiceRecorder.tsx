@@ -62,121 +62,31 @@ export function VoiceRecorder({
     try {
       setIsPreparing(true);
       
-      // Check if mediaDevices API is available (missing on some mobile browsers)
+      // Check if mediaDevices API is available
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Audio recording is not supported in this browser');
       }
-      
-      // Detect if we're on iOS or Safari
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-        
-      // Attempt to get microphone with explicit error handling
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ 
-          audio: {
-            // Use more compatible audio constraints for mobile
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          } 
-        });
-      } catch (micError: any) {
-        // Handle specific permission errors
-        if (micError.name === 'NotAllowedError' || micError.name === 'PermissionDeniedError') {
-          throw new Error('Microphone permission denied. Please allow microphone access in your browser settings.');
-        } else if (micError.name === 'NotFoundError' || micError.name === 'DevicesNotFoundError') {
-          throw new Error('No microphone found. Please connect a microphone and try again.');
-        } else if (micError.name === 'NotReadableError' || micError.name === 'TrackStartError') {
-          throw new Error('Cannot access microphone. It may be in use by another application.');
-        } else if (micError.name === 'OverconstrainedError') {
-          throw new Error('Microphone constraints cannot be satisfied.');
-        } else {
-          throw new Error(`Microphone error: ${micError.message || micError.name || 'Unknown error'}`);
-        }
-      }
-      
-      // Define supported MIME types based on browser, prioritizing simpler formats
-      let supportedMimeTypes: string[] = [];
 
-      // Prioritize MP3 and WAV first if available, as they are often more compatible
-      const highPriorityTypes = [
-        'audio/mpeg', // MP3
-        'audio/wav',
-      ];
-
-      // Then check common cross-platform types
-      const standardTypes = [
-        'audio/mp4',        // Often AAC or similar in an MP4 container
-        'audio/webm;codecs=opus', // Good quality, widely supported except Safari
-        'audio/ogg;codecs=opus',  // Alternative container for Opus
-      ];
-
-      // Safari/iOS specific types (often map to AAC in mp4 container)
-      const safariSpecificTypes = [
-        'audio/aac', // Sometimes reported, often equivalent to audio/mp4
-        'audio/x-m4a', // Less standard but sometimes seen
-      ];
-
-      // Fallback/Other types
-      const fallbackTypes = [
-        'audio/webm', // Default WebM without specific codec
-        'audio/ogg', // Default Ogg without specific codec
-      ]
-
-      if (isIOS || isSafari) {
-        // Order for Safari/iOS: Try MP3/WAV -> MP4/AAC -> fallbacks
-        supportedMimeTypes = [
-          ...highPriorityTypes,
-          ...standardTypes.filter(t => t.includes('mp4')), // Keep mp4 check for iOS
-          ...safariSpecificTypes,
-          ...fallbackTypes
-        ];
-      } else {
-        // Order for other browsers: Try MP3/WAV -> Opus -> MP4 -> fallbacks
-         supportedMimeTypes = [
-          ...highPriorityTypes,
-          ...standardTypes.filter(t => !t.includes('mp4')), // Opus before MP4 here
-          ...standardTypes.filter(t => t.includes('mp4')), // Then MP4
-          ...fallbackTypes
-        ];
+      // Force MP3 recording if supported
+      const mimeType = 'audio/mpeg'; // MP3
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        throw new Error('MP3 recording is not supported in this browser. Please try a different browser.');
       }
 
-      // Find the first supported MIME type from our prioritized list
-      let mimeType = '';
-      console.log('Checking supported types in order:', supportedMimeTypes); // Log the order
-      for (const type of supportedMimeTypes) {
-        if (MediaRecorder.isTypeSupported(type)) {
-          console.log(`Found supported type: ${type}`); // Log the one we found
-          mimeType = type;
-          break;
-        }
-      }
-      if (!mimeType) {
-        console.warn('No preferred MIME type supported, relying on browser default.');
-      }
-      
-      // Log browser and selected MIME type for debugging
-      console.log(`Browser: ${isIOS ? 'iOS' : ''}${isSafari ? 'Safari' : ''}`);
-      console.log('Using audio MIME type:', mimeType || 'browser default');
-      
-      // Create options for MediaRecorder
-      const recorderOptions: MediaRecorderOptions = {};
-      
-      if (mimeType) {
-        recorderOptions.mimeType = mimeType;
-      }
-      
-      // Add specific options for mobile if available
-      if (isIOS || isSafari) {
-        // Safari/iOS often needs higher bitrate for better quality
-        recorderOptions.audioBitsPerSecond = 128000;
-      }
-      
-      // Create MediaRecorder with options
-      mediaRecorderRef.current = new MediaRecorder(stream, recorderOptions);
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          // Use more compatible audio constraints
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
+      });
+
+      // Create MediaRecorder with forced MP3 format
+      mediaRecorderRef.current = new MediaRecorder(stream, { 
+        mimeType: mimeType,
+        audioBitsPerSecond: 128000 // Standard MP3 bitrate
+      });
       audioChunksRef.current = [];
 
       mediaRecorderRef.current.ondataavailable = (event) => {
@@ -186,32 +96,14 @@ export function VoiceRecorder({
       };
 
       mediaRecorderRef.current.onstop = async () => {
-        // Get the actual MIME type that was used
-        const actualType = mediaRecorderRef.current?.mimeType || mimeType || 'audio/webm'; // Use detected mimeType as fallback
-        console.log('Recording completed with MIME type:', actualType);
-        
-        // Extract the file extension from the MIME type
-        let fileExtension = 'webm'; // Default
-        if (actualType.includes('mp4') || actualType.includes('m4a') || actualType.includes('aac')) {
-          fileExtension = 'mp4';
-        } else if (actualType.includes('mp3') || actualType.includes('mpeg')) {
-          fileExtension = 'mp3';
-        } else if (actualType.includes('wav')) {
-          fileExtension = 'wav';
-        } else if (actualType.includes('ogg')) {
-           fileExtension = 'ogg';
-        } // Add other mappings if needed based on prioritized types
-        
-        const audioBlob = new Blob(audioChunksRef.current, { type: actualType });
-        console.log(`Recording size: ${audioBlob.size} bytes`);
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        console.log(`Recording completed. Size: ${audioBlob.size} bytes, Type: ${mimeType}`);
         setAudioBlob(audioBlob);
-        transcribeAudio(audioBlob, fileExtension);
+        transcribeAudio(audioBlob, 'mp3'); // Always use .mp3 extension
       };
 
-      // Use smaller chunks on mobile for more reliable processing
-      const timeslice = isIOS || isSafari ? 500 : 1000; // ms
-      
-      mediaRecorderRef.current.start(timeslice);
+      // Use smaller chunks for more reliable processing
+      mediaRecorderRef.current.start(500);
       setIsRecording(true);
       setRecordingTime(0);
       setIsPreparing(false);
