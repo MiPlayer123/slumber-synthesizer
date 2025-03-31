@@ -31,15 +31,20 @@ serve(async (req) => {
       throw new Error('Invalid request body format');
     }
     
-    const { audioBase64, fileExtension = 'webm', mimeType = 'audio/webm' } = body;
+    const { 
+      audioBase64, 
+      fileExtension = 'webm', // Default fallback
+      mimeType = 'audio/webm', // Default fallback
+      userAgent = 'Unknown'   // Capture user agent if sent
+    } = body;
     
     if (!audioBase64) {
       console.error('No audio data provided in request');
       throw new Error('No audio data provided');
     }
 
-    console.log('Received audio data for transcription, length:', audioBase64.length);
-    console.log('File format:', fileExtension, 'MIME type:', mimeType);
+    console.log(`Received request: User-Agent: ${userAgent}`);
+    console.log(`Received parameters: fileExtension=${fileExtension}, mimeType=${mimeType}`);
     
     // Check if OPENAI_API_KEY is available
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -60,10 +65,12 @@ serve(async (req) => {
     
     // Create a FormData object to send to OpenAI
     const formData = new FormData();
+    const fileName = `recording.${fileExtension}`; // Use the determined extension
     
     try {
       // Create a file object from the binary data
-      const file = new File([audioBlob], `recording.${fileExtension}`, { type: mimeType });
+      console.log(`Attempting to create File object: name=${fileName}, type=${mimeType}`);
+      const file = new File([audioBlob], fileName, { type: mimeType });
       
       formData.append('file', file);
       formData.append('model', 'whisper-1');
@@ -75,8 +82,9 @@ serve(async (req) => {
       
       // Fallback to Blob if File constructor fails
       try {
+        console.log(`Attempting to create Blob object: name=${fileName}, type=${mimeType}`);
         const blob = new Blob([audioBlob], { type: mimeType });
-        formData.append('file', blob, `recording.${fileExtension}`);
+        formData.append('file', blob, fileName);
         formData.append('model', 'whisper-1');
         formData.append('language', 'en');
         
@@ -87,7 +95,7 @@ serve(async (req) => {
       }
     }
     
-    console.log('Sending request to OpenAI API');
+    console.log('Sending request to OpenAI API with file:', fileName);
     
     // Send request to OpenAI API with enhanced error handling
     let response;
