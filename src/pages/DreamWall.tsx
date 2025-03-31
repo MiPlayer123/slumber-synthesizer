@@ -100,18 +100,22 @@ export default function DreamWall() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
   
   const filteredDreams = dreams.filter(dream => {
-    const matchesSearch = searchQuery ? 
+    // Safely check if dream object and its properties exist
+    if (!dream) return false;
+    
+    // Handle search query filtering with null/undefined checks
+    const matchesSearch = !searchQuery ? true : (
       (dream.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-       dream.description?.toLowerCase().includes(searchQuery.toLowerCase())) : 
-      true;
+       dream.description?.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
     
-    const matchesCategory = categoryFilter ? 
-      dream.category === categoryFilter : 
-      true;
+    // Handle category filtering with case insensitive comparison
+    const matchesCategory = !categoryFilter ? true : 
+      dream.category?.toLowerCase() === categoryFilter.toLowerCase();
     
-    const matchesEmotion = emotionFilter ? 
-      dream.emotion === emotionFilter : 
-      true;
+    // Handle emotion filtering with case insensitive comparison
+    const matchesEmotion = !emotionFilter ? true : 
+      dream.emotion?.toLowerCase() === emotionFilter.toLowerCase();
     
     return matchesSearch && matchesCategory && matchesEmotion;
   });
@@ -246,41 +250,41 @@ export default function DreamWall() {
                 <h3 className="font-semibold mb-2">Categories</h3>
                 <div className="grid grid-cols-2 gap-1">
                   <Button 
-                    variant={categoryFilter === 'Nightmare' ? 'default' : 'outline'} 
+                    variant={categoryFilter === 'nightmare' ? 'default' : 'outline'} 
                     size="sm" 
-                    onClick={() => setCategoryFilter(prev => prev === 'Nightmare' ? '' : 'Nightmare')}
+                    onClick={() => setCategoryFilter(prev => prev === 'nightmare' ? '' : 'nightmare')}
                     className="justify-start"
                   >
                     Nightmare
                   </Button>
                   <Button 
-                    variant={categoryFilter === 'Lucid' ? 'default' : 'outline'} 
+                    variant={categoryFilter === 'lucid' ? 'default' : 'outline'} 
                     size="sm" 
-                    onClick={() => setCategoryFilter(prev => prev === 'Lucid' ? '' : 'Lucid')}
+                    onClick={() => setCategoryFilter(prev => prev === 'lucid' ? '' : 'lucid')}
                     className="justify-start"
                   >
                     Lucid
                   </Button>
                   <Button 
-                    variant={categoryFilter === 'Recurring' ? 'default' : 'outline'} 
+                    variant={categoryFilter === 'recurring' ? 'default' : 'outline'} 
                     size="sm" 
-                    onClick={() => setCategoryFilter(prev => prev === 'Recurring' ? '' : 'Recurring')}
+                    onClick={() => setCategoryFilter(prev => prev === 'recurring' ? '' : 'recurring')}
                     className="justify-start"
                   >
                     Recurring
                   </Button>
                   <Button 
-                    variant={categoryFilter === 'Prophetic' ? 'default' : 'outline'} 
+                    variant={categoryFilter === 'prophetic' ? 'default' : 'outline'} 
                     size="sm" 
-                    onClick={() => setCategoryFilter(prev => prev === 'Prophetic' ? '' : 'Prophetic')}
+                    onClick={() => setCategoryFilter(prev => prev === 'prophetic' ? '' : 'prophetic')}
                     className="justify-start"
                   >
                     Prophetic
                   </Button>
                   <Button 
-                    variant={categoryFilter === 'Normal' ? 'default' : 'outline'} 
+                    variant={categoryFilter === 'normal' ? 'default' : 'outline'} 
                     size="sm" 
-                    onClick={() => setCategoryFilter(prev => prev === 'Normal' ? '' : 'Normal')}
+                    onClick={() => setCategoryFilter(prev => prev === 'normal' ? '' : 'normal')}
                     className="justify-start"
                   >
                     Normal
@@ -290,65 +294,65 @@ export default function DreamWall() {
                 <h3 className="font-semibold mt-4 mb-2">Emotions</h3>
                 <div className="grid grid-cols-2 gap-1">
                   <Button 
-                    variant={emotionFilter === 'Joy' ? 'default' : 'outline'} 
+                    variant={emotionFilter === 'joy' ? 'default' : 'outline'} 
                     size="sm" 
-                    onClick={() => setEmotionFilter(prev => prev === 'Joy' ? '' : 'Joy')}
+                    onClick={() => setEmotionFilter(prev => prev === 'joy' ? '' : 'joy')}
                     className="justify-start"
                   >
                     Joy
                   </Button>
                   <Button 
-                    variant={emotionFilter === 'Fear' ? 'default' : 'outline'} 
+                    variant={emotionFilter === 'fear' ? 'default' : 'outline'} 
                     size="sm" 
-                    onClick={() => setEmotionFilter(prev => prev === 'Fear' ? '' : 'Fear')}
+                    onClick={() => setEmotionFilter(prev => prev === 'fear' ? '' : 'fear')}
                     className="justify-start"
                   >
                     Fear
                   </Button>
                   <Button 
-                    variant={emotionFilter === 'Confusion' ? 'default' : 'outline'} 
+                    variant={emotionFilter === 'confusion' ? 'default' : 'outline'} 
                     size="sm" 
-                    onClick={() => setEmotionFilter(prev => prev === 'Confusion' ? '' : 'Confusion')}
+                    onClick={() => setEmotionFilter(prev => prev === 'confusion' ? '' : 'confusion')}
                     className="justify-start"
                   >
                     Confusion
                   </Button>
                   <Button 
-                    variant={emotionFilter === 'Anxiety' ? 'default' : 'outline'} 
+                    variant={emotionFilter === 'anxiety' ? 'default' : 'outline'} 
                     size="sm" 
-                    onClick={() => setEmotionFilter(prev => prev === 'Anxiety' ? '' : 'Anxiety')}
+                    onClick={() => setEmotionFilter(prev => prev === 'anxiety' ? '' : 'anxiety')}
                     className="justify-start"
                   >
                     Anxiety
                   </Button>
                   <Button 
-                    variant={emotionFilter === 'Peace' ? 'default' : 'outline'} 
+                    variant={emotionFilter === 'peace' ? 'default' : 'outline'} 
                     size="sm" 
-                    onClick={() => setEmotionFilter(prev => prev === 'Peace' ? '' : 'Peace')}
+                    onClick={() => setEmotionFilter(prev => prev === 'peace' ? '' : 'peace')}
                     className="justify-start"
                   >
                     Peace
                   </Button>
                   <Button 
-                    variant={emotionFilter === 'Excitement' ? 'default' : 'outline'} 
+                    variant={emotionFilter === 'excitement' ? 'default' : 'outline'} 
                     size="sm" 
-                    onClick={() => setEmotionFilter(prev => prev === 'Excitement' ? '' : 'Excitement')}
+                    onClick={() => setEmotionFilter(prev => prev === 'excitement' ? '' : 'excitement')}
                     className="justify-start"
                   >
                     Excitement
                   </Button>
                   <Button 
-                    variant={emotionFilter === 'Sadness' ? 'default' : 'outline'} 
+                    variant={emotionFilter === 'sadness' ? 'default' : 'outline'} 
                     size="sm" 
-                    onClick={() => setEmotionFilter(prev => prev === 'Sadness' ? '' : 'Sadness')}
+                    onClick={() => setEmotionFilter(prev => prev === 'sadness' ? '' : 'sadness')}
                     className="justify-start"
                   >
                     Sadness
                   </Button>
                   <Button 
-                    variant={emotionFilter === 'Neutral' ? 'default' : 'outline'} 
+                    variant={emotionFilter === 'neutral' ? 'default' : 'outline'} 
                     size="sm" 
-                    onClick={() => setEmotionFilter(prev => prev === 'Neutral' ? '' : 'Neutral')}
+                    onClick={() => setEmotionFilter(prev => prev === 'neutral' ? '' : 'neutral')}
                     className="justify-start"
                   >
                     Neutral

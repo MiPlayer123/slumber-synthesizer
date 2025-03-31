@@ -231,8 +231,7 @@ function AppContent() {
           <div className="min-h-screen bg-background font-sans antialiased">
             <Navigation />
             <main className="pt-16">
-              {/* Add key prop using pathname to force re-rendering when route changes */}
-              <AppRoutes key={location.pathname} />
+              <AppRoutes />
             </main>
             <Toaster />
           </div>
