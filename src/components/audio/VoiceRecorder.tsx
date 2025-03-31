@@ -216,7 +216,7 @@ export function VoiceRecorder({
       }
       
       // Log details before conversion for debugging
-      console.log(`Processing audio: ${audioBlob.size} bytes, type: ${audioBlob.type}`);
+      console.log(`Processing audio: ${audioBlob.size} bytes, type: ${audioBlob.type}, extension: ${fileExtension}`);
       
       // Convert the audio blob to base64
       const reader = new FileReader();
@@ -261,7 +261,7 @@ export function VoiceRecorder({
         userAgent: navigator.userAgent
       };
       
-      console.log(`Sending data to transcription service. Size: ${payload.dataSize} chars`);
+      console.log(`Sending data to transcription service. Size: ${payload.dataSize} chars, MIME Type: ${payload.mimeType}, Extension: ${payload.fileExtension}`);
       
       // Call the Supabase Edge Function with a timeout
       const controller = new AbortController();
