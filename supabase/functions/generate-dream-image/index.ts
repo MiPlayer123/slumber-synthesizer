@@ -76,28 +76,33 @@ serve(async (req) => {
     const enhancedDescription = openAiData.choices[0].message.content;
     console.log('Enhanced description:', enhancedDescription);
 
-    // Generate image using DALL-E 3
-    const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
+    // Generate image using Gemini API
+    const imageResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=' + Deno.env.get('GEMINI_API_KEY'), {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "dall-e-3",
-        prompt: `Generate a dreamy, surreal image of: ${enhancedDescription}. Use a dreamlike, ethereal style with soft lighting and mystical elements.`,
-        n: 1,
-        size: "1024x1024",
-        quality: "standard",
-        response_format: "b64_json"
+        contents: [
+          {
+            parts: [
+              { 
+                text: `Create an image. Generate a dreamy, surreal image of: ${enhancedDescription}. Use a dreamlike, ethereal style with soft lighting and mystical elements. Output should be an image.`
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          responseModalities: ["Text", "Image"]
+        }
       }),
     });
 
     if (!imageResponse.ok) {
       const error = await imageResponse.text();
-      console.error('DALL-E API error:', error);
+      console.error('Gemini API error:', error);
       return new Response(
-        JSON.stringify({ error: `DALL-E API error: ${error}` }),
+        JSON.stringify({ error: `Gemini API error: ${error}` }),
         { 
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -108,15 +113,34 @@ serve(async (req) => {
     const imageData = await imageResponse.json();
     console.log('Image generated successfully');
 
-    if (!imageData.data || !imageData.data[0]?.b64_json) {
+    // Extract base64 image data from Gemini response
+    if (!imageData.candidates || 
+        !imageData.candidates[0]?.content?.parts || 
+        !imageData.candidates[0].content.parts.some(part => part.inlineData)) {
       return new Response(
-        JSON.stringify({ error: 'No image data in OpenAI response' }),
+        JSON.stringify({ error: 'No image data in Gemini response' }),
         { 
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
+
+    // Find the part containing image data
+    const imagePart = imageData.candidates[0].content.parts.find(part => part.inlineData);
+    
+    if (!imagePart || !imagePart.inlineData || !imagePart.inlineData.data) {
+      return new Response(
+        JSON.stringify({ error: 'Image data format is invalid in Gemini response' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+    
+    const base64ImageData = imagePart.inlineData.data;
+    console.log('Successfully extracted image data from Gemini response');
 
     // Create Supabase client
     const supabase = createClient(
@@ -125,7 +149,7 @@ serve(async (req) => {
     );
 
     // Convert base64 to Uint8Array
-    const imageBytes = base64Decode(imageData.data[0].b64_json);
+    const imageBytes = base64Decode(base64ImageData);
     const fileName = `${dreamId}_${Date.now()}.png`;
 
     // Upload image to Supabase Storage
