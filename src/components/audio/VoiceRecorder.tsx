@@ -164,10 +164,14 @@ export function VoiceRecorder({
         console.log('Recording completed with MIME type:', actualType);
         
         // Extract the file extension from the MIME type
-        let fileExtension = 'webm';
-        if (actualType.includes('mp3') || actualType.includes('mpeg')) fileExtension = 'mp3';
-        else if (actualType.includes('mp4') || actualType.includes('m4a') || actualType.includes('aac')) fileExtension = 'm4a';
-        else if (actualType.includes('wav')) fileExtension = 'wav';
+        let fileExtension = 'webm'; // Default
+        if (actualType.includes('mp4') || actualType.includes('m4a') || actualType.includes('aac')) {
+          fileExtension = 'mp4'; // Use .mp4 for audio/mp4 types
+        } else if (actualType.includes('mp3') || actualType.includes('mpeg')) {
+          fileExtension = 'mp3';
+        } else if (actualType.includes('wav')) {
+          fileExtension = 'wav';
+        }
         
         const audioBlob = new Blob(audioChunksRef.current, { type: actualType });
         console.log(`Recording size: ${audioBlob.size} bytes`);
