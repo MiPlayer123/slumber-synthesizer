@@ -98,37 +98,64 @@ export function VoiceRecorder({
         }
       }
       
-      // Define supported MIME types based on browser
+      // Define supported MIME types based on browser, prioritizing simpler formats
       let supportedMimeTypes: string[] = [];
-      
+
+      // Prioritize MP3 and WAV first if available, as they are often more compatible
+      const highPriorityTypes = [
+        'audio/mpeg', // MP3
+        'audio/wav',
+      ];
+
+      // Then check common cross-platform types
+      const standardTypes = [
+        'audio/mp4',        // Often AAC or similar in an MP4 container
+        'audio/webm;codecs=opus', // Good quality, widely supported except Safari
+        'audio/ogg;codecs=opus',  // Alternative container for Opus
+      ];
+
+      // Safari/iOS specific types (often map to AAC in mp4 container)
+      const safariSpecificTypes = [
+        'audio/aac', // Sometimes reported, often equivalent to audio/mp4
+        'audio/x-m4a', // Less standard but sometimes seen
+      ];
+
+      // Fallback/Other types
+      const fallbackTypes = [
+        'audio/webm', // Default WebM without specific codec
+        'audio/ogg', // Default Ogg without specific codec
+      ]
+
       if (isIOS || isSafari) {
-        // Safari/iOS supports more limited formats
+        // Order for Safari/iOS: Try MP3/WAV -> MP4/AAC -> fallbacks
         supportedMimeTypes = [
-          'audio/mp4',
-          'audio/aac',
-          'audio/mp3',
-          'audio/mpeg'
+          ...highPriorityTypes,
+          ...standardTypes.filter(t => t.includes('mp4')), // Keep mp4 check for iOS
+          ...safariSpecificTypes,
+          ...fallbackTypes
         ];
       } else {
-        // For other browsers
-        supportedMimeTypes = [
-          'audio/mp3',
-          'audio/mpeg',
-          'audio/mp4',
-          'audio/m4a',
-          'audio/wav',
-          'audio/webm;codecs=opus',
-          'audio/webm'
+        // Order for other browsers: Try MP3/WAV -> Opus -> MP4 -> fallbacks
+         supportedMimeTypes = [
+          ...highPriorityTypes,
+          ...standardTypes.filter(t => !t.includes('mp4')), // Opus before MP4 here
+          ...standardTypes.filter(t => t.includes('mp4')), // Then MP4
+          ...fallbackTypes
         ];
       }
-      
-      // Find the first supported MIME type
+
+      // Find the first supported MIME type from our prioritized list
       let mimeType = '';
+      console.log('Checking supported types in order:', supportedMimeTypes); // Log the order
       for (const type of supportedMimeTypes) {
         if (MediaRecorder.isTypeSupported(type)) {
+          console.log(`Found supported type: ${type}`); // Log the one we found
           mimeType = type;
           break;
         }
+      }
+      if (!mimeType) {
+        console.warn('No preferred MIME type supported, relying on browser default.');
       }
       
       // Log browser and selected MIME type for debugging
@@ -160,18 +187,20 @@ export function VoiceRecorder({
 
       mediaRecorderRef.current.onstop = async () => {
         // Get the actual MIME type that was used
-        const actualType = mediaRecorderRef.current?.mimeType || 'audio/webm';
+        const actualType = mediaRecorderRef.current?.mimeType || mimeType || 'audio/webm'; // Use detected mimeType as fallback
         console.log('Recording completed with MIME type:', actualType);
         
         // Extract the file extension from the MIME type
         let fileExtension = 'webm'; // Default
         if (actualType.includes('mp4') || actualType.includes('m4a') || actualType.includes('aac')) {
-          fileExtension = 'mp4'; // Use .mp4 for audio/mp4 types
+          fileExtension = 'mp4';
         } else if (actualType.includes('mp3') || actualType.includes('mpeg')) {
           fileExtension = 'mp3';
         } else if (actualType.includes('wav')) {
           fileExtension = 'wav';
-        }
+        } else if (actualType.includes('ogg')) {
+           fileExtension = 'ogg';
+        } // Add other mappings if needed based on prioritized types
         
         const audioBlob = new Blob(audioChunksRef.current, { type: actualType });
         console.log(`Recording size: ${audioBlob.size} bytes`);
