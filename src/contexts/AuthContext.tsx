@@ -18,6 +18,7 @@ interface AuthContextType {
   resetPassword: (password: string) => Promise<{ success: boolean; error: AuthError | Error | null }>;
   completeGoogleSignUp: (username: string) => Promise<{ success: boolean; error: AuthError | Error | null }>;
   clearAuthStorage: () => boolean;
+  refreshSession: () => Promise<{ success: boolean; error: AuthError | Error | null }>;
   // Removed refreshUserSession and checkSessionStatus as they are less needed with simpler logic
 }
 
@@ -62,7 +63,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return false;
     }
   }, [logAuthError]);
-
+  
+  // Add the refreshSession implementation
+  const refreshSession = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        logAuthError('refreshSession', error, false);
+        return { success: false, error };
+      }
+      
+      if (data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+      }
+      
+      return { success: !!data.session, error: null };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Unknown error refreshing session');
+      logAuthError('refreshSession', error, false);
+      return { success: false, error };
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // --- Profile Check Logic --- (Include ensureUserProfile from previous version)
  const ensureUserProfile = useCallback(async (currentUser: User): Promise<boolean> => {
@@ -631,6 +657,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resetPassword,
     completeGoogleSignUp,
     clearAuthStorage,
+    refreshSession,
     // Removed refreshUserSession, checkSessionStatus from value
   };
 

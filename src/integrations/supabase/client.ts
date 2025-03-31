@@ -5,6 +5,14 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://jduzfrjhxfxiyajvpkus.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkdXpmcmpoeGZ4aXlhanZwa3VzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk2NTYyODMsImV4cCI6MjA1NTIzMjI4M30.gSYv1qXg4y3tTP3UjobDPjF9A1UldyOMjdYFVJlh47c";
 
+// Set the application name that appears in auth screens
+const APP_NAME = "REM - Dream Journal";
+
+// Base URL for the application - adjust for different environments
+const APP_URL = process.env.NODE_ENV === "production" 
+  ? "https://lucidrem.com" 
+  : "http://localhost:3000";
+
 // Helper function to check if the configuration is valid
 export const isValidSupabaseConfig = () => {
   return !!(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
@@ -26,6 +34,8 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true, // Automatically refresh the token
       detectSessionInUrl: true, // Detect session in URL (important for email verification)
       flowType: 'pkce', // Use PKCE flow for better security
+      // Customize auth UI using the correct property names
+      debug: true
     },
     // Global configuration for improved reliability
     global: {

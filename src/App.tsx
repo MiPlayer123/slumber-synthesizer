@@ -19,6 +19,8 @@ import PasswordResetDebug from "@/pages/PasswordResetDebug";
 import About from "@/pages/About";
 import Privacy from "@/pages/Privacy";
 import Terms from "@/pages/Terms";
+import AuthRedirect from "@/pages/AuthRedirect";
+import AuthCallback from "@/pages/AuthCallback";
 
 // Lazy loaded pages for performance
 const Journal = lazy(() => import("@/pages/Journal"));
@@ -59,9 +61,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <LoadingSpinner />;
   }
   
-  // If not authenticated, redirect to auth page and remember the intended destination
+  // If not authenticated, redirect to auth-redirect page and remember the intended destination
   if (!user) {
-    return <Navigate to="/auth" state={{ from: location }} replace />;
+    return <Navigate to="/auth-redirect?mode=signin" state={{ from: location }} replace />;
   }
   
   // Render children wrapped in Suspense for lazy loading
@@ -151,6 +153,8 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<AuthRedirectHandler />} />
       <Route path="/auth" element={<Auth />} />
+      <Route path="/auth-redirect" element={<AuthRedirect />} />
+      <Route path="/auth-callback" element={<AuthCallback />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/password-reset-troubleshoot" element={<PasswordResetTroubleshoot />} />
       <Route path="/password-reset-debug" element={<PasswordResetDebug />} />

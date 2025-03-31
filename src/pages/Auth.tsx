@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckCircle, Eye, EyeOff } from "lucide-react";
+import { CheckCircle, Eye, EyeOff, Info, Lock } from "lucide-react";
 
 const Auth = () => {
   const { user, signIn, signUp, signInWithGoogle, forgotPassword, completeGoogleSignUp, loading } = useAuth();
@@ -94,13 +94,12 @@ const Auth = () => {
     
     try {
       console.log(`Attempting to ${isSignUp ? 'sign up' : 'sign in'}...`);
-      if (isSignUp) {
-        await signUp(email, password, username, fullName);
-        track('user_signup', { method: 'email' });
-      } else {
-        await signIn(email, password);
-        track('user_signin', { method: 'email' });
-      }
+      
+      // Use the redirect flow instead of direct auth
+      handleRedirectToAuth(isSignUp ? 'signup' : 'signin', 'email');
+      
+      // Track the event
+      track(isSignUp ? 'user_signup_attempt' : 'user_signin_attempt', { method: 'email' });
     } catch (error) {
       console.error("Authentication error:", error);
       track('auth_error', { 
@@ -111,13 +110,29 @@ const Auth = () => {
     }
   };
 
+  // Add a new function to handle redirecting to our custom auth page
+  const handleRedirectToAuth = (mode = 'signin', provider = 'email') => {
+    // Navigate to our auth-redirect page with appropriate parameters
+    const redirectUrl = `/auth-redirect?mode=${mode}&provider=${provider}`;
+    
+    // Track analytics event
+    track('auth_redirect', { 
+      destination: 'custom_auth_flow',
+      mode,
+      provider
+    });
+    
+    // Redirect to our intermediate page
+    window.location.href = redirectUrl;
+  };
+
   const handleGoogleSignIn = async (e: React.MouseEvent) => {
     e.preventDefault();
     
     if (!isGoogleSignUp) {
       try {
-        await signInWithGoogle();
-        track('user_signin', { method: 'google' });
+        // Use the new redirect flow instead of direct sign-in
+        handleRedirectToAuth('signin', 'google');
       } catch (error) {
         console.error("Google authentication error:", error);
         track('auth_error', { 
@@ -243,10 +258,10 @@ const Auth = () => {
   return (
     <div className="container max-w-md mx-auto px-4 py-12">
       <Card className="glass-card">
-        <CardHeader>
-          <CardTitle>{isSignUp ? 'Create an Account' : 'Welcome Back'}</CardTitle>
-          <CardDescription>
-            {isSignUp ? 'Start your dream journey' : 'Sign in to your account'}
+        <CardHeader className="text-center">
+          <CardTitle className="text-3xl font-dream">REM</CardTitle>
+          <CardDescription className="text-lg">
+            {isSignUp ? 'Start your dream journey' : 'Welcome back to your dream journal'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -374,6 +389,17 @@ const Auth = () => {
               </>
             )}
 
+            {/* Add the secure authentication notice */}
+            <Alert className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <AlertTitle className="text-blue-600 dark:text-blue-400 flex items-center">
+                <Lock className="h-3 w-3 mr-1" /> Secure Authentication
+              </AlertTitle>
+              <AlertDescription className="text-blue-600 dark:text-blue-400 text-xs">
+                REM uses Supabase, an industry-standard authentication service. You'll be briefly redirected to complete the secure sign-in process.
+              </AlertDescription>
+            </Alert>
+
             {/* Submit Button - Fixed disabled state */}
             <Button 
               type="submit" 
@@ -443,6 +469,10 @@ const Auth = () => {
             </div>
           </form>
         </CardContent>
+        <CardFooter className="flex flex-col text-center text-xs text-muted-foreground">
+          <p>REM Dream Journal &copy; {new Date().getFullYear()}</p>
+          <p>Authentication secured by Supabase</p>
+        </CardFooter>
       </Card>
     </div>
   );
