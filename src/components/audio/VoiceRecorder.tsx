@@ -4,15 +4,14 @@ import { Mic, Square, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-const lamejs = require('lamejs');
 
 interface VoiceRecorderProps {
   onTranscriptionComplete: (text: string) => void;
   isRecording?: boolean;
 }
 
-export function VoiceRecorder({ 
-  onTranscriptionComplete, 
+export function VoiceRecorder({
+  onTranscriptionComplete,
   isRecording: externalIsRecording
 }: VoiceRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
@@ -22,15 +21,17 @@ export function VoiceRecorder({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
-  const { toast } = useToast();
   const audioContextRef = useRef<AudioContext | null>(null);
+  const { toast } = useToast();
 
+  // Use external isRecording state if provided
   useEffect(() => {
     if (externalIsRecording !== undefined) {
       setIsRecording(externalIsRecording);
     }
   }, [externalIsRecording]);
 
+  // Set up timer for recording duration
   useEffect(() => {
     if (isRecording) {
       timerRef.current = window.setInterval(() => {
@@ -51,17 +52,17 @@ export function VoiceRecorder({
     };
   }, [isRecording]);
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const getAudioContext = () => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
     return audioContextRef.current;
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   const startRecording = async () => {
@@ -73,6 +74,13 @@ export function VoiceRecorder({
         throw new Error('Audio recording is not supported in this browser');
       }
 
+      // Detect if we're on iOS or Safari
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      
+      console.log(`Browser detection: iOS=${isIOS}, Safari=${isSafari}`);
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -81,13 +89,10 @@ export function VoiceRecorder({
         }
       });
 
+      // Use browser's preferred format, we'll convert later
       const options: MediaRecorderOptions = {};
-      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-        options.mimeType = 'audio/webm;codecs=opus';
-      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-         options.mimeType = 'audio/mp4';
-      }
-       console.log('Attempting to record using MIME type:', options.mimeType || 'browser default');
+      
+      console.log(`Recording using browser's default format`);
 
       mediaRecorderRef.current = new MediaRecorder(stream, options);
       audioChunksRef.current = [];
@@ -99,19 +104,25 @@ export function VoiceRecorder({
       };
 
       mediaRecorderRef.current.onstop = async () => {
-        const originalMimeType = mediaRecorderRef.current?.mimeType || 'application/octet-stream';
+        const originalMimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
         console.log('Recording stopped. Original MIME type:', originalMimeType);
 
         if (audioChunksRef.current.length === 0) {
-           console.error("No audio chunks recorded.");
-           toast({ variant: 'destructive', title: 'Recording Error', description: 'No audio data was captured.' });
-           setIsTranscribing(false);
-           return;
+          console.error("No audio chunks recorded.");
+          toast({ 
+            variant: 'destructive', 
+            title: 'Recording Error', 
+            description: 'No audio data was captured.'
+          });
+          setIsTranscribing(false);
+          return;
         }
 
+        // Combine chunks into a single Blob
         const audioBlob = new Blob(audioChunksRef.current, { type: originalMimeType });
-        audioChunksRef.current = [];
-
+        console.log(`Original recording: ${audioBlob.size} bytes`);
+        
+        // Process the audio for transcription
         await processAndTranscribeAudio(audioBlob);
       };
 
@@ -122,11 +133,10 @@ export function VoiceRecorder({
     } catch (error: any) {
       console.error('Error starting recording:', error);
       setIsPreparing(false);
-      setIsTranscribing(false);
       toast({
         variant: 'destructive',
         title: 'Recording Error',
-        description: error.message || 'Could not start recording.',
+        description: error.message || 'Could not access microphone. Please check your permissions.',
       });
     }
   };
@@ -144,136 +154,164 @@ export function VoiceRecorder({
     }
   };
 
+  // Function to convert audio to WAV format
   const processAndTranscribeAudio = async (audioBlob: Blob) => {
-     console.log(`Original audio blob size: ${audioBlob.size} bytes, type: ${audioBlob.type}`);
-     if (audioBlob.size === 0) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Recorded audio is empty.' });
-        setIsTranscribing(false);
-        return;
-     }
+    try {
+      console.log("Processing audio recording...");
+      
+      // 1. Get audio data as array buffer
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      
+      // 2. Decode the audio using Web Audio API
+      const audioContext = getAudioContext();
+      let audioBuffer;
+      try {
+        audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        console.log(`Decoded audio: ${audioBuffer.duration}s, ${audioBuffer.numberOfChannels} channels, ${audioBuffer.sampleRate}Hz`);
+      } catch (decodeError) {
+        console.error("Failed to decode audio:", decodeError);
+        throw new Error("Could not decode the recorded audio. Try recording again.");
+      }
+      
+      // 3. Convert to WAV format
+      const wavBlob = await audioBufferToWav(audioBuffer);
+      console.log(`WAV conversion complete. Size: ${wavBlob.size} bytes`);
+      
+      // 4. Send for transcription
+      await transcribeAudio(wavBlob, 'wav');
+      
+    } catch (error: any) {
+      console.error("Audio processing error:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Conversion Failed',
+        description: error.message || 'Could not convert audio to compatible format',
+      });
+      setIsTranscribing(false);
+    }
+  };
 
-     try {
-        setIsTranscribing(true);
-
-        const audioContext = getAudioContext();
-        const arrayBuffer = await audioBlob.arrayBuffer();
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-        const sampleRate = audioBuffer.sampleRate;
-        const channels = audioBuffer.numberOfChannels;
-        console.log(`Audio properties: ${sampleRate}Hz, ${channels} channels`);
-
-        const pcmData = audioBuffer.getChannelData(0);
-
-        const mp3Encoder = new lamejs.Mp3Encoder(1, sampleRate, 128);
-
-        const samples = new Int16Array(pcmData.length);
-        for (let i = 0; i < pcmData.length; i++) {
-           samples[i] = pcmData[i] * 32767;
+  // Convert AudioBuffer to WAV blob
+  const audioBufferToWav = (audioBuffer: AudioBuffer): Promise<Blob> => {
+    return new Promise((resolve) => {
+      const numOfChannels = audioBuffer.numberOfChannels;
+      const sampleRate = audioBuffer.sampleRate;
+      const format = 1; // PCM
+      const bitDepth = 16;
+      
+      // Extract raw audio data
+      const channelData: Float32Array[] = [];
+      for (let channel = 0; channel < numOfChannels; channel++) {
+        channelData.push(audioBuffer.getChannelData(channel));
+      }
+      
+      // Interleave audio data - combine separate channels into single array
+      const interleaved = new Float32Array(audioBuffer.length * numOfChannels);
+      for (let i = 0; i < audioBuffer.length; i++) {
+        for (let channel = 0; channel < numOfChannels; channel++) {
+          interleaved[(i * numOfChannels) + channel] = channelData[channel][i];
         }
-
-        const mp3DataChunks: Int8Array[] = [];
-        const chunkSize = 1152;
-        for (let i = 0; i < samples.length; i += chunkSize) {
-           const chunk = samples.subarray(i, i + chunkSize);
-           const mp3buf = mp3Encoder.encodeBuffer(chunk);
-           if (mp3buf.length > 0) {
-              mp3DataChunks.push(new Int8Array(mp3buf));
-           }
-        }
-        const finalMp3buf = mp3Encoder.flush();
-        if (finalMp3buf.length > 0) {
-            mp3DataChunks.push(new Int8Array(finalMp3buf));
-        }
-
-        const mp3Blob = new Blob(mp3DataChunks, { type: 'audio/mpeg' });
-        console.log(`Converted MP3 blob size: ${mp3Blob.size} bytes`);
-
-        await transcribeAudio(mp3Blob, 'mp3');
-
-     } catch (error: any) {
-        console.error('Error during audio processing/conversion:', error);
-        toast({
-           variant: 'destructive',
-           title: 'Conversion Failed',
-           description: `Could not convert audio to MP3: ${error.message}`,
-        });
-        setIsTranscribing(false);
-     }
-  }
+      }
+      
+      // Convert to 16-bit PCM
+      const dataLength = interleaved.length * 2; // 16-bit = 2 bytes per sample
+      const buffer = new ArrayBuffer(44 + dataLength); // 44 bytes for WAV header
+      const view = new DataView(buffer);
+      
+      // Write WAV header
+      // "RIFF" chunk descriptor
+      writeString(view, 0, 'RIFF');
+      view.setUint32(4, 36 + dataLength, true);
+      writeString(view, 8, 'WAVE');
+      
+      // "fmt " sub-chunk
+      writeString(view, 12, 'fmt ');
+      view.setUint32(16, 16, true); // fmt chunk size
+      view.setUint16(20, format, true); // audio format (1 = PCM)
+      view.setUint16(22, numOfChannels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * numOfChannels * 2, true); // byte rate
+      view.setUint16(32, numOfChannels * 2, true); // block align
+      view.setUint16(34, bitDepth, true); // bits per sample
+      
+      // "data" sub-chunk
+      writeString(view, 36, 'data');
+      view.setUint32(40, dataLength, true); // data chunk size
+      
+      // Write audio data
+      let offset = 44;
+      for (let i = 0; i < interleaved.length; i++, offset += 2) {
+        const s = Math.max(-1, Math.min(1, interleaved[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      }
+      
+      // Create WAV blob
+      const wavBlob = new Blob([buffer], { type: 'audio/wav' });
+      resolve(wavBlob);
+    });
+    
+    // Helper to write strings to DataView
+    function writeString(view: DataView, offset: number, string: string): void {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    }
+  };
 
   const transcribeAudio = async (audioBlob: Blob, fileExtension: string) => {
     try {
+      // Convert to base64
       const reader = new FileReader();
       const base64Audio = await new Promise<string>((resolve, reject) => {
         reader.onloadend = () => {
           try {
             const base64 = reader.result as string;
-            if (!base64 || typeof base64 !== 'string') {
-              reject(new Error('Failed to convert audio to base64')); return;
-            }
-            const base64Parts = base64.split(',');
-            if (base64Parts.length !== 2) {
-              reject(new Error('Invalid base64 format')); return;
-            }
-            const base64Data = base64Parts[1];
-            console.log(`Base64 conversion successful (MP3): ${base64Data.length} chars`);
+            const base64Data = base64.split(',')[1];
+            console.log(`Base64 conversion successful: ${base64Data.length} chars`);
             resolve(base64Data);
-          } catch (error) { reject(error); }
+          } catch (error) {
+            reject(error);
+          }
         };
-        reader.onerror = (event) => {
-             console.error('FileReader error:', reader.error);
-             reject(new Error(`Failed to read audio file: ${reader.error?.message || 'Unknown error'}`));
-         };
+        reader.onerror = () => reject(reader.error);
         reader.readAsDataURL(audioBlob);
       });
-
+      
+      // Now send to the OpenAI via Supabase Edge Function
       const payload = {
         audioBase64: base64Audio,
-        fileExtension: 'mp3',
-        mimeType: 'audio/mpeg',
+        fileExtension: fileExtension,
+        mimeType: `audio/${fileExtension}`,
         dataSize: base64Audio.length,
         userAgent: navigator.userAgent
       };
-
-      console.log(`Sending MP3 data to transcription service. Size: ${payload.dataSize} chars`);
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
       
-      try {
-        const { data, error } = await supabase.functions.invoke('transcribe-audio', {
-          body: payload
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (error) {
-          console.error('Transcription function error:', error);
-          throw new Error(error.message || 'Transcription failed');
-        }
-        
-        if (data?.text) {
-          onTranscriptionComplete(data.text);
-          toast({
-            title: 'Transcription Complete',
-            description: 'Your recording has been converted and transcribed.',
-          });
-        } else {
-          throw new Error('No transcription returned');
-        }
-      } catch (fetchError: any) {
-        if (fetchError.name === 'AbortError') {
-          throw new Error('Transcription request timed out. Try a shorter recording or check your connection.');
-        }
-        throw fetchError;
+      console.log(`Sending transcription request: format=${fileExtension}, size=${payload.dataSize} chars`);
+      
+      const { data, error } = await supabase.functions.invoke('transcribe-audio', {
+        body: payload
+      });
+      
+      if (error) {
+        console.error('Transcription function error:', error);
+        throw new Error(error.message || 'Transcription failed');
       }
-    } catch (error) {
+      
+      if (data?.text) {
+        onTranscriptionComplete(data.text);
+        toast({
+          title: 'Transcription Complete',
+          description: 'Your recording has been transcribed successfully.',
+        });
+      } else {
+        throw new Error('No transcription returned');
+      }
+    } catch (error: any) {
       console.error('Transcription error:', error);
       toast({
         variant: 'destructive',
         title: 'Transcription Failed',
-        description: error instanceof Error ? error.message : 'Could not transcribe audio',
+        description: error.message || 'Could not transcribe audio',
       });
     } finally {
       setIsTranscribing(false);
@@ -285,28 +323,24 @@ export function VoiceRecorder({
       <CardContent className="p-4">
         <div className="flex flex-col items-center space-y-4">
           <div className="flex items-center justify-center w-full">
-            {isPreparing ? (
-              <Button variant="outline" size="icon" className="h-16 w-16 rounded-full" disabled>
-                <Loader2 className="h-8 w-8 animate-spin" />
-              </Button>
-            ) : isTranscribing ? (
+            {isPreparing || isTranscribing ? (
               <Button variant="outline" size="icon" className="h-16 w-16 rounded-full" disabled>
                 <Loader2 className="h-8 w-8 animate-spin" />
               </Button>
             ) : isRecording ? (
-              <Button
-                variant="destructive"
-                size="icon"
-                className="h-16 w-16 rounded-full touch-manipulation"
+              <Button 
+                variant="destructive" 
+                size="icon" 
+                className="h-16 w-16 rounded-full touch-manipulation" 
                 onClick={stopRecording}
               >
                 <Square className="h-8 w-8" />
               </Button>
             ) : (
-              <Button
-                variant="default"
-                size="icon"
-                className="h-16 w-16 rounded-full bg-green-500 hover:bg-green-600 active:bg-green-700 touch-manipulation"
+              <Button 
+                variant="default" 
+                size="icon" 
+                className="h-16 w-16 rounded-full bg-green-500 hover:bg-green-600 active:bg-green-700 touch-manipulation" 
                 onClick={startRecording}
                 aria-label="Start recording"
               >
@@ -316,15 +350,15 @@ export function VoiceRecorder({
           </div>
           
           <div className="text-center">
-            {isPreparing ? (
-              <div className="text-sm">Preparing microphone...</div>
-            ) : isTranscribing ? (
-              <div className="text-sm">Processing & Transcribing...</div>
-            ) : isRecording ? (
+            {isRecording ? (
               <div className="flex flex-col items-center">
                 <div className="text-red-500 font-medium">Recording...</div>
                 <div className="text-sm">{formatTime(recordingTime)}</div>
               </div>
+            ) : isPreparing ? (
+              <div className="text-sm">Preparing microphone...</div>
+            ) : isTranscribing ? (
+              <div className="text-sm">Converting & transcribing your recording...</div>
             ) : (
               <div className="text-sm">
                 <span className="block">Tap to record your dream</span>
