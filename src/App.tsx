@@ -88,9 +88,21 @@ const AuthRedirectHandler = () => {
       hasCode: searchParams.has('code')
     });
     
+    // Check if this is a Google sign-in callback
+    if (searchParams.has('code') && searchParams.has('signin') && searchParams.get('signin') === 'google') {
+      console.log('Detected Google sign-in callback, redirecting to auth page');
+      navigate('/auth', { replace: true });
+      return;
+    }
+    
+    // Check for explicit password reset flow markers
+    const isPasswordReset = 
+      location.hash.includes('type=recovery') || 
+      searchParams.get('type') === 'recovery';
+    
     // Check for Supabase auth code (used in the password reset flow)
-    if (searchParams.has('code')) {
-      console.log('Detected Supabase auth code, redirecting to reset-password with code', {
+    if (searchParams.has('code') && isPasswordReset) {
+      console.log('Detected Supabase auth code for password reset, redirecting to reset-password with code', {
         code: searchParams.get('code')
       });
       
