@@ -287,7 +287,7 @@ const Auth = () => {
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
@@ -307,7 +307,7 @@ const Auth = () => {
                   <DialogTrigger asChild>
                     <button 
                       type="button" 
-                      className="text-sm text-dream-600 hover:underline"
+                      className="text-sm text-dream-600 dark:text-blue-400 hover:underline"
                     >
                       Forgot password?
                     </button>
@@ -340,8 +340,8 @@ const Auth = () => {
                           {loading ? "Sending..." : "Send Reset Link"}
                         </Button>
                       </DialogFooter>
-                      <div className="mt-4 text-center text-sm text-gray-500">
-                        Having trouble? <a href="/password-reset-troubleshoot" className="text-dream-600 hover:underline">Visit our troubleshooter</a>
+                      <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                        Having trouble? <a href="/password-reset-troubleshoot" className="text-dream-600 dark:text-blue-400 hover:underline">Visit our troubleshooter</a>
                       </div>
                     </form>
                   </DialogContent>
@@ -391,21 +391,16 @@ const Auth = () => {
             </Button>
             
             {/* Social Sign-in */}
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <Separator className="w-full" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or continue with
-                </span>
-              </div>
+            <div className="relative my-6 flex items-center">
+              <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
+              <span className="mx-4 text-sm font-medium uppercase text-gray-500 dark:text-gray-500">OR CONTINUE WITH</span>
+              <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
             </div>
             
             <Button 
               type="button" 
               variant="outline" 
-              className="w-full"
+              className="w-full dark:bg-[#1e2030] dark:hover:bg-[#252a3d] dark:text-white dark:border-[#2a2f42]"
               onClick={handleGoogleSignIn}
               disabled={loading}
             >
@@ -435,7 +430,7 @@ const Auth = () => {
                   setIsSignUp(!isSignUp);
                   setErrors({});
                 }}
-                className="text-dream-600 hover:underline"
+                className="text-dream-600 dark:text-blue-400 hover:underline"
                 disabled={loading}
               >
                 {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
