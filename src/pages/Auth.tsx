@@ -393,11 +393,11 @@ const Auth = () => {
             {/* Social Sign-in */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t dark:border-gray-700/20"></div>
+                <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
               </div>
               <div className="relative flex justify-center">
-                <span className="px-4 text-xs uppercase text-gray-500">
-                  OR CONTINUE WITH
+                <span className="px-6 text-sm font-medium uppercase bg-white dark:bg-card text-gray-700 dark:text-gray-300">
+                  Or Continue With
                 </span>
               </div>
             </div>
