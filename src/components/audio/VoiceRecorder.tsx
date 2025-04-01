@@ -74,19 +74,28 @@ export function VoiceRecorder({
         throw new Error('Audio recording is not supported in this browser');
       }
 
-      // Detect if we're on iOS or Safari
+      // Detect browser environment
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
       const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      const isDesktop = !(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
       
-      console.log(`Browser detection: iOS=${isIOS}, Safari=${isSafari}`);
+      console.log(`Browser detection: iOS=${isIOS}, Safari=${isSafari}, Desktop=${isDesktop}`);
+      
+      // Use different audio constraints based on the platform
+      const audioConstraints = {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      };
+      
+      // Desktop Chrome sometimes needs specific settings
+      if (isDesktop && !isSafari) {
+        console.log("Using optimized settings for desktop Chrome");
+      }
 
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
+        audio: audioConstraints
       });
 
       // Use browser's preferred format, we'll convert later
@@ -159,39 +168,60 @@ export function VoiceRecorder({
     try {
       console.log("Processing audio recording...");
       
+      // Add a timeout for the entire process to prevent infinite loading
+      const processingTimeout = setTimeout(() => {
+        console.error("Audio processing timed out after 30 seconds");
+        toast({
+          variant: 'destructive',
+          title: 'Transcription Timeout',
+          description: 'The process took too long. Please try again with a shorter recording.',
+        });
+        setIsTranscribing(false);
+      }, 30000); // 30 second timeout
+      
       // Detect if running on desktop
       const isDesktop = !(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
       console.log(`Platform detection: Desktop=${isDesktop}`);
       
-      if (isDesktop) {
-        // Simplified approach for desktop - send directly as webm
-        console.log("Using simplified processing for desktop browsers");
-        await transcribeAudio(audioBlob, audioBlob.type.split('/')[1] || 'webm');
-        return;
-      }
-      
-      // Mobile processing path - convert to WAV
-      // 1. Get audio data as array buffer
-      const arrayBuffer = await audioBlob.arrayBuffer();
-      
-      // 2. Decode the audio using Web Audio API
-      const audioContext = getAudioContext();
-      let audioBuffer;
       try {
-        audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-        console.log(`Decoded audio: ${audioBuffer.duration}s, ${audioBuffer.numberOfChannels} channels, ${audioBuffer.sampleRate}Hz`);
-      } catch (decodeError) {
-        console.error("Failed to decode audio:", decodeError);
-        throw new Error("Could not decode the recorded audio. Try recording again.");
+        if (isDesktop) {
+          // Simplified approach for desktop - send directly as webm
+          console.log("Using simplified processing for desktop browsers");
+          await transcribeAudio(audioBlob, audioBlob.type.split('/')[1] || 'webm');
+          clearTimeout(processingTimeout);
+          return;
+        }
+        
+        // Mobile processing path - convert to WAV
+        // 1. Get audio data as array buffer
+        const arrayBuffer = await audioBlob.arrayBuffer();
+        
+        // 2. Decode the audio using Web Audio API
+        const audioContext = getAudioContext();
+        let audioBuffer;
+        try {
+          audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+          console.log(`Decoded audio: ${audioBuffer.duration}s, ${audioBuffer.numberOfChannels} channels, ${audioBuffer.sampleRate}Hz`);
+        } catch (decodeError) {
+          console.error("Failed to decode audio:", decodeError);
+          // If decoding fails on mobile, try the desktop approach as fallback
+          console.log("Falling back to direct transcription without decoding");
+          await transcribeAudio(audioBlob, audioBlob.type.split('/')[1] || 'webm');
+          clearTimeout(processingTimeout);
+          return;
+        }
+        
+        // 3. Convert to WAV format
+        const wavBlob = await audioBufferToWav(audioBuffer);
+        console.log(`WAV conversion complete. Size: ${wavBlob.size} bytes`);
+        
+        // 4. Send for transcription
+        await transcribeAudio(wavBlob, 'wav');
+        clearTimeout(processingTimeout);
+      } catch (processingError) {
+        clearTimeout(processingTimeout);
+        throw processingError;
       }
-      
-      // 3. Convert to WAV format
-      const wavBlob = await audioBufferToWav(audioBuffer);
-      console.log(`WAV conversion complete. Size: ${wavBlob.size} bytes`);
-      
-      // 4. Send for transcription
-      await transcribeAudio(wavBlob, 'wav');
-      
     } catch (error: any) {
       console.error("Audio processing error:", error);
       toast({
@@ -319,7 +349,12 @@ export function VoiceRecorder({
       
       if (error) {
         console.error('Transcription function error:', error);
-        throw new Error(error.message || 'Transcription failed');
+        const isDesktop = !(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+        if (isDesktop) {
+          throw new Error('Desktop transcription failed. Try recording from a mobile device instead, or use the text input.');
+        } else {
+          throw new Error(error.message || 'Transcription failed');
+        }
       }
       
       if (data?.text) {
