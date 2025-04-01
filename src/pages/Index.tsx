@@ -250,8 +250,7 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center mb-8">
             <div className="flex items-center mb-4 md:mb-0">
-              <MoonIcon size={24} className="text-purple-400 mr-2" />
-              <span className="text-xl font-bold text-purple-100">Rem</span>
+              <span className="text-xl font-bold text-purple-100">☾ Rem</span>
             </div>
             <div className="flex space-x-6">
               <a href="/about" className="text-purple-300 hover:text-white transition">About</a>
@@ -261,7 +260,7 @@ const Index = () => {
             </div>
           </div>
           <div className="text-center text-purple-400 text-sm">
-            <p>&copy; {new Date().getFullYear()} Rem. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} ☾ Rem. All rights reserved.</p>
           </div>
         </div>
       </footer>
