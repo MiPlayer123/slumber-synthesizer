@@ -10,7 +10,7 @@ const Index = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    document.title = "Rem";
+    document.title = "☾ Rem";
     
     // Redirect to journal if user is already logged in
     if (user) {
