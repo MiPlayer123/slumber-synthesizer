@@ -21,14 +21,14 @@ export function FeedbackBanner({ feedbackUrl, className }: FeedbackBannerProps) 
       )}
     >
       <div className="flex-1 text-center">
-        <span className="mr-2">We value your input!</span>
+        <span className="mr-2">Found a bug or having an issue?</span>
         <a 
           href={feedbackUrl} 
           target="_blank" 
           rel="noopener noreferrer" 
           className="font-medium underline underline-offset-4 hover:text-primary-foreground/90"
         >
-          Share your feedback
+          Let us know
         </a>
       </div>
       <Button 
