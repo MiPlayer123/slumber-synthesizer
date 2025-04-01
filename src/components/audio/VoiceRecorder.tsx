@@ -159,6 +159,18 @@ export function VoiceRecorder({
     try {
       console.log("Processing audio recording...");
       
+      // Detect if running on desktop
+      const isDesktop = !(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+      console.log(`Platform detection: Desktop=${isDesktop}`);
+      
+      if (isDesktop) {
+        // Simplified approach for desktop - send directly as webm
+        console.log("Using simplified processing for desktop browsers");
+        await transcribeAudio(audioBlob, audioBlob.type.split('/')[1] || 'webm');
+        return;
+      }
+      
+      // Mobile processing path - convert to WAV
       // 1. Get audio data as array buffer
       const arrayBuffer = await audioBlob.arrayBuffer();
       
@@ -260,6 +272,19 @@ export function VoiceRecorder({
 
   const transcribeAudio = async (audioBlob: Blob, fileExtension: string) => {
     try {
+      // Determine the correct file extension and MIME type
+      let mimeType = audioBlob.type || `audio/${fileExtension}`;
+      if (!mimeType.startsWith('audio/')) {
+        mimeType = `audio/${fileExtension}`;
+      }
+      
+      // Make sure we have a valid file extension
+      if (!fileExtension || fileExtension === 'audio/webm') {
+        fileExtension = audioBlob.type.split('/')[1] || 'webm';
+      }
+      
+      console.log(`Preparing to transcribe audio: type=${mimeType}, extension=${fileExtension}`);
+      
       // Convert to base64
       const reader = new FileReader();
       const base64Audio = await new Promise<string>((resolve, reject) => {
@@ -281,7 +306,7 @@ export function VoiceRecorder({
       const payload = {
         audioBase64: base64Audio,
         fileExtension: fileExtension,
-        mimeType: `audio/${fileExtension}`,
+        mimeType: mimeType,
         dataSize: base64Audio.length,
         userAgent: navigator.userAgent
       };
