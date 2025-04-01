@@ -46,6 +46,16 @@ serve(async (req) => {
     console.log(`Received request: User-Agent: ${userAgent}`);
     console.log(`Received parameters: fileExtension=${fileExtension}, mimeType=${mimeType}`);
     
+    // Validate and normalize the file extension and mime type
+    let normalizedExtension = fileExtension.replace(/^audio\//, '');
+    let normalizedMimeType = mimeType;
+    
+    if (!normalizedMimeType.startsWith('audio/')) {
+      normalizedMimeType = `audio/${normalizedExtension}`;
+    }
+    
+    console.log(`Normalized parameters: extension=${normalizedExtension}, mimeType=${normalizedMimeType}`);
+    
     // Check if OPENAI_API_KEY is available
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
@@ -65,12 +75,12 @@ serve(async (req) => {
     
     // Create a FormData object to send to OpenAI
     const formData = new FormData();
-    const fileName = `recording.${fileExtension}`; // Use the determined extension
+    const fileName = `recording.${normalizedExtension}`; // Use the determined extension
     
     try {
       // Create a file object from the binary data
-      console.log(`Attempting to create File object: name=${fileName}, type=${mimeType}`);
-      const file = new File([audioBlob], fileName, { type: mimeType });
+      console.log(`Attempting to create File object: name=${fileName}, type=${normalizedMimeType}`);
+      const file = new File([audioBlob], fileName, { type: normalizedMimeType });
       
       formData.append('file', file);
       formData.append('model', 'whisper-1');
@@ -82,8 +92,8 @@ serve(async (req) => {
       
       // Fallback to Blob if File constructor fails
       try {
-        console.log(`Attempting to create Blob object: name=${fileName}, type=${mimeType}`);
-        const blob = new Blob([audioBlob], { type: mimeType });
+        console.log(`Attempting to create Blob object: name=${fileName}, type=${normalizedMimeType}`);
+        const blob = new Blob([audioBlob], { type: normalizedMimeType });
         formData.append('file', blob, fileName);
         formData.append('model', 'whisper-1');
         formData.append('language', 'en');
