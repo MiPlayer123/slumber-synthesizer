@@ -16,9 +16,14 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FeedbackBanner } from "@/components/ui/feedback-banner";
 import { usePaginatedDreams } from "@/hooks/use-dreams";
 import { track } from '@vercel/analytics/react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
 
 const Journal = () => {
-  const { user } = useAuth();
+  const { user, completeGoogleSignUp } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
@@ -30,6 +35,12 @@ const Journal = () => {
   
   // Reference to the top of the page
   const topRef = useRef<HTMLDivElement>(null);
+
+  // New state for username setup
+  const [showUsernameDialog, setShowUsernameDialog] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [isSubmittingUsername, setIsSubmittingUsername] = useState(false);
 
   // Effect to scroll to top when editing a dream
   useEffect(() => {
@@ -712,9 +723,48 @@ const Journal = () => {
     }
   };
 
+  const handleCreateClick = () => {
+    // Check if user has a username
+    if (user?.app_metadata?.provider === 'google' && !user.user_metadata?.username) {
+      setShowUsernameDialog(true);
+      return;
+    }
+    setIsCreating(true);
+  };
+
+  const handleSubmitUsername = async () => {
+    if (!newUsername.trim()) {
+      setUsernameError("Username is required");
+      return;
+    }
+    
+    try {
+      setIsSubmittingUsername(true);
+      setUsernameError("");
+      
+      const { success, error } = await completeGoogleSignUp(newUsername);
+      
+      if (success) {
+        toast({
+          title: "Username Set",
+          description: "Your username has been set successfully!",
+        });
+        setShowUsernameDialog(false);
+        setIsCreating(true); // Now show the create dream form
+      } else if (error) {
+        setUsernameError(error.message || "Failed to set username");
+      }
+    } catch (error) {
+      console.error("Error setting username:", error);
+      setUsernameError("An unexpected error occurred");
+    } finally {
+      setIsSubmittingUsername(false);
+    }
+  };
+
   return (
     <div ref={topRef} className="container py-8 max-w-5xl">
-      <DreamHeader onCreateClick={() => setIsCreating(true)} />
+      <DreamHeader onCreateClick={handleCreateClick} />
 
       <FeedbackBanner feedbackUrl="https://forms.gle/aMFrfqbqiMMBSEKr9" />
 
@@ -771,6 +821,47 @@ const Journal = () => {
           setDreamToDelete(null);
         }}
       />
+
+      {/* Username Setup Dialog */}
+      <Dialog open={showUsernameDialog} onOpenChange={setShowUsernameDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Set Your Username</DialogTitle>
+            <DialogDescription>
+              Please choose a username before creating your first dream.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="username" className="text-right">
+                Username
+              </Label>
+              <Input
+                id="username"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                className="col-span-3"
+                placeholder="Choose a username"
+              />
+            </div>
+            {usernameError && (
+              <p className="text-sm font-medium text-red-500">{usernameError}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={handleSubmitUsername} disabled={isSubmittingUsername}>
+              {isSubmittingUsername ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Setting Username...
+                </>
+              ) : (
+                "Set Username"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

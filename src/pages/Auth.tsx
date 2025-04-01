@@ -20,6 +20,9 @@ import {
 import { toast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckCircle, Eye, EyeOff } from "lucide-react";
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2 } from "lucide-react";
+import { useNavigate } from 'react-router-dom';
 
 const Auth = () => {
   const { user, signIn, signUp, signInWithGoogle, forgotPassword, completeGoogleSignUp, loading } = useAuth();
@@ -38,33 +41,44 @@ const Auth = () => {
   const [isGoogleSignUp, setIsGoogleSignUp] = useState(false);
   const [googleUsername, setGoogleUsername] = useState('');
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Check URL for error parameters and success states when component mounts
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const error = params.get('error');
-    const errorDesc = params.get('error_description');
-    
-    // Check for location state that might have been passed during navigation
-    if (location.state && 'passwordReset' in location.state && location.state.passwordReset === true) {
-      setShowPasswordResetSuccess(true);
+    const checkUser = async () => {
+      const params = new URLSearchParams(location.search);
+      const error = params.get('error');
+      const errorDesc = params.get('error_description');
       
-      // Show toast if there's a custom message
-      if (location.state.message) {
-        toast({
-          title: "Success",
-          description: location.state.message,
-        });
+      // Check for location state that might have been passed during navigation
+      if (location.state && 'passwordReset' in location.state && location.state.passwordReset === true) {
+        setShowPasswordResetSuccess(true);
+        
+        // Show toast if there's a custom message
+        if (location.state.message) {
+          toast({
+            title: "Success",
+            description: location.state.message,
+          });
+        }
+        
+        // Clear the state after showing to prevent repeat on refresh
+        window.history.replaceState({}, document.title);
       }
       
-      // Clear the state after showing to prevent repeat on refresh
-      window.history.replaceState({}, document.title);
-    }
-    
-    // If we detect the specific database error for new user, show username form
-    if (error === 'server_error' && errorDesc?.includes('Database error saving new user')) {
-      setIsGoogleSignUp(true);
-    }
+      // If we detect the specific database error for new user, show username form
+      if (error === 'server_error' && errorDesc?.includes('Database error saving new user')) {
+        setIsGoogleSignUp(true);
+      }
+      
+      // Check if we have a Google user without a username
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.app_metadata?.provider === 'google' && !user.user_metadata?.username) {
+        setIsGoogleSignUp(true);
+      }
+    };
+
+    checkUser();
   }, [location, toast]);
 
   if (user) {
@@ -111,41 +125,46 @@ const Auth = () => {
     }
   };
 
-  const handleGoogleSignIn = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    
-    if (!isGoogleSignUp) {
-      try {
-        await signInWithGoogle();
-        track('user_signin', { method: 'google' });
-      } catch (error) {
-        console.error("Google authentication error:", error);
-        track('auth_error', { 
-          type: 'signin',
-          method: 'google',
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
-    } else {
-      if (!googleUsername || googleUsername.trim() === '') {
-        setErrors({...errors, googleUsername: 'Username is required'});
-        return;
-      }
+  const handleGoogleSignIn = async () => {
+    try {
+      setErrors({});
+      await signInWithGoogle();
       
-      try {
-        await completeGoogleSignUp(googleUsername);
-        track('user_signup', { method: 'google' });
-        setIsGoogleSignUp(false);
-        setGoogleUsername('');
-      } catch (error) {
-        console.error("Google username registration error:", error);
-        track('auth_error', { 
-          type: 'signup',
-          method: 'google',
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
-        setErrors({...errors, googleUsername: 'Failed to register username, please try again'});
+      // Check if this is a new Google user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.app_metadata?.provider === 'google' && !user.user_metadata?.username) {
+        setIsGoogleSignUp(true);
       }
+    } catch (error) {
+      console.error('Google sign in error:', error);
+      setErrors({ 
+        google: error instanceof Error ? error.message : 'Failed to sign in with Google' 
+      });
+    }
+  };
+
+  const handleGoogleSignUpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!googleUsername.trim()) {
+      setErrors({ username: 'Username is required' });
+      return;
+    }
+
+    try {
+      setErrors({});
+      await completeGoogleSignUp(googleUsername);
+      
+      toast({
+        title: "Welcome!",
+        description: "Your account has been created successfully.",
+      });
+      setIsGoogleSignUp(false);
+      navigate('/journal');
+    } catch (error) {
+      console.error('Google sign up error:', error);
+      setErrors({ 
+        username: error instanceof Error ? error.message : 'Failed to complete sign up' 
+      });
     }
   };
 
@@ -210,16 +229,16 @@ const Auth = () => {
                   id="googleUsername"
                   value={googleUsername}
                   onChange={(e) => setGoogleUsername(e.target.value)}
-                  className={errors.googleUsername ? "border-red-500" : ""}
+                  className={errors.username ? "border-red-500" : ""}
                 />
-                {errors.googleUsername && (
-                  <p className="text-red-500 text-xs mt-1">{errors.googleUsername}</p>
+                {errors.username && (
+                  <p className="text-red-500 text-xs mt-1">{errors.username}</p>
                 )}
               </div>
 
               <Button 
                 type="button" 
-                onClick={handleGoogleSignIn}
+                onClick={handleGoogleSignUpSubmit}
                 className="w-full"
               >
                 Complete Sign Up
