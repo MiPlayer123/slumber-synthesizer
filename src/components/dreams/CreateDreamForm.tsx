@@ -140,6 +140,7 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
                   onChange={(e) => setNewDream({ ...newDream, description: e.target.value })}
                   required
                   rows={8}
+                  className="dream-textarea"
                   placeholder="Describe your dream in as much detail as you can remember..."
                 />
               </TabsContent>
@@ -157,6 +158,7 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
                   onChange={(e) => setNewDream({ ...newDream, description: e.target.value })}
                   required
                   rows={8}
+                  className="dream-textarea"
                   placeholder="Your transcribed dream will appear here... Describe your dream in as much detail as you can remember."
                 />
               </TabsContent>
