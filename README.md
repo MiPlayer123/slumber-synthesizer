@@ -1,4 +1,3 @@
-
 # Slumber Synthesizer - AI-Powered Dream Recording Platform
 
 A modern web application for recording, analyzing, and sharing dreams with AI-enhanced features and community interaction.
@@ -33,7 +32,7 @@ Demo Video: https://youtu.be/E1teSDidmEI
 - **UI**: Tailwind CSS, Shadcn/UI, Framer Motion
 - **State Management**: TanStack Query
 - **Backend**: Supabase (Auth, Database, Storage, Edge Functions)
-- **AI Integration**: OpenAI (DALL-E 3), Mistral AI
+- **AI Integration**: Google Gemini, OpenAI, Mistral AI
 
 ## Getting Started
 
@@ -61,6 +60,8 @@ npm install
 ```env
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+OPENAI_API_KEY=your_openai_api_key
+GEMINI_API_KEY=your_gemini_api_key
 ```
 
 4. Start the development server:
@@ -107,7 +108,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - Supabase for backend services
-- OpenAI for AI image generation
+- Google Gemini for AI image generation
+- OpenAI for text generation
 - Mistral AI for dream analysis
 - Shadcn/UI for component library
 - Framer Motion for animations
