@@ -7,7 +7,7 @@ const Privacy = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "Privacy Policy | Rem";
+    document.title = "Privacy Policy | REM";
   }, []);
 
   return (
