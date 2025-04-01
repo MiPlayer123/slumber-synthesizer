@@ -64,7 +64,7 @@ export const Navigation = () => {
   };
 
   return (
-    <nav className="fixed top-0 w-full bg-background/80 backdrop-blur-lg border-b z-50 animate-fade-in">
+    <nav className="fixed top-0 w-full bg-background/80 dark:bg-background/25 backdrop-blur-lg border-b z-50 animate-fade-in">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link to={user ? "/journal" : "/"} className="flex items-center space-x-2">
           <span className="text-2xl font-bold text-dream-600">☾ REM</span>
