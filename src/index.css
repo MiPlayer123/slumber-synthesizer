@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -57,6 +56,12 @@
   body {
     @apply bg-background text-foreground;
   }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-dream;
+  }
+  .dream-text {
+    @apply font-dream;
+  }
 }
 
 .glass-card {
@@ -77,4 +82,14 @@
 
 .animate-slide-up {
   @apply animate-slideUp;
+}
+
+/* Apply dream font to dream descriptions and content */
+.dream-description, .dream-content, .dream-title {
+  @apply font-serif;
+}
+
+/* Apply dream styling to form elements */
+textarea, .dream-textarea {
+  @apply font-serif;
 }
