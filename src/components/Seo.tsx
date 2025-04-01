@@ -9,7 +9,7 @@ interface SeoProps {
 }
 
 export const Seo = ({
-  title = '☾ REM - Sleep Tracking & Dream Journal',
+  title = 'REM - Analyze Your Dreams',
   description = 'Track your sleep patterns, record dreams and improve your sleep quality with REM sleep tracker and dream journal.',
   canonical = '',
   ogImage = '/images/preview_image.png',
@@ -17,7 +17,7 @@ export const Seo = ({
 }: SeoProps) => {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://lucidrem.com';
   const fullUrl = canonical ? `${siteUrl}${canonical}` : siteUrl;
-  const fullTitle = title.includes('REM') ? title : `${title} | ☾ REM`;
+  const fullTitle = title.includes('REM') ? title : `${title} | REM`;
   
   return (
     <Helmet>
