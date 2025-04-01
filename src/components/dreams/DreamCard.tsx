@@ -66,7 +66,7 @@ export const DreamCard = ({
               // When no image and not generating, show description in left column
               <>
                 <div className="flex-grow">
-                  <h2 className="text-2xl font-semibold mb-3">{dream.title}</h2>
+                  <h2 className="text-2xl font-bold mb-3">{dream.title}</h2>
                   <p className="whitespace-pre-wrap text-base leading-relaxed">
                     {dream.description}
                   </p>
@@ -132,7 +132,7 @@ export const DreamCard = ({
               <div>
                 <div className="flex justify-between items-start mb-6">
                   <div>
-                    <h2 className="text-2xl font-semibold">{dream.title}</h2>
+                    <h2 className="text-2xl font-bold">{dream.title}</h2>
                     <p className="text-sm text-muted-foreground mt-1">
                       {new Date(dream.created_at).toLocaleDateString()}
                     </p>
