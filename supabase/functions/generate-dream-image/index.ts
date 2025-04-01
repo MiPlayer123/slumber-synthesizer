@@ -76,28 +76,29 @@ serve(async (req) => {
     const enhancedDescription = openAiData.choices[0].message.content;
     console.log('Enhanced description:', enhancedDescription);
 
-    // Generate image using DALL-E 3
-    const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
+    // Generate image using Imagen 3 API
+    const imageResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=' + Deno.env.get('GEMINI_API_KEY'), {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "dall-e-3",
-        prompt: `Generate a dreamy, surreal image of: ${enhancedDescription}. Use a dreamlike, ethereal style with soft lighting and mystical elements.`,
-        n: 1,
-        size: "1024x1024",
-        quality: "standard",
-        response_format: "b64_json"
+        instances: [
+          {
+            prompt: `Generate a dreamy, surreal image of: ${enhancedDescription}. Use a dreamlike, ethereal style with soft lighting and mystical elements.`
+          }
+        ],
+        parameters: {
+          sampleCount: 1
+        }
       }),
     });
 
     if (!imageResponse.ok) {
       const error = await imageResponse.text();
-      console.error('DALL-E API error:', error);
+      console.error('Imagen API error:', error);
       return new Response(
-        JSON.stringify({ error: `DALL-E API error: ${error}` }),
+        JSON.stringify({ error: `Imagen API error: ${error}` }),
         { 
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -108,15 +109,35 @@ serve(async (req) => {
     const imageData = await imageResponse.json();
     console.log('Image generated successfully');
 
-    if (!imageData.data || !imageData.data[0]?.b64_json) {
+    // Extract base64 image data from Imagen response with fallbacks for different response formats
+    let base64ImageData;
+    
+    // First check if response is in the new Imagen 3 format
+    if (imageData.predictions && imageData.predictions[0]?.bytesBase64Encoded) {
+      base64ImageData = imageData.predictions[0].bytesBase64Encoded;
+      console.log('Found image data in predictions[0].bytesBase64Encoded format');
+    } 
+    // Fallback to the older format in case the API changes
+    else if (imageData.candidates && imageData.candidates[0]?.content?.parts) {
+      const imagePart = imageData.candidates[0].content.parts.find(part => part.inlineData);
+      if (imagePart && imagePart.inlineData && imagePart.inlineData.data) {
+        base64ImageData = imagePart.inlineData.data;
+        console.log('Found image data in candidates[0].content.parts[].inlineData.data format');
+      }
+    }
+    
+    if (!base64ImageData) {
+      console.error('Response format:', JSON.stringify(imageData).substring(0, 200) + '...');
       return new Response(
-        JSON.stringify({ error: 'No image data in OpenAI response' }),
+        JSON.stringify({ error: 'No image data found in response. Unsupported format.' }),
         { 
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
+    
+    console.log('Successfully extracted image data from response');
 
     // Create Supabase client
     const supabase = createClient(
@@ -125,7 +146,7 @@ serve(async (req) => {
     );
 
     // Convert base64 to Uint8Array
-    const imageBytes = base64Decode(imageData.data[0].b64_json);
+    const imageBytes = base64Decode(base64ImageData);
     const fileName = `${dreamId}_${Date.now()}.png`;
 
     // Upload image to Supabase Storage
