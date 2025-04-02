@@ -197,10 +197,16 @@ export const useCommunityDreams = (pageSize: number = 10) => {
         throw error;
       }
 
-      console.log('Successfully fetched paginated community dreams:', data);
+      // Ensure each dream has a valid profile object
+      const processedData = data.map(dream => ({
+        ...dream,
+        profiles: dream.profiles || { username: 'Anonymous', avatar_url: null }
+      }));
+
+      console.log('Successfully fetched paginated community dreams:', processedData);
       return { 
-        dreams: data as (Dream & { profiles: Pick<Profile, 'username' | 'avatar_url'> })[], 
-        nextPage: data.length === pageSize ? Number(pageParam) + 1 : undefined,
+        dreams: processedData as (Dream & { profiles: Pick<Profile, 'username' | 'avatar_url'> })[], 
+        nextPage: processedData.length === pageSize ? Number(pageParam) + 1 : undefined,
         page: Number(pageParam)
       };
     },
