@@ -197,13 +197,18 @@ export const useCommunityDreams = (pageSize: number = 10) => {
         throw error;
       }
 
-      // Ensure each dream has a valid profile object
-      const processedData = data.map(dream => ({
-        ...dream,
-        profiles: dream.profiles || { username: 'Anonymous', avatar_url: null }
-      }));
+      console.log('Raw data from Supabase:', JSON.stringify(data, null, 2));
 
-      console.log('Successfully fetched paginated community dreams:', processedData);
+      // Ensure each dream has a valid profile object
+      const processedData = data.map(dream => {
+        console.log('Processing dream:', dream.id, 'Profile:', dream.profiles);
+        return {
+          ...dream,
+          profiles: dream.profiles || { username: 'Anonymous', avatar_url: null }
+        };
+      });
+
+      console.log('Processed data:', JSON.stringify(processedData, null, 2));
       return { 
         dreams: processedData as (Dream & { profiles: Pick<Profile, 'username' | 'avatar_url'> })[], 
         nextPage: processedData.length === pageSize ? Number(pageParam) + 1 : undefined,
