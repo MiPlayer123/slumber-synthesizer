@@ -127,8 +127,8 @@ function DreamCard({ dream }: DreamCardProps) {
   
   const { likesCount, hasLiked, toggleLike, isLoading: isLikeLoading } = useDreamLikes(dream.id, refreshLikes);
   
-  // Get the first letter of the username for avatar fallback
-  const avatarFallback = dream.profiles.username.charAt(0).toUpperCase();
+  // Get the first letter of the username for avatar fallback, with null check
+  const avatarFallback = dream.profiles?.username ? dream.profiles.username.charAt(0).toUpperCase() : 'U';
 
   const handleLikeClick = () => {
     toggleLike();
