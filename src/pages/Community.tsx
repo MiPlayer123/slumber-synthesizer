@@ -194,7 +194,7 @@ function DreamCard({ dream }: DreamCardProps) {
       <CardContent className="p-0">
         {/* Dream Title - Moved above the image */}
         <div className="px-4 pt-1 pb-3">
-          <h3 className="font-semibold">{dream.title}</h3>
+          <h3 className="font-bold">{dream.title}</h3>
         </div>
         
         {dream.image_url && (
