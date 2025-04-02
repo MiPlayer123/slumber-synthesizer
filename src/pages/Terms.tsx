@@ -7,7 +7,7 @@ const Terms = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "Terms of Service | Rem";
+    document.title = "Terms of Service | REM";
   }, []);
 
   return (

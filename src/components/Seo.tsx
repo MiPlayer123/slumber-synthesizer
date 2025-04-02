@@ -9,7 +9,7 @@ interface SeoProps {
 }
 
 export const Seo = ({
-  title = 'REM - Sleep Tracking & Dream Journal',
+  title = 'Rem',
   description = 'Track your sleep patterns, record dreams and improve your sleep quality with REM sleep tracker and dream journal.',
   canonical = '',
   ogImage = '/images/preview_image.png',

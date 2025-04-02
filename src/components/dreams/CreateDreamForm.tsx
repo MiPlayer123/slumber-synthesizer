@@ -40,7 +40,7 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
     description: "",
     category: "normal" as DreamCategory,
     emotion: "neutral" as DreamEmotion,
-    is_public: false,
+    is_public: true,
   });
   
   const [inputMethod, setInputMethod] = useState<"text" | "voice">("text");
