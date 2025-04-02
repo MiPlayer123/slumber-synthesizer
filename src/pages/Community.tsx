@@ -121,14 +121,18 @@ function DreamCard({ dream }: DreamCardProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
+  console.log('Rendering DreamCard for dream:', dream.id);
+  console.log('Dream profile data:', dream.profiles);
+  
   const refreshLikes = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['dream-likes-count', dream.id] });
   }, [queryClient, dream.id]);
   
   const { likesCount, hasLiked, toggleLike, isLoading: isLikeLoading } = useDreamLikes(dream.id, refreshLikes);
   
-  // Get the first letter of the username for avatar fallback
-  const avatarFallback = dream.profiles.username.charAt(0).toUpperCase();
+  // Get the first letter of the username for avatar fallback, with null check
+  const avatarFallback = dream.profiles?.username ? dream.profiles.username.charAt(0).toUpperCase() : 'U';
+  console.log('Avatar fallback:', avatarFallback);
 
   const handleLikeClick = () => {
     toggleLike();
