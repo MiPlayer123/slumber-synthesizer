@@ -76,7 +76,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AuthRedirectHandler = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading, needsProfileCompletion } = useAuth();
   
   useEffect(() => {
     // Only run on mount
@@ -85,7 +85,9 @@ const AuthRedirectHandler = () => {
     console.log("Root path: Checking URL parameters", {
       search: location.search,
       hash: location.hash,
-      hasCode: searchParams.has('code')
+      hasCode: searchParams.has('code'),
+      needsProfileCompletion,
+      hasUser: !!user
     });
     
     // Check if this is a Google sign-in callback
@@ -139,15 +141,22 @@ const AuthRedirectHandler = () => {
       }
     }
     
+    // If user is logged in but needs profile completion, redirect to auth page
+    if (user && !loading && needsProfileCompletion) {
+      console.log('User needs profile completion, redirecting to auth page');
+      navigate('/auth', { replace: true });
+      return;
+    }
+    
     // Redirect to journal if user is logged in and no auth params in URL
-    if (user && !loading) {
-      console.log('User already logged in, redirecting to journal');
+    if (user && !loading && !needsProfileCompletion) {
+      console.log('User already logged in and profile complete, redirecting to journal');
       navigate('/journal', { replace: true });
       return;
     }
     
     // Otherwise proceed to normal landing page
-  }, [location, navigate, user, loading]);
+  }, [location, navigate, user, loading, needsProfileCompletion]);
   
   // If still loading auth state, show loading spinner
   if (loading) {
