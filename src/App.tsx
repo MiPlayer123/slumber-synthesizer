@@ -127,10 +127,11 @@ const AuthRedirectHandler = () => {
       }
     }
     
-    // Redirect to journal if user is logged in and no auth params in URL
+    // Redirect based on device type if user is logged in and no auth params in URL
     if (user && !loading) {
-      console.log('User already logged in, redirecting to journal');
-      navigate('/journal', { replace: true });
+      const isMobile = window.innerWidth < 768; // Common mobile breakpoint
+      console.log('User logged in, redirecting based on device type:', { isMobile });
+      navigate(isMobile ? '/community' : '/dream-wall', { replace: true });
       return;
     }
     
