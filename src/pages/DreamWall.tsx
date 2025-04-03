@@ -20,13 +20,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageCircle, Filter, Search, Sparkles, Wand2, Share, Loader2 } from "lucide-react";
+import { MessageCircle, Filter, Search, Sparkles, Wand2, Share, Loader2, MoreHorizontal } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { DreamLikeButton } from '@/components/dreams/DreamLikeButton';
 import { LikeButton } from '@/components/dreams/LikeButton';
 import { useDreamLikes } from '@/hooks/use-dream-likes';
 import { usePublicDreams } from '@/hooks/use-dreams';
+import { useDreamCommentCount } from "@/hooks/use-dream-comments";
+import { CommentButton } from "@/components/dreams/CommentButton";
 
 export default function DreamWall() {
   const { user } = useAuth();
@@ -180,6 +182,9 @@ export default function DreamWall() {
       
       setNewComment('');
       fetchComments(selectedDream.id);
+      
+      // Invalidate comment count query to update UI immediately
+      queryClient.invalidateQueries({ queryKey: ['dream-comments-count', selectedDream.id] });
       
       toast({
         title: "Comment posted",
@@ -610,6 +615,8 @@ const DreamTile: React.FC<DreamTileProps> = ({
     () => refreshLikes(dream.id)
   );
   
+  const { commentCount, isLoading: isCommentCountLoading } = useDreamCommentCount(dream.id);
+  
   const handleShareClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onShare();
@@ -617,6 +624,19 @@ const DreamTile: React.FC<DreamTileProps> = ({
 
   const handleLikeClick = () => {
     toggleLike();
+  };
+  
+  const handleCommentClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDreamClick();
+    
+    // Set a small timeout to ensure the dialog opens before scrolling
+    setTimeout(() => {
+      const commentsElement = document.getElementById('comments');
+      if (commentsElement) {
+        commentsElement.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
   };
 
   return (
@@ -671,13 +691,14 @@ const DreamTile: React.FC<DreamTileProps> = ({
             />
           </div>
           
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="flex items-center gap-1 p-0"
-          >
-            <MessageCircle className="h-4 w-4" />
-          </Button>
+          <div onClick={(e) => e.stopPropagation()} className="inline-block">
+            <CommentButton
+              commentCount={commentCount}
+              isLoading={isCommentCountLoading}
+              size="sm"
+              onClick={handleCommentClick}
+            />
+          </div>
         </div>
         
         <Button 

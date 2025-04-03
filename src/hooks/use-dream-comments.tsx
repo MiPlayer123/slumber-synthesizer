@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -63,7 +62,9 @@ export function useDreamComments(dreamId: string) {
     },
     onSuccess: () => {
       setCommentText('');
+      // Invalidate both comments and comment count queries
       queryClient.invalidateQueries({ queryKey: ['dream-comments', dreamId] });
+      queryClient.invalidateQueries({ queryKey: ['dream-comments-count', dreamId] });
       
       toast({
         title: "Comment added",
@@ -95,7 +96,9 @@ export function useDreamComments(dreamId: string) {
       return commentId;
     },
     onSuccess: () => {
+      // Invalidate both comments and comment count queries
       queryClient.invalidateQueries({ queryKey: ['dream-comments', dreamId] });
+      queryClient.invalidateQueries({ queryKey: ['dream-comments-count', dreamId] });
       
       toast({
         title: "Comment deleted",
@@ -138,6 +141,31 @@ export function useDreamComments(dreamId: string) {
     deleteComment,
     isLoading: isCommentsLoading || addCommentMutation.isPending || deleteCommentMutation.isPending,
     isAddingComment: addCommentMutation.isPending
+  };
+}
+
+export function useDreamCommentCount(dreamId: string) {
+  // Fetch comment count only
+  const { data: commentCount = 0, isLoading } = useQuery({
+    queryKey: ['dream-comments-count', dreamId],
+    queryFn: async () => {
+      if (!dreamId) return 0;
+      
+      const { count, error } = await supabase
+        .from('comments')
+        .select('*', { count: 'exact', head: true })
+        .eq('dream_id', dreamId);
+        
+      if (error) throw error;
+      return count || 0;
+    },
+    // Use shorter stale time to refresh data more frequently
+    staleTime: 1000 * 10, // 10 seconds
+  });
+  
+  return {
+    commentCount,
+    isLoading
   };
 }
 
