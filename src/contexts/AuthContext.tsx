@@ -568,11 +568,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
        // --- Success ---
        if (isMountedRef.current) setNeedsProfileCompletion(false);
 
-       // Refresh user state to get updated metadata
+       // Show success toast
+       toast({ title: 'Account Setup Complete!', description: 'Welcome!' });
+       
+       // Force a complete page reload BEFORE token refresh
+       console.log('Username creation complete, forcing page reload before token refresh...');
+       
+       // Use window.location.href to force a complete page reload
+       window.location.href = window.location.href;
+       
+       // The code below will not execute due to the page reload
+       // But we'll keep it for completeness
        const { data: refreshed } = await supabase.auth.refreshSession();
        if (refreshed?.user && isMountedRef.current) setUser(refreshed.user);
-
-       toast({ title: 'Account Setup Complete!', description: 'Welcome!' });
+       
        return { success: true, error: null };
 
      } catch (error) {
