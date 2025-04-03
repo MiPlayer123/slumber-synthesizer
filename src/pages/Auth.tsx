@@ -43,66 +43,27 @@ const Auth = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Check URL for error parameters and success states when component mounts
+  // Check if user needs profile completion
   useEffect(() => {
     const checkUser = async () => {
-      const params = new URLSearchParams(location.search);
-      const error = params.get('error');
-      const errorDesc = params.get('error_description');
-      
-      console.log('Auth component: Initial state check', {
-        hasUser: !!user,
-        needsProfileCompletion,
-        error,
-        errorDesc,
-        isGoogleSignUp
-      });
-      
-      // Check for location state that might have been passed during navigation
-      if (location.state && 'passwordReset' in location.state && location.state.passwordReset === true) {
-        setShowPasswordResetSuccess(true);
-        
-        // Show toast if there's a custom message
-        if (location.state.message) {
-          toast({
-            title: "Success",
-            description: location.state.message,
-          });
-        }
-        
-        // Clear the state after showing to prevent repeat on refresh
-        window.history.replaceState({}, document.title);
-      }
-      
-      // If we detect the specific database error for new user, show username form
-      if (error === 'server_error' && errorDesc?.includes('Database error saving new user')) {
-        console.log('Auth component: Detected database error for new user');
-        setIsGoogleSignUp(true);
-        return;
-      }
-      
-      // Check if we have a Google user without a username
-      const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
+      if (!user) return;
+
       console.log('Auth component: Current user state from Supabase', {
-        hasUser: !!currentUser,
-        userId: currentUser?.id,
-        provider: currentUser?.app_metadata?.provider,
-        hasUsername: !!currentUser?.user_metadata?.username,
-        username: currentUser?.user_metadata?.username,
-        hasFullName: !!currentUser?.user_metadata?.full_name || !!currentUser?.user_metadata?.name,
-        fullName: currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name
+        hasUser: !!user,
+        userId: user?.id,
+        provider: user?.app_metadata?.provider,
+        hasUsername: !!user?.user_metadata?.username,
+        username: user?.user_metadata?.username,
+        hasFullName: !!user?.user_metadata?.full_name || !!user?.user_metadata?.name,
+        fullName: user?.user_metadata?.full_name || user?.user_metadata?.name
       });
 
-      if (userError) {
-        console.error('Auth component: Error getting current user:', userError);
-      }
-      
       // Check profile in database
-      if (currentUser?.id) {
+      if (user?.id) {
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('id, username, full_name')
-          .eq('id', currentUser.id)
+          .eq('id', user.id)
           .maybeSingle();
           
         console.log('Auth component: Database profile state', {
@@ -111,23 +72,36 @@ const Auth = () => {
           profileFullName: profile?.full_name,
           profileError: profileError?.message
         });
+
+        // If user is authenticated but has no username, show username creation
+        if (!profile?.username && !user.user_metadata?.username) {
+          console.log('Auth component: User needs username creation');
+          setIsGoogleSignUp(true);
+          return;
+        }
       }
       
-      if (currentUser?.app_metadata?.provider === 'google' && !currentUser.user_metadata?.username) {
-        console.log('Auth component: Detected Google user without username in metadata');
-        setIsGoogleSignUp(true);
-        return;
-      }
-      
-      // Check if user needs profile completion
-      if (needsProfileCompletion) {
-        console.log('Auth component: User needs profile completion');
-        setIsGoogleSignUp(true);
+      // If user has a complete profile, redirect to journal
+      if (user && !needsProfileCompletion) {
+        console.log('Auth component: User authenticated and profile complete, redirecting to journal');
+        navigate('/journal', { replace: true });
       }
     };
 
     checkUser();
-  }, [location, toast, user, needsProfileCompletion]);
+  }, [user, needsProfileCompletion, navigate, supabase]);
+
+  // Check URL for error parameters when component mounts
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const error = params.get('error');
+    const errorDesc = params.get('error_description');
+    
+    // If we detect the specific database error for new user, show username form
+    if (error === 'server_error' && errorDesc?.includes('Database error saving new user')) {
+      setIsGoogleSignUp(true);
+    }
+  }, [location]);
 
   // Check if user needs profile completion
   useEffect(() => {
