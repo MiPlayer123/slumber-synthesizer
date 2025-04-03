@@ -97,10 +97,42 @@ serve(async (req) => {
     // --- Conflict Resolution 1 Start ---
     if (!imageResponse.ok) {
       const errorText = await imageResponse.text();
-      // Log Imagen error (from main branch) but use utility error handling (from samaylakhani branch)
-      console.error('Imagen API error:', errorText); 
+      console.error('Imagen API error response text:', errorText); 
+
+      try {
+        const errorJson = JSON.parse(errorText);
+        // Check for specific Google AI safety error
+        if (
+          errorJson.error &&
+          errorJson.error.status === "INVALID_ARGUMENT" &&
+          errorJson.error.message &&
+          (errorJson.error.message.includes("sensitive words") || errorJson.error.message.includes("Responsible AI practices"))
+        ) {
+          console.warn('Imagen API blocked request due to content policy:', errorJson.error.message);
+          // Return a 200 OK response but indicate the blocking reason
+          return new Response(
+            JSON.stringify({
+              success: false, // Indicate overall operation didn't complete as expected
+              status: 'blocked_content', // Custom status for client-side handling
+              message: "Image generation was blocked because the description contained potentially sensitive content. Please try rephrasing.",
+              imageUrl: null, // No image URL generated
+              enhancedDescription: enhancedDescription // Still return the description used
+            }),
+            { 
+              status: 200, // Important: Return 200 OK status code
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
+        }
+      } catch (parseError) {
+        // If parsing fails, it's likely not the specific JSON error we're looking for
+        console.error('Failed to parse Imagen API error JSON:', parseError);
+      }
+
+      // If it's not the specific content policy error, handle as a generic API error
+      console.error('Unhandled Imagen API error:', errorText); 
       const errorResponse = parseOpenAIError(errorText); // Assuming parseOpenAIError can handle generic text or needs adjustment
-      return createErrorResponse(errorResponse);
+      return createErrorResponse(errorResponse); // Return a non-2XX error
     }
     // --- Conflict Resolution 1 End ---
 
@@ -193,10 +225,11 @@ serve(async (req) => {
       );
     }
 
-    // Success response
+    // Success response (only reached if no errors occurred)
     return new Response(
       JSON.stringify({ 
         success: true, 
+        status: 'generated', // Indicate success
         imageUrl: publicUrl,
         enhancedDescription 
       }),
