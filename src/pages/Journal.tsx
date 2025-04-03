@@ -713,7 +713,7 @@ const Journal = () => {
   };
 
   return (
-    <div ref={topRef} className="container py-8 max-w-5xl">
+    <div ref={topRef} className="container py-8 page-content max-w-5xl">
       <DreamHeader onCreateClick={() => setIsCreating(true)} />
 
       <FeedbackBanner feedbackUrl="https://forms.gle/aMFrfqbqiMMBSEKr9" />

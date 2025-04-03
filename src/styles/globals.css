@@ -30,4 +30,9 @@
   html {
     scroll-behavior: smooth;
   }
+  
+  /* Page content padding for fixed navbar */
+  .page-content {
+    @apply pt-16;
+  }
 }
