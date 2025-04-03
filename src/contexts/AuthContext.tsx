@@ -66,76 +66,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // --- Profile Check Logic --- (Include ensureUserProfile from previous version)
  const ensureUserProfile = useCallback(async (currentUser: User): Promise<boolean> => {
-    if (!currentUser) return false;
+    if (!currentUser) {
+      console.log('Profile check: No current user provided');
+      return false;
+    }
 
     try {
+      console.log('Profile check: Checking username for user:', {
+        userId: currentUser.id,
+        provider: currentUser.app_metadata?.provider,
+        metadataUsername: currentUser.user_metadata?.username
+      });
+
       const { data: existingProfile, error: fetchError } = await supabase
         .from('profiles')
-        .select('id')
+        .select('username')
         .eq('id', currentUser.id)
         .maybeSingle();
 
       if (fetchError) {
-        logAuthError('ensureUserProfile:fetch', fetchError, false); // Don't toast bg checks
+        console.error('Profile check: Error fetching profile:', fetchError);
         return false;
       }
 
-      if (existingProfile) {
-        console.log('Profile check: Profile exists for user:', currentUser.id);
+      console.log('Profile check: Username state:', {
+        hasUsername: !!existingProfile?.username,
+        username: existingProfile?.username
+      });
+
+      // If user has a username in either metadata or profile, they're good
+      if (existingProfile?.username || currentUser.user_metadata?.username) {
+        console.log('Profile check: User has username');
+        if (isMountedRef.current) {
+          setNeedsProfileCompletion(false);
+        }
         return true;
       }
 
-      const provider = currentUser.app_metadata?.provider;
-      const metadataUsername = currentUser.user_metadata?.username;
-
-      // If Google user lacks username in metadata, defer creation
-      if (provider === 'google' && !metadataUsername) {
-        console.log('Profile check: New Google user requires username completion.');
-        return false; // Signal completion needed
+      // No username found, needs to create one
+      console.log('Profile check: User needs to create username');
+      if (isMountedRef.current) {
+        setNeedsProfileCompletion(true);
       }
-
-      // Proceed to create profile if necessary (e.g., for email signup, or Google if somehow missed)
-      const userEmail = currentUser.email || '';
-      const username = metadataUsername || userEmail.split('@')[0] + Math.random().toString(36).substring(2, 6);
-      const fullName = currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || '';
-      const avatarUrl = currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || '';
-
-      if (!username || username.trim() === '') {
-        logAuthError('ensureUserProfile:create', new Error('Cannot create profile: calculated username is empty.'), false);
-        return false;
-      }
-
-      console.log('Profile check: Attempting to create profile for user:', currentUser.id, 'with username:', username);
-      const { error: insertError } = await supabase
-        .from('profiles')
-        .insert([{
-          id: currentUser.id,
-          username: username.trim(),
-          full_name: fullName,
-          // email: userEmail, // Removed based on previous fix
-          avatar_url: avatarUrl,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }]);
-
-      if (insertError) {
-         // Handle specific common errors like unique username violation if needed
-         if (insertError.code === '23505' && insertError.message.includes('profiles_username_key')) {
-           logAuthError('ensureUserProfile:insert', new Error(`Fallback username "${username}" was already taken.`), false);
-           return false; // Indicate failure, user might need to provide one
-         }
-         logAuthError('ensureUserProfile:insert', insertError, false);
-         return false; // Profile creation failed
-      }
-
-      console.log('Profile check: Profile created successfully for user:', currentUser.id);
-      return true; // Profile created
+      return false;
 
     } catch (err) {
-      logAuthError('ensureUserProfile:general', err, false);
+      console.error('Profile check: Unexpected error:', err);
       return false;
     }
-  }, [logAuthError]); // Assuming supabase is stable, logAuthError is stable via useCallback
+  }, []);
 
 
   // --- Simplified Initialization and Auth State Listener ---
@@ -157,17 +136,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log("Initial load: Session found for user:", initialSession.user.id);
         setUser(initialSession.user);
         setSession(initialSession);
-        setNeedsProfileCompletion(false); // Reset
-
+        
         // Check profile status on load
-        const profileExists = await ensureUserProfile(initialSession.user);
-         if (!profileExists && initialSession.user.app_metadata?.provider === 'google') {
-             const { data: checkProfileAgain } = await supabase.from('profiles').select('id').eq('id', initialSession.user.id).maybeSingle();
-             if (!checkProfileAgain && isMountedRef.current) {
-                console.log("Initial load: Determined Google user needs profile completion.");
-                setNeedsProfileCompletion(true);
-             }
-         }
+        await ensureUserProfile(initialSession.user);
       } else {
         console.log("Initial load: No active session.");
         setUser(null);
@@ -175,7 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setNeedsProfileCompletion(false);
       }
 
-       // 2. Set up the Listener (AFTER initial check state is set)
+      // 2. Set up the Listener (AFTER initial check state is set)
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
         if (!isMountedRef.current) return; // Check mount status in listener
         console.log(`onAuthStateChange: Event = ${event}, User = ${currentSession?.user?.id ?? 'null'}`);
@@ -185,20 +156,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (currentSession?.user) {
               setUser(currentSession.user);
               setSession(currentSession);
-              setNeedsProfileCompletion(false); // Reset on sign-in
-
-              const profileEnsured = await ensureUserProfile(currentSession.user);
-              if (!profileEnsured && currentSession.user.app_metadata?.provider === 'google') {
-                  const { data: checkProfileAgain } = await supabase.from('profiles').select('id').eq('id', currentSession.user.id).maybeSingle();
-                  if (!checkProfileAgain && isMountedRef.current) {
-                      console.log("SIGNED_IN: Determined Google user needs profile completion.");
-                      setNeedsProfileCompletion(true);
-                  }
-              }
+              
+              // Check profile status on sign in
+              await ensureUserProfile(currentSession.user);
             } else {
-               setUser(null); setSession(null); setNeedsProfileCompletion(false); // Clear if no user
+              setUser(null);
+              setSession(null);
+              setNeedsProfileCompletion(false);
             }
-            // We are now definitely finished with any post-sign-in logic
             if (isMountedRef.current) setLoading(false);
             break;
 
@@ -206,58 +171,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(null);
             setSession(null);
             setNeedsProfileCompletion(false);
-            if (isMountedRef.current) setLoading(false); // Also stop loading on sign out
+            if (isMountedRef.current) setLoading(false);
             break;
 
           case 'TOKEN_REFRESHED':
-             // Update session, maybe user if different
             if (currentSession) {
               setSession(currentSession);
               if (currentSession.user && currentSession.user.id !== user?.id) {
-                  setUser(currentSession.user);
+                setUser(currentSession.user);
+                // Check profile status on user change
+                await ensureUserProfile(currentSession.user);
               }
             } else {
-              // Treat failed refresh as sign out
-              setUser(null); setSession(null); setNeedsProfileCompletion(false);
+              setUser(null);
+              setSession(null);
+              setNeedsProfileCompletion(false);
               if (isMountedRef.current) setLoading(false);
             }
-            // Don't change loading state for background refresh
             break;
 
-           case 'USER_UPDATED':
-               if (currentSession?.user) setUser(currentSession.user);
-               // Don't change loading state
-               break;
-           case 'PASSWORD_RECOVERY':
-                // Usually handled by UI routing based on URL hash
-                if (isMountedRef.current) setLoading(false); // Stop loading if we land here
-               break;
+          case 'USER_UPDATED':
+            if (currentSession?.user) {
+              setUser(currentSession.user);
+              // Check profile status on user update
+              await ensureUserProfile(currentSession.user);
+            }
+            break;
+
+          case 'PASSWORD_RECOVERY':
+            if (isMountedRef.current) setLoading(false);
+            break;
+
           default:
             console.log(`Unhandled auth event: ${event}`);
-            // If it's an unknown event, maybe stop loading just in case?
             if (isMountedRef.current) setLoading(false);
         }
       });
       authListener = subscription;
 
-      // 3. Initial loading complete AFTER initial check AND listener setup
-      // setLoading(false); // Moved into the listener's SIGNED_IN/SIGNED_OUT etc.
-
     }).catch(err => {
-      // Catch errors during initial getSession promise
       if (isMountedRef.current) {
         logAuthError('initialAuthSetupPromise', err);
-        setLoading(false); // Ensure loading stops on error
+        setLoading(false);
       }
     });
 
-    // Cleanup function
     return () => {
       console.log("AuthContext unmounting. Cleaning up listener.");
       isMountedRef.current = false;
       authListener?.unsubscribe();
     };
-  }, [ensureUserProfile, logAuthError]); // Rerun if these stable functions change (they shouldn't)
+  }, [ensureUserProfile, logAuthError]);
 
 
   // --- Auth Action Implementations (Simplified) ---
@@ -349,7 +313,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: `${window.location.origin}/auth` },
+        options: { 
+          redirectTo: `${window.location.origin}/auth?signin=google`,
+        },
       });
       if (oauthError) throw oauthError;
       // Redirect initiated by Supabase...
@@ -602,11 +568,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
        // --- Success ---
        if (isMountedRef.current) setNeedsProfileCompletion(false);
 
-       // Refresh user state to get updated metadata
+       // Show success toast
+       toast({ title: 'Account Setup Complete!', description: 'Welcome!' });
+       
+       // Force a complete page reload BEFORE token refresh
+       console.log('Username creation complete, forcing page reload before token refresh...');
+       
+       // Use window.location.href to force a complete page reload
+       window.location.href = window.location.href;
+       
+       // The code below will not execute due to the page reload
+       // But we'll keep it for completeness
        const { data: refreshed } = await supabase.auth.refreshSession();
        if (refreshed?.user && isMountedRef.current) setUser(refreshed.user);
-
-       toast({ title: 'Account Setup Complete!', description: 'Welcome!' });
+       
        return { success: true, error: null };
 
      } catch (error) {

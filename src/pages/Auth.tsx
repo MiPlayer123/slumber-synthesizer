@@ -20,9 +20,12 @@ import {
 import { toast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckCircle, Eye, EyeOff } from "lucide-react";
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2 } from "lucide-react";
+import { useNavigate } from 'react-router-dom';
 
 const Auth = () => {
-  const { user, signIn, signUp, signInWithGoogle, forgotPassword, completeGoogleSignUp, loading } = useAuth();
+  const { user, signIn, signUp, signInWithGoogle, forgotPassword, completeGoogleSignUp, loading, needsProfileCompletion } = useAuth();
   const { toast } = useToast();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
@@ -38,36 +41,104 @@ const Auth = () => {
   const [isGoogleSignUp, setIsGoogleSignUp] = useState(false);
   const [googleUsername, setGoogleUsername] = useState('');
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Check URL for error parameters and success states when component mounts
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const error = params.get('error');
-    const errorDesc = params.get('error_description');
-    
-    // Check for location state that might have been passed during navigation
-    if (location.state && 'passwordReset' in location.state && location.state.passwordReset === true) {
-      setShowPasswordResetSuccess(true);
+    const checkUser = async () => {
+      const params = new URLSearchParams(location.search);
+      const error = params.get('error');
+      const errorDesc = params.get('error_description');
       
-      // Show toast if there's a custom message
-      if (location.state.message) {
-        toast({
-          title: "Success",
-          description: location.state.message,
+      console.log('Auth component: Initial state check', {
+        hasUser: !!user,
+        needsProfileCompletion,
+        error,
+        errorDesc,
+        isGoogleSignUp
+      });
+      
+      // Check for location state that might have been passed during navigation
+      if (location.state && 'passwordReset' in location.state && location.state.passwordReset === true) {
+        setShowPasswordResetSuccess(true);
+        
+        // Show toast if there's a custom message
+        if (location.state.message) {
+          toast({
+            title: "Success",
+            description: location.state.message,
+          });
+        }
+        
+        // Clear the state after showing to prevent repeat on refresh
+        window.history.replaceState({}, document.title);
+      }
+      
+      // If we detect the specific database error for new user, show username form
+      if (error === 'server_error' && errorDesc?.includes('Database error saving new user')) {
+        console.log('Auth component: Detected database error for new user');
+        setIsGoogleSignUp(true);
+        return;
+      }
+      
+      // Check if we have a Google user without a username
+      const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
+      console.log('Auth component: Current user state from Supabase', {
+        hasUser: !!currentUser,
+        userId: currentUser?.id,
+        provider: currentUser?.app_metadata?.provider,
+        hasUsername: !!currentUser?.user_metadata?.username,
+        username: currentUser?.user_metadata?.username,
+        hasFullName: !!currentUser?.user_metadata?.full_name || !!currentUser?.user_metadata?.name,
+        fullName: currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name
+      });
+
+      if (userError) {
+        console.error('Auth component: Error getting current user:', userError);
+      }
+      
+      // Check profile in database
+      if (currentUser?.id) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, username, full_name')
+          .eq('id', currentUser.id)
+          .maybeSingle();
+          
+        console.log('Auth component: Database profile state', {
+          hasProfile: !!profile,
+          profileUsername: profile?.username,
+          profileFullName: profile?.full_name,
+          profileError: profileError?.message
         });
       }
       
-      // Clear the state after showing to prevent repeat on refresh
-      window.history.replaceState({}, document.title);
-    }
-    
-    // If we detect the specific database error for new user, show username form
-    if (error === 'server_error' && errorDesc?.includes('Database error saving new user')) {
+      if (currentUser?.app_metadata?.provider === 'google' && !currentUser.user_metadata?.username) {
+        console.log('Auth component: Detected Google user without username in metadata');
+        setIsGoogleSignUp(true);
+        return;
+      }
+      
+      // Check if user needs profile completion
+      if (needsProfileCompletion) {
+        console.log('Auth component: User needs profile completion');
+        setIsGoogleSignUp(true);
+      }
+    };
+
+    checkUser();
+  }, [location, toast, user, needsProfileCompletion]);
+
+  // Check if user needs profile completion
+  useEffect(() => {
+    if (needsProfileCompletion) {
+      console.log('Auth component: needsProfileCompletion changed to true');
       setIsGoogleSignUp(true);
     }
-  }, [location, toast]);
+  }, [needsProfileCompletion]);
 
-  if (user) {
+  if (user && !needsProfileCompletion) {
+    console.log('Auth component: User authenticated and profile complete, redirecting to journal');
     return <Navigate to="/journal" replace />;
   }
 
@@ -111,41 +182,37 @@ const Auth = () => {
     }
   };
 
-  const handleGoogleSignIn = async (e: React.MouseEvent) => {
+  const handleGoogleSignIn = async () => {
+    try {
+      setErrors({});
+      await signInWithGoogle();
+    } catch (error) {
+      console.error('Google sign in error:', error);
+      setErrors({ 
+        google: error instanceof Error ? error.message : 'Failed to sign in with Google' 
+      });
+    }
+  };
+
+  const handleGoogleSignUpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!isGoogleSignUp) {
-      try {
-        await signInWithGoogle();
-        track('user_signin', { method: 'google' });
-      } catch (error) {
-        console.error("Google authentication error:", error);
-        track('auth_error', { 
-          type: 'signin',
-          method: 'google',
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
-    } else {
-      if (!googleUsername || googleUsername.trim() === '') {
-        setErrors({...errors, googleUsername: 'Username is required'});
-        return;
-      }
-      
-      try {
-        await completeGoogleSignUp(googleUsername);
+    if (!googleUsername.trim()) {
+      setErrors({ username: 'Username is required' });
+      return;
+    }
+
+    try {
+      const result = await completeGoogleSignUp(googleUsername);
+      if (result.success) {
         track('user_signup', { method: 'google' });
-        setIsGoogleSignUp(false);
-        setGoogleUsername('');
-      } catch (error) {
-        console.error("Google username registration error:", error);
-        track('auth_error', { 
-          type: 'signup',
-          method: 'google',
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
-        setErrors({...errors, googleUsername: 'Failed to register username, please try again'});
+      } else {
+        throw result.error;
       }
+    } catch (error) {
+      console.error('Error completing Google sign up:', error);
+      setErrors({ 
+        username: error instanceof Error ? error.message : 'Failed to complete sign up' 
+      });
     }
   };
 
@@ -203,35 +270,34 @@ const Auth = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="space-y-4">
+            <form onSubmit={handleGoogleSignUpSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="googleUsername">Username</Label>
                 <Input
                   id="googleUsername"
                   value={googleUsername}
                   onChange={(e) => setGoogleUsername(e.target.value)}
-                  className={errors.googleUsername ? "border-red-500" : ""}
+                  className={errors.username ? "border-red-500" : ""}
+                  placeholder="Choose a username"
                 />
-                {errors.googleUsername && (
-                  <p className="text-red-500 text-xs mt-1">{errors.googleUsername}</p>
+                {errors.username && (
+                  <p className="text-red-500 text-xs mt-1">{errors.username}</p>
                 )}
               </div>
 
               <Button 
-                type="button" 
-                onClick={handleGoogleSignIn}
+                type="submit" 
                 className="w-full"
+                disabled={loading}
               >
-                Complete Sign Up
-              </Button>
-              
-              <Button 
-                type="button" 
-                onClick={() => setIsGoogleSignUp(false)}
-                variant="outline"
-                className="w-full mt-2"
-              >
-                Cancel
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Completing Sign Up...
+                  </>
+                ) : (
+                  'Complete Sign Up'
+                )}
               </Button>
             </form>
           </CardContent>
