@@ -76,7 +76,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AuthRedirectHandler = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading, needsProfileCompletion } = useAuth();
   
   useEffect(() => {
     // Only run on mount
@@ -85,12 +85,26 @@ const AuthRedirectHandler = () => {
     console.log("Root path: Checking URL parameters", {
       search: location.search,
       hash: location.hash,
-      hasCode: searchParams.has('code')
+      hasCode: searchParams.has('code'),
+      needsProfileCompletion,
+      hasUser: !!user
     });
     
+    // Check if this is a Google sign-in callback
+    if (searchParams.has('code') && searchParams.has('signin') && searchParams.get('signin') === 'google') {
+      console.log('Detected Google sign-in callback, redirecting to auth page');
+      navigate('/auth', { replace: true });
+      return;
+    }
+    
+    // Check for explicit password reset flow markers
+    const isPasswordReset = 
+      location.hash.includes('type=recovery') || 
+      searchParams.get('type') === 'recovery';
+    
     // Check for Supabase auth code (used in the password reset flow)
-    if (searchParams.has('code')) {
-      console.log('Detected Supabase auth code, redirecting to reset-password with code', {
+    if (searchParams.has('code') && isPasswordReset) {
+      console.log('Detected Supabase auth code for password reset, redirecting to reset-password with code', {
         code: searchParams.get('code')
       });
       
@@ -127,6 +141,14 @@ const AuthRedirectHandler = () => {
       }
     }
     
+
+    // If user is logged in but needs profile completion, redirect to auth page
+    if (user && !loading && needsProfileCompletion) {
+      console.log('User needs profile completion, redirecting to auth page');
+      navigate('/auth', { replace: true });
+      return;
+    }
+
     // Redirect based on device type if user is logged in and no auth params in URL
     if (user && !loading) {
       const isMobile = window.innerWidth < 768; // Common mobile breakpoint
@@ -136,7 +158,7 @@ const AuthRedirectHandler = () => {
     }
     
     // Otherwise proceed to normal landing page
-  }, [location, navigate, user, loading]);
+  }, [location, navigate, user, loading, needsProfileCompletion]);
   
   // If still loading auth state, show loading spinner
   if (loading) {
