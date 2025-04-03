@@ -107,6 +107,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('Profile check: User needs to create username');
       if (isMountedRef.current) {
         setNeedsProfileCompletion(true);
+        // Force a state update to ensure the value is set
+        setTimeout(() => {
+          if (isMountedRef.current) {
+            setNeedsProfileCompletion(true);
+          }
+        }, 0);
       }
       return false;
 
