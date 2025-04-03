@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface Comment {
   id: string;
@@ -89,6 +90,12 @@ export const CommentsSection = ({ dreamId }: CommentsSectionProps) => {
       
       setComments(prev => [...prev, data as Comment]);
       setNewComment('');
+      
+      // Use React Query's queryClient to invalidate comment count
+      const queryClient = useQueryClient();
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ['dream-comments-count', dreamId] });
+      }
     } catch (error) {
       console.error('Error posting comment:', error);
       toast({

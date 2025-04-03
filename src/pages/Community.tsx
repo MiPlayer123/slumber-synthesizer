@@ -9,12 +9,14 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useDreamLikes } from "@/hooks/use-dream-likes";
+import { useDreamCommentCount } from "@/hooks/use-dream-comments";
 import { LikeButton } from "@/components/dreams/LikeButton";
 import { CommentsSection } from "@/components/dreams/CommentsSection";
 import { MessageSquare, MoreHorizontal, Share, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { useCallback, useRef, useEffect } from "react";
+import { CommentButton } from "@/components/dreams/CommentButton";
+import { useCallback, useRef, useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
@@ -120,6 +122,10 @@ interface DreamCardProps {
 function DreamCard({ dream }: DreamCardProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [showComments, setShowComments] = useState(false);
+  
+  console.log('Rendering DreamCard for dream:', dream.id);
+  console.log('Dream profile data:', dream.profiles);
   
   console.log('Rendering DreamCard for dream:', dream.id);
   console.log('Dream profile data:', dream.profiles);
@@ -129,6 +135,7 @@ function DreamCard({ dream }: DreamCardProps) {
   }, [queryClient, dream.id]);
   
   const { likesCount, hasLiked, toggleLike, isLoading: isLikeLoading } = useDreamLikes(dream.id, refreshLikes);
+  const { commentCount, isLoading: isCommentCountLoading } = useDreamCommentCount(dream.id);
   
   // Get the first letter of the username for avatar fallback, with null check
   const avatarFallback = dream.profiles?.username ? dream.profiles.username.charAt(0).toUpperCase() : 'U';
@@ -136,6 +143,10 @@ function DreamCard({ dream }: DreamCardProps) {
 
   const handleLikeClick = () => {
     toggleLike();
+  };
+
+  const handleCommentClick = () => {
+    setShowComments(prev => !prev);
   };
 
   const handleShareDream = () => {
@@ -216,9 +227,11 @@ function DreamCard({ dream }: DreamCardProps) {
               onClick={handleLikeClick}
               isLoading={isLikeLoading}
             />
-            <Button variant="ghost" size="sm" className="px-2 h-8 hover:bg-transparent">
-              <MessageSquare className="h-5 w-5" />
-            </Button>
+            <CommentButton
+              commentCount={commentCount}
+              isLoading={isCommentCountLoading}
+              onClick={handleCommentClick}
+            />
           </div>
           
           {/* Like Count */}
@@ -232,7 +245,7 @@ function DreamCard({ dream }: DreamCardProps) {
           </div>
           
           {/* Comments Section */}
-          <CommentsSection dreamId={dream.id} />
+          {showComments && <CommentsSection dreamId={dream.id} />}
         </div>
       </CardContent>
     </Card>
