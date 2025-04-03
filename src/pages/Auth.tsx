@@ -97,15 +97,27 @@ const Auth = () => {
     const error = params.get('error');
     const errorDesc = params.get('error_description');
     
-    // If we detect the specific database error for new user, show username form
-    if (error === 'server_error' && errorDesc?.includes('Database error saving new user')) {
-      setIsGoogleSignUp(true);
-    }
+    console.log('Auth component: URL parameters', {
+      error,
+      errorDesc,
+      pathname: location.pathname,
+      search: location.search
+    });
 
     // Check if this is a Google redirect
     if (user?.app_metadata?.provider === 'google' && !user.user_metadata?.username) {
       console.log('Auth component: Detected Google redirect without username');
       setIsGoogleSignUp(true);
+      // Clear the URL parameters to prevent interference
+      window.history.replaceState({}, document.title, '/auth');
+      return;
+    }
+    
+    // If we detect the specific database error for new user, show username form
+    if (error === 'server_error' && errorDesc?.includes('Database error saving new user')) {
+      setIsGoogleSignUp(true);
+      // Clear the URL parameters to prevent interference
+      window.history.replaceState({}, document.title, '/auth');
     }
   }, [location, user]);
 
@@ -114,6 +126,8 @@ const Auth = () => {
     if (needsProfileCompletion) {
       console.log('Auth component: needsProfileCompletion changed to true');
       setIsGoogleSignUp(true);
+      // Clear the URL parameters to prevent interference
+      window.history.replaceState({}, document.title, '/auth');
     }
   }, [needsProfileCompletion]);
 
