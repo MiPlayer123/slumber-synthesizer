@@ -208,6 +208,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (isMountedRef.current) setLoading(false);
             break;
 
+          case 'INITIAL_SESSION':
+            if (currentSession?.user) {
+              setUser(currentSession.user);
+              setSession(currentSession);
+              // Check profile status on initial session
+              await ensureUserProfile(currentSession.user);
+            } else {
+              setUser(null);
+              setSession(null);
+              setNeedsProfileCompletion(false);
+            }
+            if (isMountedRef.current) setLoading(false);
+            break;
+
           default:
             console.log(`Unhandled auth event: ${event}`);
             if (isMountedRef.current) setLoading(false);
