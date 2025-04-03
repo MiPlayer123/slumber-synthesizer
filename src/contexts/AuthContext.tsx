@@ -159,12 +159,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         switch (event) {
           case 'SIGNED_IN':
+          case 'INITIAL_SESSION': // Handle initial session the same as SIGNED_IN
             if (currentSession?.user) {
               setUser(currentSession.user);
               setSession(currentSession);
               
               // Check profile status on sign in
-              await ensureUserProfile(currentSession.user);
+              const needsCompletion = await ensureUserProfile(currentSession.user);
+              console.log(`Profile check result for ${event}:`, { needsCompletion });
+              
+              // Only redirect if profile is complete
+              if (!needsCompletion) {
+                console.log('Profile complete, redirecting to journal');
+                window.location.href = '/journal';
+              } else {
+                console.log('Profile needs completion, staying on auth page');
+                window.location.href = '/auth';
+              }
             } else {
               setUser(null);
               setSession(null);
@@ -205,20 +216,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             break;
 
           case 'PASSWORD_RECOVERY':
-            if (isMountedRef.current) setLoading(false);
-            break;
-
-          case 'INITIAL_SESSION':
-            if (currentSession?.user) {
-              setUser(currentSession.user);
-              setSession(currentSession);
-              // Check profile status on initial session
-              await ensureUserProfile(currentSession.user);
-            } else {
-              setUser(null);
-              setSession(null);
-              setNeedsProfileCompletion(false);
-            }
             if (isMountedRef.current) setLoading(false);
             break;
 
@@ -574,11 +571,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
        if (existingProfile) {
          console.warn('completeGoogleSignUp: Profile found unexpectedly. Updating username.');
          const { error: updateExistingError } = await supabase.from('profiles').update({ username: username.trim(), updated_at: new Date().toISOString() }).eq('id', currentUser.id);
-         if (updateExistingError) { logAuthError('completeGoogleSignUp:updateExisting', updateExistingError, false); }
+         if (updateExistingError) logAuthError('completeGoogleSignUp:updateExisting', updateExistingError, false);
        } else {
          // 3. Update Auth Metadata FIRST
          const { error: updateMetaError } = await supabase.auth.updateUser({ data: { username: username.trim(), full_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || '', avatar_url: currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || '' }});
-         if (updateMetaError) { logAuthError('completeGoogleSignUp:updateMeta', updateMetaError, false); }
+         if (updateMetaError) logAuthError('completeGoogleSignUp:updateMeta', updateMetaError, false);
 
          // 4. Create Profile
          const { error: insertError } = await supabase.from('profiles').insert({ id: currentUser.id, username: username.trim(), full_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || '', avatar_url: currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || '', created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
