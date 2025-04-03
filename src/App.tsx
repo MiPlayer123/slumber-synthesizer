@@ -141,17 +141,19 @@ const AuthRedirectHandler = () => {
       }
     }
     
+
     // If user is logged in but needs profile completion, redirect to auth page
     if (user && !loading && needsProfileCompletion) {
       console.log('User needs profile completion, redirecting to auth page');
       navigate('/auth', { replace: true });
       return;
     }
-    
-    // Redirect to journal if user is logged in and no auth params in URL
-    if (user && !loading && !needsProfileCompletion) {
-      console.log('User already logged in and profile complete, redirecting to journal');
-      navigate('/journal', { replace: true });
+
+    // Redirect based on device type if user is logged in and no auth params in URL
+    if (user && !loading) {
+      const isMobile = window.innerWidth < 768; // Common mobile breakpoint
+      console.log('User logged in, redirecting based on device type:', { isMobile });
+      navigate(isMobile ? '/community' : '/dream-wall', { replace: true });
       return;
     }
     
