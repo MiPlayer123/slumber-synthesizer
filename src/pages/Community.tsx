@@ -121,14 +121,18 @@ function DreamCard({ dream }: DreamCardProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
+  console.log('Rendering DreamCard for dream:', dream.id);
+  console.log('Dream profile data:', dream.profiles);
+  
   const refreshLikes = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['dream-likes-count', dream.id] });
   }, [queryClient, dream.id]);
   
   const { likesCount, hasLiked, toggleLike, isLoading: isLikeLoading } = useDreamLikes(dream.id, refreshLikes);
   
-  // Get the first letter of the username for avatar fallback
-  const avatarFallback = dream.profiles.username.charAt(0).toUpperCase();
+  // Get the first letter of the username for avatar fallback, with null check
+  const avatarFallback = dream.profiles?.username ? dream.profiles.username.charAt(0).toUpperCase() : 'U';
+  console.log('Avatar fallback:', avatarFallback);
 
   const handleLikeClick = () => {
     toggleLike();
@@ -190,7 +194,7 @@ function DreamCard({ dream }: DreamCardProps) {
       <CardContent className="p-0">
         {/* Dream Title - Moved above the image */}
         <div className="px-4 pt-1 pb-3">
-          <h3 className="font-semibold">{dream.title}</h3>
+          <h3 className="font-bold">{dream.title}</h3>
         </div>
         
         {dream.image_url && (
