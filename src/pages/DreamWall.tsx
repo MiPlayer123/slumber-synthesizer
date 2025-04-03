@@ -666,7 +666,7 @@ const DreamTile: React.FC<DreamTileProps> = ({
           <span className="text-sm font-medium">{dream.profiles?.username || 'Anonymous'}</span>
         </div>
         
-        <h3 className="font-semibold line-clamp-1">{dream.title}</h3>
+        <h3 className="font-bold line-clamp-1">{dream.title}</h3>
         <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{dream.description}</p>
         
         <div className="flex flex-wrap gap-1 mt-2">
