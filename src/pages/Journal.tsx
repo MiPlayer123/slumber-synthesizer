@@ -350,46 +350,49 @@ const Journal = () => {
         throw err;
       }
     },
-    onSuccess: (data: any, _, dream: Dream) => {
-      console.log('Image generation succeeded:', data);
-      
-      // More aggressive refresh to ensure UI updates
-      setTimeout(() => {
-        // First invalidate the query cache
-        queryClient.invalidateQueries({ queryKey: ['paginatedDreams'] });
-        
-        // Then force an immediate refetch
-        queryClient.refetchQueries({ 
-          queryKey: ['paginatedDreams', user.id], 
-          type: 'active' 
+    onSuccess: (data, dream) => {
+      queryClient.invalidateQueries({ queryKey: ['paginatedDreams'] });
+      queryClient.refetchQueries({ queryKey: ['paginatedDreams', user?.id], type: 'active' });
+
+      // Check the status returned from the function
+      if (data?.status === 'blocked_content') {
+        // Show a specific warning toast for blocked content
+        toast({
+          variant: "warning",
+          title: "Image Generation Blocked",
+          description: data.message || "The image could not be generated due to content guidelines. Please try rephrasing your dream description.",
+          duration: 7000,
         });
         
-        // If needed, we can also try to directly update the cache
-        queryClient.setQueryData(['paginatedDreams', user.id], (oldData: any) => {
-          if (!oldData) return oldData;
-          
-          // Deep clone and update the specific dream with the new image URL
-          const newData = JSON.parse(JSON.stringify(oldData));
-          
-          // Update the dream in all pages
-          newData.pages = newData.pages.map((page: any) => {
-            page.dreams = page.dreams.map((d: Dream) => {
-              if (d.id === dream?.id && data?.imageUrl) {
-                return { ...d, image_url: data.imageUrl };
-              }
-              return d;
-            });
-            return page;
-          });
-          
-          return newData;
+        // Optionally update the dream state locally if enhanced_description changed
+        queryClient.setQueryData(['paginatedDreams', user?.id], (oldData: any) => {
+          if (oldData && oldData.pages) {
+            return {
+              ...oldData,
+              pages: oldData.pages.map((page: any) => ({
+                ...page,
+                dreams: page.dreams.map((d: Dream) => 
+                  d.id === dream.id ? { ...d, enhanced_description: data.enhancedDescription } : d
+                ),
+              })),
+            };
+          }
+          return oldData;
         });
-      }, 500); // Small delay to ensure the server has processed everything
-      
-      toast({
-        title: "Image Generated",
-        description: "Dream image has been generated successfully.",
-      });
+
+      } else if (data?.success === true && data?.imageUrl) {
+        toast({
+          title: "Image Generated",
+          description: "Dream image has been generated successfully.",
+        });
+      } else {
+        console.warn("Received unexpected success response structure:", data);
+        toast({
+          variant: "destructive",
+          title: "Update Issue",
+          description: "Received an unclear response after image generation attempt.",
+        });
+      }
     },
     onError: (error: any, dream: Dream) => {
       console.error('Image generation error:', error, 'for dream:', dream);
@@ -409,40 +412,24 @@ const Journal = () => {
           // Query the database to check if the image_url was updated
           supabase
             .from('dreams')
-            .select('image_url')
+            .select('image_url, enhanced_description')
             .eq('id', dream.id)
             .single()
-            .then(({ data }) => {
-              if (data && data.image_url) {
-                // Image exists despite the error, show success message instead
-                console.log('Image exists despite network error:', data.image_url);
+            .then(({ data: dreamData, error: fetchError }) => {
+              if (fetchError) {
+                console.error("Error checking dream status after mutation error:", fetchError);
+                toast({
+                  variant: "destructive",
+                  title: "Image Generation Failed",
+                  description: error instanceof Error ? error.message : "Failed to generate dream image.",
+                });
+              } else if (dreamData && dreamData.image_url) {
+                console.log('Image exists despite reported error:', dreamData.image_url);
                 toast({
                   title: "Image Generated",
                   description: "Dream image has been generated successfully.",
                 });
-                
-                // Aggressively update the cache to show the image
-                queryClient.setQueryData(['paginatedDreams', user.id], (oldData: any) => {
-                  if (!oldData) return oldData;
-                  
-                  // Deep clone and update the specific dream with the new image URL
-                  const newData = JSON.parse(JSON.stringify(oldData));
-                  
-                  // Update the dream in all pages
-                  newData.pages = newData.pages.map((page: any) => {
-                    page.dreams = page.dreams.map((d: Dream) => {
-                      if (d.id === dream?.id && data.image_url) {
-                        return { ...d, image_url: data.image_url };
-                      }
-                      return d;
-                    });
-                    return page;
-                  });
-                  
-                  return newData;
-                });
               } else {
-                // Try checking one more time after a delay
                 setTimeout(() => {
                   supabase
                     .from('dreams')
@@ -451,21 +438,18 @@ const Journal = () => {
                     .single()
                     .then(({ data: finalCheck }) => {
                       if (finalCheck && finalCheck.image_url) {
-                        // Image exists after second check
                         console.log('Image found after second check:', finalCheck.image_url);
                         toast({
                           title: "Image Generated",
                           description: "Dream image has been generated successfully.",
                         });
                         
-                        // Update the cache
                         queryClient.invalidateQueries({ queryKey: ['paginatedDreams'] });
                         queryClient.refetchQueries({ 
-                          queryKey: ['paginatedDreams', user.id], 
+                          queryKey: ['paginatedDreams', user?.id], 
                           type: 'active'
                         });
                       } else {
-                        // Image truly doesn't exist, show error message
                         toast({
                           variant: "destructive",
                           title: "Image Generation Failed",
@@ -473,60 +457,60 @@ const Journal = () => {
                         });
                       }
                     });
-                }, 5000); // Wait an additional 5 seconds for final check
+                }, 5000);
               }
               
-              // Refresh the UI
               queryClient.invalidateQueries({ queryKey: ['paginatedDreams'] });
               queryClient.refetchQueries({ 
-                queryKey: ['paginatedDreams', user.id], 
+                queryKey: ['paginatedDreams', user?.id], 
                 type: 'active'
               });
             });
-        }, 6000); // Wait 6 seconds to give the function more time to complete
+        }, 6000);
       }
       // Check if the dream image actually exists despite other types of errors
       else if (dream && dream.id) {
-        // Query the database to check if the image_url was updated
         supabase
           .from('dreams')
-          .select('image_url')
+          .select('image_url, enhanced_description')
           .eq('id', dream.id)
           .single()
-          .then(({ data }) => {
-            if (data && data.image_url) {
-              // Image exists despite the error, show success message instead
-              console.log('Image exists despite reported error:', data.image_url);
+          .then(({ data: dreamData, error: fetchError }) => {
+            if (fetchError) {
+              console.error("Error checking dream status after mutation error:", fetchError);
+              toast({
+                variant: "destructive",
+                title: "Image Generation Failed",
+                description: error instanceof Error ? error.message : "Failed to generate dream image.",
+              });
+            } else if (dreamData && dreamData.image_url) {
+              console.log('Image exists despite reported error:', dreamData.image_url);
               toast({
                 title: "Image Generated",
                 description: "Dream image has been generated successfully.",
               });
             } else {
-              // Image truly doesn't exist, show error message
               toast({
                 variant: "destructive",
                 title: "Image Generation Failed",
-                description: error instanceof Error ? error.message : "Failed to generate dream image. Your dream was saved successfully, but we couldn't create an image for it.",
+                description: error instanceof Error ? error.message : "Failed to generate dream image.",
               });
             }
             
-            // Refresh the UI regardless to show latest state
             queryClient.invalidateQueries({ queryKey: ['paginatedDreams'] });
             queryClient.refetchQueries({ 
-              queryKey: ['paginatedDreams', user.id], 
+              queryKey: ['paginatedDreams', user?.id], 
               type: 'active'
             });
           });
       } else {
-        // No dream reference, just show error
         toast({
           variant: "destructive",
           title: "Image Generation Failed",
-          description: error instanceof Error ? error.message : "Failed to generate dream image. Your dream was saved successfully, but we couldn't create an image for it.",
+          description: error instanceof Error ? error.message : "Failed to generate dream image.",
         });
       }
       
-      // Even on error, we should clean up the generating state
       setGeneratingImageForDreams(prev => {
         const newSet = new Set(prev);
         if (dream) {
@@ -535,22 +519,18 @@ const Journal = () => {
         return newSet;
       });
     },
-    onSettled: (data: any, error: any, dream: Dream) => {
-      console.log('Image generation settled for dream:', dream?.id, 'with data:', data, 'error:', error);
-      
-      // Check if we need to refetch dream data to get the latest image status
+    onSettled: (_, __, dream) => {
       if (dream && dream.id) {
         queryClient.invalidateQueries({ queryKey: ['paginatedDreams'] });
         queryClient.refetchQueries({ 
-          queryKey: ['paginatedDreams', user.id], 
+          queryKey: ['paginatedDreams', user?.id], 
           type: 'active'
         });
       }
       
-      // Remove the dream ID from the generating set regardless of success/failure
       setGeneratingImageForDreams(prev => {
         const newSet = new Set(prev);
-        if (dream) {
+        if (dream && dream.id) {
           newSet.delete(dream.id);
         }
         return newSet;
