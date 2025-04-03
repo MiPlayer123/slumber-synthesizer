@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 import { decode as base64Decode } from "https://deno.land/std@0.208.0/encoding/base64.ts";
 import { corsHeaders } from '../_shared/cors.ts'
+import { parseOpenAIError, createErrorResponse } from '../_shared/errors.ts'
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -61,15 +62,12 @@ serve(async (req) => {
     });
 
     if (!openAiResponse.ok) {
-      const error = await openAiResponse.text();
-      console.error('OpenAI API error:', error);
-      return new Response(
-        JSON.stringify({ error: `OpenAI API error: ${error}` }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      const errorText = await openAiResponse.text();
+      console.error('OpenAI API error:', errorText);
+      
+      // Use the new error handling utility
+      const errorResponse = parseOpenAIError(errorText);
+      return createErrorResponse(errorResponse);
     }
 
     const openAiData = await openAiResponse.json();
@@ -94,28 +92,20 @@ serve(async (req) => {
     });
 
     if (!imageResponse.ok) {
-      const error = await imageResponse.text();
-      console.error('DALL-E API error:', error);
-      return new Response(
-        JSON.stringify({ error: `DALL-E API error: ${error}` }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      const errorText = await imageResponse.text();
+      console.error('DALL-E API error:', errorText);
+      
+      // Use the new error handling utility
+      const errorResponse = parseOpenAIError(errorText);
+      return createErrorResponse(errorResponse);
     }
 
     const imageData = await imageResponse.json();
     console.log('Image generated successfully');
 
     if (!imageData.data || !imageData.data[0]?.b64_json) {
-      return new Response(
-        JSON.stringify({ error: 'No image data in OpenAI response' }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      const errorResponse = parseOpenAIError('No image data in OpenAI response');
+      return createErrorResponse(errorResponse);
     }
 
     // Create Supabase client
@@ -183,13 +173,11 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (error) {
-    console.error('Error in generate-dream-image function:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      },
-    );
+    console.error('Error generating dream image:', error);
+    
+    // Use the new error handling utility
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorResponse = parseOpenAIError(errorMessage);
+    return createErrorResponse(errorResponse);
   }
 });

@@ -1,6 +1,6 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { decode as base64Decode } from "https://deno.land/std@0.208.0/encoding/base64.ts";
+import { parseOpenAIError, createErrorResponse } from "../_shared/errors.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -103,27 +103,25 @@ serve(async (req) => {
       console.log('Received response from OpenAI API, status:', response.status);
     } catch (error) {
       console.error('Network error when calling OpenAI API:', error);
-      throw new Error(`Network error: ${error.message}`);
+      const errorResponse = parseOpenAIError(`Network error: ${error.message}`);
+      return createErrorResponse(errorResponse);
     }
     
     if (!response.ok) {
-      let errorDetails = 'Unknown error';
       try {
         const errorText = await response.text();
         console.error('OpenAI API error response:', errorText);
         
-        try {
-          const errorData = JSON.parse(errorText);
-          errorDetails = errorData.error?.message || `Status ${response.status}`;
-        } catch {
-          errorDetails = errorText || `Status ${response.status}`;
-        }
+        // Use the new error handler for OpenAI errors
+        const errorResponse = parseOpenAIError(errorText);
+        
+        // Return a proper error response using our utility
+        return createErrorResponse(errorResponse);
       } catch (e) {
         console.error('Error parsing error response:', e);
-        errorDetails = `Status ${response.status}`;
+        const errorResponse = parseOpenAIError(`Status ${response.status}`);
+        return createErrorResponse(errorResponse);
       }
-      
-      throw new Error(`Transcription failed: ${errorDetails}`);
     }
     
     let data;
@@ -150,12 +148,10 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Function error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      },
-    );
+    
+    // Using the new error handler for all types of errors
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorResponse = parseOpenAIError(errorMessage);
+    return createErrorResponse(errorResponse);
   }
 });
