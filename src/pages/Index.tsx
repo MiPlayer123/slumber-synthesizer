@@ -53,7 +53,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-950/90 via-purple-900/80 to-indigo-950/90 text-white">
       {/* Hero Section */}
-      <div className="container mx-auto px-4 pt-20 pb-32 relative">
+      <div className="container mx-auto px-4 pt-24 pb-32 relative">
         <motion.div 
           className="absolute top-20 right-20 text-purple-300/30 hidden md:block"
           animate={{ rotate: 360 }}
