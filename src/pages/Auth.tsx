@@ -101,7 +101,13 @@ const Auth = () => {
     if (error === 'server_error' && errorDesc?.includes('Database error saving new user')) {
       setIsGoogleSignUp(true);
     }
-  }, [location]);
+
+    // Check if this is a Google redirect
+    if (user?.app_metadata?.provider === 'google' && !user.user_metadata?.username) {
+      console.log('Auth component: Detected Google redirect without username');
+      setIsGoogleSignUp(true);
+    }
+  }, [location, user]);
 
   // Check if user needs profile completion
   useEffect(() => {
