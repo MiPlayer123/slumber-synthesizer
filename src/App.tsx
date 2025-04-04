@@ -4,9 +4,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Navigation } from "@/components/Navigation";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, useRef } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics, track } from "@vercel/analytics/react";
+import { ConnectionStatus } from "@/components/ConnectionStatus";
+import { connectionManager } from "@/services/connectionManager";
 
 // Pages
 import Index from "@/pages/Index";
@@ -37,6 +39,13 @@ const queryClient = new QueryClient({
       staleTime: 1000 * 30, // 30 seconds
     },
   },
+});
+
+// Setup query reconnection logic
+connectionManager.onReconnect(() => {
+  console.log("Connection restored, invalidating stale queries...");
+  // When connection is restored, invalidate all queries to refresh stale data
+  queryClient.invalidateQueries();
 });
 
 // Loading component
@@ -220,6 +229,27 @@ function AppRoutes() {
   );
 }
 
+// Component that handles connection manager - needs auth context
+const ConnectionManagerHandler = () => {
+  const { user } = useAuth();
+  
+  // Clean up connection manager on unmount
+  useEffect(() => {
+    // Only start the connection manager if the user is authenticated
+    if (user) {
+      // User is authenticated, send an initial heartbeat
+      connectionManager.sendHeartbeat();
+    }
+    
+    // Clean up on unmount
+    return () => {
+      connectionManager.cleanup();
+    };
+  }, [user]);
+  
+  return null;
+};
+
 // Create a separate component that uses the router hooks
 function AppContent() {
   const location = useLocation();
@@ -229,11 +259,13 @@ function AppContent() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <div className="min-h-screen bg-background font-sans antialiased">
+            <ConnectionManagerHandler />
             <Navigation />
             <main className="pt-16">
               <AppRoutes />
             </main>
             <Toaster />
+            <ConnectionStatus />
           </div>
         </AuthProvider>
       </QueryClientProvider>

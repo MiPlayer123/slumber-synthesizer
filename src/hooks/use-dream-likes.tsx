@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { connectionManager } from "@/services/connectionManager";
 
 // Debug mode - set to false to disable all console logs
 const DEBUG_MODE = false;
@@ -21,6 +22,7 @@ export function useDreamLikes(dreamId: string, onSuccess?: () => void) {
   const [hasLiked, setHasLiked] = useState(false);
   const isFirstRender = useRef(true);
   const previousLikeState = useRef(false);
+  const channelRef = useRef<any>(null);
   
   // Only proceed with valid dreamId to prevent malformed queries
   const isValidDreamId = !!dreamId && dreamId.trim() !== '';
@@ -56,6 +58,15 @@ export function useDreamLikes(dreamId: string, onSuccess?: () => void) {
     staleTime: 1000 * 10, // 10 seconds
     refetchOnWindowFocus: true,
     refetchOnMount: true,
+    // Add retry function to handle connection issues
+    retry: (failureCount, error) => {
+      // If connection is known to be offline, don't retry immediately
+      if (!connectionManager.isOnline()) {
+        debugLog('Connection is offline, will retry when back online');
+        return false;
+      }
+      return failureCount < 3; // Otherwise retry up to 3 times
+    },
   });
 
   // Check if current user has liked this dream
@@ -94,48 +105,100 @@ export function useDreamLikes(dreamId: string, onSuccess?: () => void) {
     }
   }, [dreamId, user, isValidDreamId]);
 
-  // Setup real-time subscription for likes
-  useEffect(() => {
-    if (!isValidDreamId) return;
+  // Setup and manage Realtime subscription
+  const setupRealtimeSubscription = useCallback(() => {
+    if (!isValidDreamId) return null;
 
     // Create a unique channel ID for each subscription to avoid conflicts
     const channelId = `likes-${dreamId}-${Math.random().toString(36).substr(2, 9)}`;
     
     debugLog(`Setting up real-time subscription for dream: ${dreamId}`);
-    const channel = supabase
-      .channel(channelId)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'likes',
-          filter: `dream_id=eq.${dreamId}`
-        },
-        (payload) => {
-          debugLog('Real-time like update received');
-          // Force refetch to get the latest count
-          refetch();
-          
-          // Check user's like status
-          if (user) {
-            checkLikeStatus();
-          }
-          
-          // Call onSuccess if provided
-          if (onSuccess) {
-            onSuccess();
-          }
+    
+    // This creates a channel but doesn't subscribe yet
+    const channel = supabase.channel(channelId);
+    
+    // Add the postgres change listener
+    channel.on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'likes',
+        filter: `dream_id=eq.${dreamId}`
+      },
+      (payload) => {
+        debugLog('Real-time like update received');
+        // Force refetch to get the latest count
+        refetch();
+        
+        // Check user's like status
+        if (user) {
+          checkLikeStatus();
         }
-      )
-      .subscribe();
+        
+        // Call onSuccess if provided
+        if (onSuccess) {
+          onSuccess();
+        }
+      }
+    );
+    
+    // Subscribe and handle subscription status
+    channel.subscribe((status) => {
+      debugLog(`Realtime subscription status: ${status}`);
+      
+      // Handle connection status changes based on the actual enum values from Supabase
+      if (status === 'CLOSED') {
+        debugLog('Realtime channel disconnected');
+        connectionManager.reconnect();
+      } else if (status === 'CHANNEL_ERROR') {
+        console.error('Realtime subscription error');
+      }
+    });
+
+    return channel;
+  }, [dreamId, isValidDreamId, user, checkLikeStatus, onSuccess, refetch]);
+
+  // Setup real-time subscription for likes
+  useEffect(() => {
+    // Only setup if we have a valid dreamId and we're online
+    if (!isValidDreamId) return;
+
+    // Setup the channel
+    const channel = setupRealtimeSubscription();
+    if (channel) {
+      channelRef.current = channel;
+    }
+
+    // Register a reconnect callback with connectionManager
+    connectionManager.onReconnect(() => {
+      debugLog('Connection restored, re-establishing Realtime subscription');
+      // Clean up existing subscription if any
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+      
+      // Create a new subscription
+      const newChannel = setupRealtimeSubscription();
+      if (newChannel) {
+        channelRef.current = newChannel;
+      }
+      
+      // Refetch data
+      refetch();
+      checkLikeStatus();
+    });
 
     return () => {
       // Always clean up subscription on unmount
       debugLog(`Cleaning up subscription for dream: ${dreamId}`);
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [dreamId, user, checkLikeStatus, onSuccess, isValidDreamId, refetch]);
+  }, [dreamId, isValidDreamId, setupRealtimeSubscription, refetch, checkLikeStatus]);
 
   // Initial check
   useEffect(() => {
@@ -149,6 +212,11 @@ export function useDreamLikes(dreamId: string, onSuccess?: () => void) {
     mutationFn: async () => {
       if (!user) throw new Error('You must be logged in to like dreams');
       if (!isValidDreamId) throw new Error('Invalid dream ID');
+      
+      // Check if we're online before proceeding
+      if (!connectionManager.isOnline()) {
+        throw new Error('You appear to be offline. Please check your connection and try again.');
+      }
       
       // Critical: Ensure we're working with the latest state
       // Check the current like status from the database right before toggling
@@ -250,70 +318,50 @@ export function useDreamLikes(dreamId: string, onSuccess?: () => void) {
       return { previousCount, previousHasLiked: hasLiked };
     },
     onError: (error, _, context) => {
-      // Revert optimistic update on error
+      // Reset UI to previous state on error
       if (context) {
-        debugLog(`Error occurred, reverting to previous state`);
         setHasLiked(context.previousHasLiked);
-        queryClient.setQueryData(['dream-likes-count', dreamId], context.previousCount ?? 0);
+        queryClient.setQueryData(['dream-likes-count', dreamId], context.previousCount);
       }
       
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update like status",
-      });
-    },
-    onSettled: (isLiked, error) => {
-      if (isValidDreamId) {
-        if (error) {
-          console.error('Settled with error:', error);
-        } else {
-          debugLog(`Settled successfully: ${isLiked ? 'liked' : 'unliked'} dream ${dreamId}`);
-          
-          // Force UI update to match server state (critical for fixing the heart color issue)
-          setHasLiked(!!isLiked);
-        }
+      // Show error message
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred while updating like status';
+      
+      // Check if it's a connection-related error
+      if (
+        !connectionManager.isOnline() || 
+        errorMessage.includes('Failed to fetch') || 
+        errorMessage.includes('NetworkError') ||
+        errorMessage.includes('offline')
+      ) {
+        toast({
+          variant: 'destructive',
+          title: 'Connection Error',
+          description: 'You appear to be offline. Please check your connection and try again.',
+        });
         
-        // Always refetch after mutation to ensure we have the latest data
-        refetch();
-        checkLikeStatus();
-        
-        // Call onSuccess if provided
-        if (onSuccess) {
-          onSuccess();
-        }
+        // Try to reconnect
+        connectionManager.reconnect();
+      } else {
+        // Show standard error
+        toast({
+          variant: 'destructive',
+          title: 'Action Failed',
+          description: errorMessage,
+        });
       }
-    }
+    },
+    onSettled: () => {
+      // Always refetch after a mutation to ensure data is in sync
+      queryClient.invalidateQueries({ queryKey: ['dream-likes-count', dreamId] });
+    },
   });
-  
-  const toggleLike = useCallback(() => {
-    if (!user) {
-      toast({
-        variant: "destructive",
-        title: "Authentication required",
-        description: "You must be logged in to like dreams",
-      });
-      return;
-    }
-    
-    if (!isValidDreamId) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Cannot like this dream (invalid ID)",
-      });
-      return;
-    }
-    
-    debugLog(`Toggling like for dream: ${dreamId}, current state: ${hasLiked ? 'liked' : 'not liked'}`);
-    toggleLikeMutation.mutate();
-  }, [user, toggleLikeMutation, toast, isValidDreamId, hasLiked, dreamId]);
-  
+
   return {
-    likesCount,
-    hasLiked,
-    toggleLike,
-    isLoading: isLikesLoading || toggleLikeMutation.isPending,
-    refetch: isValidDreamId ? refetch : () => Promise.resolve()
+    likesCount, 
+    isLikesLoading,
+    hasLiked, 
+    toggleLike: () => toggleLikeMutation.mutate(),
+    isToggling: toggleLikeMutation.isPending,
   };
 }
