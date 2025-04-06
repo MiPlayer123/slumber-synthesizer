@@ -153,23 +153,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         switch (event) {
           case 'SIGNED_IN':
-          case 'INITIAL_SESSION': // Handle INITIAL_SESSION the same as SIGNED_IN
             if (currentSession?.user) {
               setUser(currentSession.user);
               setSession(currentSession);
               
               // Check profile status on sign in
-              const needsCompletion = await ensureUserProfile(currentSession.user);
-              console.log('Profile check result:', { needsCompletion });
-              
-              // Only set loading to false after profile check
-              if (isMountedRef.current) {
-                setLoading(false);
-                // If profile needs completion, redirect to auth page
-                if (needsCompletion) {
-                  window.location.href = '/auth';
-                }
-              }
+              await ensureUserProfile(currentSession.user);
             } else {
               setUser(null);
               setSession(null);
@@ -216,6 +205,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             break;
 
           case 'PASSWORD_RECOVERY':
+            if (isMountedRef.current) setLoading(false);
+            break;
+
+          case 'INITIAL_SESSION':
+            if (currentSession?.user) {
+              setUser(currentSession.user);
+              setSession(currentSession);
+              // Check profile status on initial session
+              await ensureUserProfile(currentSession.user);
+            } else {
+              setUser(null);
+              setSession(null);
+              setNeedsProfileCompletion(false);
+            }
             if (isMountedRef.current) setLoading(false);
             break;
 
