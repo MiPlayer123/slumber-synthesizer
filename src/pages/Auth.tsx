@@ -107,7 +107,45 @@ const Auth = () => {
     // Check if this is a Google redirect
     if (user?.app_metadata?.provider === 'google' && !user.user_metadata?.username) {
       console.log('Auth component: Detected Google redirect without username');
-      setIsGoogleSignUp(true);
+      
+      // Extract user's full name and convert to username
+      const fullName = user.user_metadata?.full_name || user.user_metadata?.name || '';
+      if (fullName) {
+        // Create username from full name: remove spaces, lowercase, and add random digits if needed
+        let usernameFromName = fullName.replace(/\s+/g, '').toLowerCase();
+        
+        // Add random digits to make username more unique
+        const randomDigits = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        usernameFromName = usernameFromName + randomDigits;
+        
+        console.log('Auth component: Auto-creating username from Google name:', usernameFromName);
+        
+        // Automatically submit the username
+        const autoSubmitUsername = async () => {
+          try {
+            const result = await completeGoogleSignUp(usernameFromName);
+            if (result.success) {
+              track('user_signup', { method: 'google_auto' });
+              // Username creation successful, page will refresh automatically
+            } else {
+              // If auto-creation fails, fall back to manual entry
+              setGoogleUsername(usernameFromName);
+              setIsGoogleSignUp(true);
+            }
+          } catch (error) {
+            console.error('Error auto-completing Google sign up:', error);
+            // Fall back to manual entry
+            setGoogleUsername(usernameFromName);
+            setIsGoogleSignUp(true);
+          }
+        };
+        
+        autoSubmitUsername();
+      } else {
+        // No name available, fall back to manual username entry
+        setIsGoogleSignUp(true);
+      }
+      
       // Clear the URL parameters to prevent interference
       window.history.replaceState({}, document.title, '/auth');
       return;
