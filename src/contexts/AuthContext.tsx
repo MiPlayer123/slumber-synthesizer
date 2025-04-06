@@ -163,8 +163,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setUser(null);
               setSession(null);
               setNeedsProfileCompletion(false);
+              if (isMountedRef.current) setLoading(false);
             }
-            if (isMountedRef.current) setLoading(false);
             break;
 
           case 'SIGNED_OUT':
@@ -180,7 +180,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (currentSession.user && currentSession.user.id !== user?.id) {
                 setUser(currentSession.user);
                 // Check profile status on user change
-                await ensureUserProfile(currentSession.user);
+                const needsCompletion = await ensureUserProfile(currentSession.user);
+                if (needsCompletion) {
+                  window.location.href = '/auth';
+                }
               }
             } else {
               setUser(null);
@@ -194,11 +197,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (currentSession?.user) {
               setUser(currentSession.user);
               // Check profile status on user update
-              await ensureUserProfile(currentSession.user);
+              const needsCompletion = await ensureUserProfile(currentSession.user);
+              if (needsCompletion) {
+                window.location.href = '/auth';
+              }
             }
             break;
 
           case 'PASSWORD_RECOVERY':
+            if (isMountedRef.current) setLoading(false);
+            break;
+
+          case 'INITIAL_SESSION':
+            if (currentSession?.user) {
+              setUser(currentSession.user);
+              setSession(currentSession);
+              // Check profile status on initial session
+              await ensureUserProfile(currentSession.user);
+            } else {
+              setUser(null);
+              setSession(null);
+              setNeedsProfileCompletion(false);
+            }
             if (isMountedRef.current) setLoading(false);
             break;
 
