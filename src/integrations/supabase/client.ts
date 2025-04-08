@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, Session } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 // Fixed values for Supabase URL and key
@@ -51,9 +51,28 @@ export const supabase = createClient<Database>(
             
             // If we hit a 401 error, try to refresh the session once
             if (response.status === 401 && !url.toString().includes('/auth/')) {
-              await refreshSession();
-              // Retry the fetch with the new token
-              return fetch(url, options);
+              console.log("Detected 401 error, attempting to refresh session...");
+              const { success, error: refreshError } = await refreshSession();
+              
+              if (success) {
+                console.log("Session refreshed successfully, retrying original request.");
+                // Retry the fetch with the new token
+                // Clone options to avoid modifying the original signal
+                const newOptions = { ...options }; 
+                // Create a new AbortController for the retry in case the original timed out
+                const retryController = new AbortController();
+                const retryTimeoutId = setTimeout(() => retryController.abort(), 10000);
+                newOptions.signal = retryController.signal;
+
+                const retryResponse = await fetch(url, newOptions);
+                clearTimeout(retryTimeoutId);
+                return retryResponse; // Return the result of the retry
+              } else {
+                console.error("Failed to refresh session:", refreshError);
+                // Optional: Trigger a global sign-out or show a message
+                // For now, throw an error to stop the process
+                throw new Error(`Session expired and could not be refreshed: ${refreshError?.message || 'Unknown error'}`);
+              }
             }
             
             return response;
@@ -101,21 +120,30 @@ export const isSessionValid = async (): Promise<boolean> => {
 };
 
 // Export a function to refresh the session
-export const refreshSession = async () => {
+export const refreshSession = async (): Promise<{ success: boolean; session: Session | null; error: Error | null }> => {
   if (!isValidSupabaseConfig()) {
-    console.error('Cannot refresh session: Supabase is not properly configured');
-    return { data: null, error: new Error('Supabase is not properly configured') };
+    const error = new Error('Supabase is not properly configured');
+    console.error('Cannot refresh session:', error.message);
+    return { success: false, session: null, error };
   }
 
   try {
     const { data, error } = await supabase.auth.refreshSession();
     if (error) {
-      console.error('Error refreshing session:', error);
+      console.error('Error refreshing session via Supabase client:', error);
+      return { success: false, session: null, error };
     }
-    return { data, error };
+    if (!data.session) {
+        const sessionError = new Error('No session returned after refresh');
+        console.error('Error refreshing session:', sessionError.message);
+        return { success: false, session: null, error: sessionError }
+    }
+    console.log("Session refreshed successfully in refreshSession function.");
+    return { success: true, session: data.session, error: null };
   } catch (e) {
-    console.error('Exception refreshing session:', e);
-    return { data: null, error: e instanceof Error ? e : new Error('Unknown error') };
+    const error = e instanceof Error ? e : new Error('Unknown exception during session refresh');
+    console.error('Exception refreshing session:', error);
+    return { success: false, session: null, error };
   }
 };
 

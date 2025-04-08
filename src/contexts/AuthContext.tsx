@@ -24,6 +24,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const AUTH_STORAGE_PREFIX = 'slumber-synthesizer-';
+const SESSION_CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -65,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 
   // --- Profile Check Logic --- (Include ensureUserProfile from previous version)
- const ensureUserProfile = useCallback(async (currentUser: User): Promise<boolean> => {
+  const ensureUserProfile = useCallback(async (currentUser: User): Promise<boolean> => {
     if (!currentUser) {
       console.log('Profile check: No current user provided');
       return false;
@@ -116,132 +117,211 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // --- Define signOut earlier so it can be used in useEffect dependencies ---
+  const signOut = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Clear auth storage first to ensure clean state
+      const cleared = clearAuthStorage();
+      console.log(`Auth storage cleared: ${cleared}`);
+
+      // Then sign out from Supabase
+      console.log("Attempting Supabase sign out...");
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Supabase signOut error:", error);
+        throw error; // Rethrow to be caught by logAuthError
+      }
+
+      // Manually clear state again AFTER successful sign out, in case event listener didn't fire
+      if (isMountedRef.current) {
+        console.log("Manually clearing user/session state after successful sign out.");
+        setUser(null);
+        setSession(null);
+        setNeedsProfileCompletion(false);
+        setLoading(false); // Ensure loading stops
+      }
+
+      toast({ title: 'Signed Out', description: 'You have been successfully signed out.' });
+      console.log("Sign out process completed successfully.");
+    } catch (error) {
+      logAuthError('signOut', error);
+      // Ensure loading state is reset even on error
+      if (isMountedRef.current) setLoading(false);
+    }
+    // No finally needed as loading is set in both success and error paths now
+  }, [logAuthError, toast, clearAuthStorage]); // Added clearAuthStorage dependency
 
   // --- Simplified Initialization and Auth State Listener ---
   useEffect(() => {
     isMountedRef.current = true;
     setLoading(true); // Start loading
     let authListener: { unsubscribe: () => void } | null = null;
+    let sessionCheckInterval: NodeJS.Timeout | null = null;
 
-    // 1. Initial Session Check
-    supabase.auth.getSession().then(async ({ data: { session: initialSession }, error: sessionError }) => {
-      if (!isMountedRef.current) return; // Component unmounted? Bail.
-
-      if (sessionError) {
-        logAuthError('initialGetSession', sessionError, false); // Log but don't necessarily block UI
-      }
-
-      // Update state based on initial check
-      if (initialSession?.user) {
-        console.log("Initial load: Session found for user:", initialSession.user.id);
-        setUser(initialSession.user);
-        setSession(initialSession);
+    const initialize = async () => {
+      if (!isMountedRef.current) return;
+      try {
+        // 1. Initial Session Check
+        console.log("AuthContext: Performing initial session check...");
+        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
         
-        // Check profile status on load
-        await ensureUserProfile(initialSession.user);
-      } else {
-        console.log("Initial load: No active session.");
-        setUser(null);
-        setSession(null);
-        setNeedsProfileCompletion(false);
-      }
-
-      // 2. Set up the Listener (AFTER initial check state is set)
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-        if (!isMountedRef.current) return; // Check mount status in listener
-        console.log(`onAuthStateChange: Event = ${event}, User = ${currentSession?.user?.id ?? 'null'}`);
-
-        switch (event) {
-          case 'SIGNED_IN':
-            if (currentSession?.user) {
-              setUser(currentSession.user);
-              setSession(currentSession);
-              
-              // Check profile status on sign in
-              await ensureUserProfile(currentSession.user);
-            } else {
-              setUser(null);
-              setSession(null);
-              setNeedsProfileCompletion(false);
-              if (isMountedRef.current) setLoading(false);
-            }
-            break;
-
-          case 'SIGNED_OUT':
-            setUser(null);
-            setSession(null);
-            setNeedsProfileCompletion(false);
-            if (isMountedRef.current) setLoading(false);
-            break;
-
-          case 'TOKEN_REFRESHED':
-            if (currentSession) {
-              setSession(currentSession);
-              if (currentSession.user && currentSession.user.id !== user?.id) {
-                setUser(currentSession.user);
-                // Check profile status on user change
-                const needsCompletion = await ensureUserProfile(currentSession.user);
-                if (needsCompletion) {
-                  window.location.href = '/auth';
-                }
-              }
-            } else {
-              setUser(null);
-              setSession(null);
-              setNeedsProfileCompletion(false);
-              if (isMountedRef.current) setLoading(false);
-            }
-            break;
-
-          case 'USER_UPDATED':
-            if (currentSession?.user) {
-              setUser(currentSession.user);
-              // Check profile status on user update
-              const needsCompletion = await ensureUserProfile(currentSession.user);
-              if (needsCompletion) {
-                window.location.href = '/auth';
-              }
-            }
-            break;
-
-          case 'PASSWORD_RECOVERY':
-            if (isMountedRef.current) setLoading(false);
-            break;
-
-          case 'INITIAL_SESSION':
-            if (currentSession?.user) {
-              setUser(currentSession.user);
-              setSession(currentSession);
-              // Check profile status on initial session
-              await ensureUserProfile(currentSession.user);
-            } else {
-              setUser(null);
-              setSession(null);
-              setNeedsProfileCompletion(false);
-            }
-            if (isMountedRef.current) setLoading(false);
-            break;
-
-          default:
-            console.log(`Unhandled auth event: ${event}`);
-            if (isMountedRef.current) setLoading(false);
+        if (!isMountedRef.current) return;
+        
+        if (sessionError) {
+          logAuthError('initialGetSession', sessionError, false); 
         }
-      });
-      authListener = subscription;
 
-    }).catch(err => {
-      if (isMountedRef.current) {
-        logAuthError('initialAuthSetupPromise', err);
-        setLoading(false);
+        if (initialSession?.user) {
+          console.log("AuthContext: Initial session found for user:", initialSession.user.id);
+          setUser(initialSession.user);
+          setSession(initialSession);
+          await ensureUserProfile(initialSession.user);
+        } else {
+          console.log("AuthContext: No active session found initially.");
+          setUser(null);
+          setSession(null);
+          setNeedsProfileCompletion(false);
+        }
+
+        // 2. Set up the Auth Listener
+        console.log("AuthContext: Setting up auth state listener...");
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+          if (!isMountedRef.current) return;
+          console.log(`AuthContext: onAuthStateChange Event = ${event}, User = ${currentSession?.user?.id ?? 'null'}`);
+
+          switch (event) {
+            case 'SIGNED_IN':
+              if (currentSession?.user) {
+                setUser(currentSession.user);
+                setSession(currentSession);
+                await ensureUserProfile(currentSession.user);
+              } else {
+                setUser(null); setSession(null); setNeedsProfileCompletion(false);
+              }
+              if (isMountedRef.current) setLoading(false); // Ensure loading stops after sign-in logic
+              break;
+
+            case 'SIGNED_OUT':
+              setUser(null);
+              setSession(null);
+              setNeedsProfileCompletion(false);
+              if (isMountedRef.current) setLoading(false);
+              break;
+
+            case 'TOKEN_REFRESHED':
+              if (currentSession) {
+                  console.log("AuthContext: Token refreshed event received. Updating session state.");
+                  setSession(currentSession);
+                  if (currentSession.user && currentSession.user.id !== user?.id) {
+                      console.log("AuthContext: Token refresh resulted in a different user.");
+                      setUser(currentSession.user);
+                      await ensureUserProfile(currentSession.user);
+                  }
+              } else {
+                  console.warn("AuthContext: TOKEN_REFRESHED event received but no session provided. This might indicate a problem.");
+                  // Optionally force a sign-out if this happens consistently
+                  // signOut(); 
+              }
+              break;
+            // ... (keep USER_UPDATED, PASSWORD_RECOVERY, INITIAL_SESSION, default cases as they were)
+            case 'USER_UPDATED':
+                if (currentSession?.user) {
+                  setUser(currentSession.user);
+                  // Check profile status on user update
+                  await ensureUserProfile(currentSession.user);
+                }
+                break;
+
+            case 'PASSWORD_RECOVERY':
+                // Usually handled by specific UI, no immediate state change needed here
+                if (isMountedRef.current) setLoading(false);
+                break;
+                
+            case 'INITIAL_SESSION':
+                // This event might fire after the initial getSession() call
+                // We update state only if it differs from the initial check
+                if (currentSession?.user && currentSession.user.id !== user?.id) {
+                    console.log("AuthContext: INITIAL_SESSION event with new user.");
+                    setUser(currentSession.user);
+                    setSession(currentSession);
+                    await ensureUserProfile(currentSession.user);
+                } else if (!currentSession?.user && user !== null) {
+                    console.log("AuthContext: INITIAL_SESSION event indicates no user, signing out.");
+                    setUser(null); setSession(null); setNeedsProfileCompletion(false);
+                }
+                if (isMountedRef.current) setLoading(false); // Mark loading as complete after INITIAL_SESSION
+                break;
+
+            default:
+                console.log(`AuthContext: Unhandled auth event: ${event}`);
+                // Ensure loading eventually stops even for unhandled events
+                if (isMountedRef.current && loading) setLoading(false); 
+          }
+        });
+        authListener = subscription;
+
+        // 3. Start Periodic Session Check
+        console.log(`AuthContext: Starting periodic session check (interval: ${SESSION_CHECK_INTERVAL_MS / 1000}s)...`);
+        sessionCheckInterval = setInterval(async () => {
+          if (!isMountedRef.current) return;
+          console.log("AuthContext: Performing periodic session validity check...");
+          const valid = await isSessionValid();
+          if (!isMountedRef.current) return; 
+          
+          if (!valid && user) { // Only trigger if session is invalid BUT we think we have a user
+            console.warn("AuthContext: Periodic check found invalid session while user state exists. Attempting refresh...");
+            const { success, session: refreshedSession, error: refreshError } = await refreshSession();
+            if (!isMountedRef.current) return; 
+            
+            if (success && refreshedSession) {
+              console.log("AuthContext: Periodic check - Session successfully refreshed.");
+              setSession(refreshedSession);
+              if (refreshedSession.user?.id !== user?.id) {
+                 console.log("AuthContext: Periodic check - Refreshed session has different user.");
+                 setUser(refreshedSession.user);
+                 await ensureUserProfile(refreshedSession.user);
+              }
+            } else {
+              console.error("AuthContext: Periodic check - Failed to refresh session. Forcing sign out.", refreshError);
+              signOut(); // Force sign out if refresh fails
+            }
+          } else if (valid && !user) {
+             console.warn("AuthContext: Periodic check found valid session but no user state. Refreshing state from session.");
+             // If session is valid but user state is null, try to get user data again
+             const { data } = await supabase.auth.getSession();
+             if (isMountedRef.current && data.session) {
+                setSession(data.session);
+                setUser(data.session.user);
+                await ensureUserProfile(data.session.user);
+             }
+          } else {
+            console.log(`AuthContext: Periodic check - Session validity (${valid}) matches user state (${!!user}). No action needed.`);
+          }
+        }, SESSION_CHECK_INTERVAL_MS);
+
+      } catch (err) {
+        logAuthError('initializeAuth', err);
+      } finally {
+         // Ensure loading is set to false after all initialization attempts
+         if (isMountedRef.current) {
+            setLoading(false);
+         }
       }
-    });
+    };
+
+    initialize();
 
     return () => {
-      console.log("AuthContext unmounting. Cleaning up listener.");
+      console.log("AuthContext: Unmounting. Cleaning up listener and interval.");
       isMountedRef.current = false;
       authListener?.unsubscribe();
+      if (sessionCheckInterval) {
+        clearInterval(sessionCheckInterval);
+      }
     };
-  }, [ensureUserProfile, logAuthError]);
+  }, [ensureUserProfile, logAuthError, signOut]);
 
 
   // --- Auth Action Implementations (Simplified) ---
@@ -300,33 +380,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signOut = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      // Clear auth storage first to ensure clean state
-      clearAuthStorage();
-      
-      // Then sign out from Supabase
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        throw error;
-      }
-      
-      // Manually clear state in case the event doesn't fire
-      if (isMountedRef.current) {
-        setUser(null);
-        setSession(null);
-        setNeedsProfileCompletion(false);
-        setLoading(false);
-      }
-      
-      toast({ title: 'Signed Out', description: 'You have been successfully signed out.' });
-    } catch (error) {
-      logAuthError('signOut', error);
-      if (isMountedRef.current) setLoading(false);
-    }
-  };
   const signInWithGoogle = async () => {
     // No need to set loading here, redirect happens or error occurs
     setError(null);
