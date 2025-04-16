@@ -122,6 +122,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isMountedRef.current = true;
     setLoading(true); // Start loading
     let authListener: { unsubscribe: () => void } | null = null;
+    let isInitialized = false; // Track if we've completed initial setup
+    let visibilityTimeout: NodeJS.Timeout | null = null;
+
+    // Add visibility change listener to handle tab focus changes
+    const handleVisibilityChange = () => {
+      if (visibilityTimeout) {
+        clearTimeout(visibilityTimeout);
+      }
+
+      if (!document.hidden && isMountedRef.current && isInitialized) {
+        console.log("Tab became visible again");
+        
+        // Force the loading state to be false when returning to the tab
+        // This ensures we don't get stuck in a loading state
+        visibilityTimeout = setTimeout(() => {
+          if (isMountedRef.current) {
+            console.log("Resetting loading state after visibility change");
+            setLoading(false);
+          }
+        }, 300);
+      }
+    };
+
+    // Add visibility listener
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // 1. Initial Session Check
     supabase.auth.getSession().then(async ({ data: { session: initialSession }, error: sessionError }) => {
@@ -146,85 +171,142 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setNeedsProfileCompletion(false);
       }
 
+      setLoading(false); // Set loading to false after initial check
+      isInitialized = true; // Mark as initialized
+
       // 2. Set up the Listener (AFTER initial check state is set)
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
         if (!isMountedRef.current) return; // Check mount status in listener
         console.log(`onAuthStateChange: Event = ${event}, User = ${currentSession?.user?.id ?? 'null'}`);
 
-        switch (event) {
-          case 'SIGNED_IN':
-            if (currentSession?.user) {
-              setUser(currentSession.user);
-              setSession(currentSession);
-              
-              // Check profile status on sign in
-              await ensureUserProfile(currentSession.user);
-            } else {
+        // Skip loading for INITIAL_SESSION events when already initialized
+        // unless there's an actual change in token
+        const isTokenRefresh = 
+          event === 'INITIAL_SESSION' && isInitialized && 
+          (!session || !currentSession || session.access_token !== currentSession.access_token);
+
+        // Only set loading to true for significant auth events
+        if (event !== 'INITIAL_SESSION' || isTokenRefresh) {
+          console.log(`Setting loading to true for auth event: ${event}`);
+          setLoading(true);
+        } else if (event === 'INITIAL_SESSION' && isInitialized) {
+          console.log('Skipping loading state for redundant INITIAL_SESSION');
+        }
+
+        try {
+          // Wait for a small delay to allow the UI to show loading state
+          // This ensures the loading indicator appears before heavy operations
+          if (event !== 'INITIAL_SESSION' || isTokenRefresh) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+
+          switch (event) {
+            case 'SIGNED_IN':
+              if (currentSession?.user) {
+                // First set the basic auth state
+                setUser(currentSession.user);
+                setSession(currentSession);
+                
+                // Then check profile status - with a maximum wait time to prevent hanging
+                const profileCheckPromise = ensureUserProfile(currentSession.user);
+                const timeoutPromise = new Promise<boolean>(resolve => setTimeout(() => {
+                  console.warn('Profile check timed out, continuing...');
+                  resolve(false);
+                }, 3000));
+                
+                await Promise.race([profileCheckPromise, timeoutPromise]);
+              } else {
+                setUser(null);
+                setSession(null);
+                setNeedsProfileCompletion(false);
+              }
+              break;
+
+            case 'SIGNED_OUT':
               setUser(null);
               setSession(null);
               setNeedsProfileCompletion(false);
-              if (isMountedRef.current) setLoading(false);
-            }
-            break;
-
-          case 'SIGNED_OUT':
-            setUser(null);
-            setSession(null);
-            setNeedsProfileCompletion(false);
-            if (isMountedRef.current) setLoading(false);
-            break;
-
-          case 'TOKEN_REFRESHED':
-            if (currentSession) {
-              setSession(currentSession);
-              if (currentSession.user && currentSession.user.id !== user?.id) {
-                setUser(currentSession.user);
-                // Check profile status on user change
-                const needsCompletion = await ensureUserProfile(currentSession.user);
-                if (needsCompletion) {
+              
+              // Force a delay before completing to ensure UI updates
+              await new Promise(resolve => setTimeout(resolve, 100));
+              
+              // Redirect to auth page if not already there, after signout completes
+              setTimeout(() => {
+                if (window.location.pathname !== '/auth') {
+                  console.log('Redirecting to auth page after signout');
                   window.location.href = '/auth';
                 }
+              }, 200);
+              break;
+
+            case 'TOKEN_REFRESHED':
+              if (currentSession) {
+                setSession(currentSession);
+                if (currentSession.user && currentSession.user.id !== user?.id) {
+                  setUser(currentSession.user);
+                  await ensureUserProfile(currentSession.user);
+                }
+              } else {
+                setUser(null);
+                setSession(null);
+                setNeedsProfileCompletion(false);
               }
-            } else {
-              setUser(null);
-              setSession(null);
-              setNeedsProfileCompletion(false);
+              break;
+
+            case 'USER_UPDATED':
+              if (currentSession?.user) {
+                setUser(currentSession.user);
+                await ensureUserProfile(currentSession.user);
+              }
+              break;
+
+            case 'PASSWORD_RECOVERY':
               if (isMountedRef.current) setLoading(false);
-            }
-            break;
+              break;
 
-          case 'USER_UPDATED':
-            if (currentSession?.user) {
-              setUser(currentSession.user);
-              // Check profile status on user update
-              const needsCompletion = await ensureUserProfile(currentSession.user);
-              if (needsCompletion) {
-                window.location.href = '/auth';
+            case 'INITIAL_SESSION':
+              // Only process INITIAL_SESSION if we don't already have a matching session
+              // or if we're in the initial loading phase (!isInitialized)
+              const shouldProcessInitialSession = !isInitialized || 
+                !session || 
+                !currentSession || 
+                session.access_token !== currentSession.access_token;
+              
+              if (shouldProcessInitialSession) {
+                console.log('Processing INITIAL_SESSION event');
+                if (currentSession?.user) {
+                  setUser(currentSession.user);
+                  setSession(currentSession);
+                  
+                  // Only check profile if we actually have a different user or session
+                  if (!session || session.access_token !== currentSession.access_token) {
+                    await ensureUserProfile(currentSession.user);
+                  }
+                } else {
+                  setUser(null);
+                  setSession(null);
+                  setNeedsProfileCompletion(false);
+                }
+              } else {
+                console.log('Skipping redundant INITIAL_SESSION event');
+                // Force the loading state to false to prevent getting stuck
+                if (loading && isMountedRef.current) {
+                  setLoading(false);
+                }
               }
-            }
-            break;
+              break;
 
-          case 'PASSWORD_RECOVERY':
-            if (isMountedRef.current) setLoading(false);
-            break;
-
-          case 'INITIAL_SESSION':
-            if (currentSession?.user) {
-              setUser(currentSession.user);
-              setSession(currentSession);
-              // Check profile status on initial session
-              await ensureUserProfile(currentSession.user);
-            } else {
-              setUser(null);
-              setSession(null);
-              setNeedsProfileCompletion(false);
-            }
-            if (isMountedRef.current) setLoading(false);
-            break;
-
-          default:
-            console.log(`Unhandled auth event: ${event}`);
-            if (isMountedRef.current) setLoading(false);
+            default:
+              console.log(`Unhandled auth event: ${event}`);
+              if (isMountedRef.current) setLoading(false);
+          }
+        } catch (error) {
+          console.error('Error during auth state change:', error);
+          logAuthError('authStateChange', error);
+        } finally {
+          if (isMountedRef.current) {
+            setLoading(false); // Always ensure loading is set to false at the end
+          }
         }
       });
       authListener = subscription;
@@ -240,6 +322,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("AuthContext unmounting. Cleaning up listener.");
       isMountedRef.current = false;
       authListener?.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (visibilityTimeout) {
+        clearTimeout(visibilityTimeout);
+      }
     };
   }, [ensureUserProfile, logAuthError]);
 
@@ -256,6 +342,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // SUCCESS: onAuthStateChange will handle setting user/session and setLoading(false)
       toast({ title: 'Welcome back!', description: 'Signed in successfully.' });
+      
+      // Only redirect if we're on the auth page, no need to reload otherwise
+      if (window.location.pathname === '/auth') {
+        console.log('Redirecting to home page after signin');
+        window.location.href = '/';
+      }
+      
       return { success: true, error: null };
 
     } catch (error) {
@@ -307,8 +400,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Clear auth storage first to ensure clean state
       clearAuthStorage();
       
-      // Then sign out from Supabase
-      const { error } = await supabase.auth.signOut();
+      // Then sign out from Supabase with a maximum timeout
+      const signOutPromise = supabase.auth.signOut();
+      const timeoutPromise = new Promise<{error: Error}>((_, reject) => 
+        setTimeout(() => reject({error: new Error('Sign out timed out')}), 5000)
+      );
+      
+      const { error } = await Promise.race([signOutPromise, timeoutPromise]);
       if (error) {
         throw error;
       }
@@ -318,13 +416,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setSession(null);
         setNeedsProfileCompletion(false);
+        
+        // Force a small delay before clearing loading to ensure UI updates
+        await new Promise(resolve => setTimeout(resolve, 100));
         setLoading(false);
       }
       
       toast({ title: 'Signed Out', description: 'You have been successfully signed out.' });
+      
+      // Force a page reload after a small delay to ensure clean state
+      setTimeout(() => {
+        if (window.location.pathname !== '/auth') {
+          window.location.href = '/auth';
+        }
+      }, 300);
     } catch (error) {
       logAuthError('signOut', error);
       if (isMountedRef.current) setLoading(false);
+      
+      // Force a page reload even on error after a delay
+      setTimeout(() => {
+        if (window.location.pathname !== '/auth') {
+          window.location.href = '/auth';
+        }
+      }, 300);
     }
   };
   const signInWithGoogle = async () => {
@@ -574,11 +689,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
        if (existingProfile) {
          console.warn('completeGoogleSignUp: Profile found unexpectedly. Updating username.');
          const { error: updateExistingError } = await supabase.from('profiles').update({ username: username.trim(), updated_at: new Date().toISOString() }).eq('id', currentUser.id);
-         if (updateExistingError) { logAuthError('completeGoogleSignUp:updateExisting', updateExistingError, false); }
+         if (updateExistingError) logAuthError('completeGoogleSignUp:updateExisting', updateExistingError, false);
        } else {
          // 3. Update Auth Metadata FIRST
          const { error: updateMetaError } = await supabase.auth.updateUser({ data: { username: username.trim(), full_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || '', avatar_url: currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || '' }});
-         if (updateMetaError) { logAuthError('completeGoogleSignUp:updateMeta', updateMetaError, false); }
+         if (updateMetaError) logAuthError('completeGoogleSignUp:updateMeta', updateMetaError, false);
 
          // 4. Create Profile
          const { error: insertError } = await supabase.from('profiles').insert({ id: currentUser.id, username: username.trim(), full_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || '', avatar_url: currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || '', created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
