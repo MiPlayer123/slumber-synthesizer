@@ -19,6 +19,7 @@ import PasswordResetDebug from "@/pages/PasswordResetDebug";
 import About from "@/pages/About";
 import Privacy from "@/pages/Privacy";
 import Terms from "@/pages/Terms";
+import { UserProfile } from "./pages/UserProfile";
 
 // Lazy loaded pages for performance
 const Journal = lazy(() => import("@/pages/Journal"));
@@ -209,6 +210,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/profile/:username" 
+        element={
+          <ProtectedRoute>
+            <UserProfile />
           </ProtectedRoute>
         } 
       />

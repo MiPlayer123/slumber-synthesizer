@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dream, Profile } from '@/lib/types';
@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { DreamLikeButton } from '@/components/dreams/DreamLikeButton';
 import { useQueryClient } from '@tanstack/react-query';
+import { ProfileHoverCard } from '@/components/ui/profile-hover-card';
 
 export default function DreamDetail() {
   const { dreamId } = useParams<{ dreamId: string }>();
@@ -148,11 +149,17 @@ export default function DreamDetail() {
           
           <div className="md:col-span-2 p-6 flex flex-col">
             <div className="flex items-center gap-2 mb-4">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={dream.profiles?.avatar_url || ''} />
-                <AvatarFallback>{dream.profiles?.username?.charAt(0) || 'U'}</AvatarFallback>
-              </Avatar>
-              <span className="font-medium">{dream.profiles?.username || 'Anonymous'}</span>
+              {dream.profiles?.username && (
+                <ProfileHoverCard username={dream.profiles.username}>
+                  <Link to={`/profile/${dream.profiles.username}`} className="flex items-center gap-2 transition-opacity hover:opacity-70">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={dream.profiles.avatar_url || ''} />
+                      <AvatarFallback>{dream.profiles.username.charAt(0) || 'U'}</AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium">{dream.profiles.username || 'Anonymous'}</span>
+                  </Link>
+                </ProfileHoverCard>
+              )}
             </div>
             
             <div className="mb-6">
