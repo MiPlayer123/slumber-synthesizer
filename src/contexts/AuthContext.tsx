@@ -117,7 +117,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
 
-  // --- Simplified Initialization and Auth State Listener ---
   useEffect(() => {
     isMountedRef.current = true;
     setLoading(true); // Start loading
@@ -125,11 +124,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let isInitialized = false; // Track if we've completed initial setup
     let visibilityTimeout: NodeJS.Timeout | null = null;
 
+    // Initialize the last visibility change timestamp
+    (window as any).lastVisibilityChange = Date.now();
+
     // Add visibility change listener to handle tab focus changes
     const handleVisibilityChange = () => {
       if (visibilityTimeout) {
         clearTimeout(visibilityTimeout);
       }
+
+      // Track when the visibility changed
+      (window as any).lastVisibilityChange = Date.now();
 
       if (!document.hidden && isMountedRef.current && isInitialized) {
         console.log("Tab became visible again");
@@ -141,14 +146,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log("Resetting loading state after visibility change");
             setLoading(false);
           }
-        }, 300);
+        }, 100); // Reduce timeout from 300ms to 100ms to make it more responsive
       }
     };
 
-    // Add visibility listener
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // 1. Initial Session Check
+    // Initial Session Check
     supabase.auth.getSession().then(async ({ data: { session: initialSession }, error: sessionError }) => {
       if (!isMountedRef.current) return; // Component unmounted? Bail.
 
@@ -171,13 +175,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setNeedsProfileCompletion(false);
       }
 
-      setLoading(false); // Set loading to false after initial check
-      isInitialized = true; // Mark as initialized
+      setLoading(false); 
+      isInitialized = true; 
 
-      // 2. Set up the Listener (AFTER initial check state is set)
+      // Set up the Listener (AFTER initial check state is set)
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
         if (!isMountedRef.current) return; // Check mount status in listener
         console.log(`onAuthStateChange: Event = ${event}, User = ${currentSession?.user?.id ?? 'null'}`);
+
+        // Track if this auth event was triggered by visibility change
+        const wasTriggeredByVisibilityChange = !document.hidden && 
+          document.visibilityState === 'visible' && 
+          Date.now() - (window as any).lastVisibilityChange < 5000;
 
         // Skip loading for INITIAL_SESSION events when already initialized
         // unless there's an actual change in token
@@ -186,11 +195,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           (!session || !currentSession || session.access_token !== currentSession.access_token);
 
         // Only set loading to true for significant auth events
-        if (event !== 'INITIAL_SESSION' || isTokenRefresh) {
+        // Skip loading state if triggered by visibility change
+        if ((event !== 'INITIAL_SESSION' || isTokenRefresh) && 
+            !document.hidden && 
+            !wasTriggeredByVisibilityChange) {
           console.log(`Setting loading to true for auth event: ${event}`);
           setLoading(true);
         } else if (event === 'INITIAL_SESSION' && isInitialized) {
           console.log('Skipping loading state for redundant INITIAL_SESSION');
+        } else if (wasTriggeredByVisibilityChange) {
+          console.log(`Skipping loading state for ${event} triggered by tab visibility change`);
         }
 
         try {
@@ -330,7 +344,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [ensureUserProfile, logAuthError]);
 
 
-  // --- Auth Action Implementations (Simplified) ---
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
