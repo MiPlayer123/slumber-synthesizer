@@ -117,13 +117,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
 
-  // --- Simplified Initialization and Auth State Listener ---
   useEffect(() => {
     isMountedRef.current = true;
     setLoading(true); // Start loading
     let authListener: { unsubscribe: () => void } | null = null;
+    let isInitialized = false; // Track if we've completed initial setup
+    let visibilityTimeout: NodeJS.Timeout | null = null;
 
-    // 1. Initial Session Check
+    // Initialize the last visibility change timestamp
+    (window as any).lastVisibilityChange = Date.now();
+    // Track tab visibility state to prevent unnecessary reloads
+    (window as any).isReturningToTab = false;
+
+    // Add visibility change listener to handle tab focus changes
+    const handleVisibilityChange = () => {
+      if (visibilityTimeout) {
+        clearTimeout(visibilityTimeout);
+      }
+
+      // Track when the visibility changed
+      (window as any).lastVisibilityChange = Date.now();
+
+      if (document.hidden) {
+        // Tab is becoming hidden
+        (window as any).isReturningToTab = true;
+      } else if (!document.hidden && isMountedRef.current && isInitialized) {
+        console.log("Tab became visible again");
+        
+        // Prevent reloads by disabling Supabase auto-refresh temporarily
+        try {
+          console.log("Temporarily blocking auto-refresh to prevent reload on tab return");
+          // Set a flag to indicate we're handling a tab return
+          (window as any).blockNextAuthRefresh = true;
+          
+          // Clear the block after a short delay
+          setTimeout(() => {
+            delete (window as any).blockNextAuthRefresh;
+          }, 5000); 
+        } catch (err) {
+          console.error("Error trying to prevent auth refresh:", err);
+        }
+        
+        // Force the loading state to be false when returning to the tab
+        visibilityTimeout = setTimeout(() => {
+          if (isMountedRef.current) {
+            console.log("Resetting loading state after visibility change");
+            setLoading(false);
+          }
+        }, 100);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Initial Session Check
     supabase.auth.getSession().then(async ({ data: { session: initialSession }, error: sessionError }) => {
       if (!isMountedRef.current) return; // Component unmounted? Bail.
 
@@ -146,85 +193,187 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setNeedsProfileCompletion(false);
       }
 
-      // 2. Set up the Listener (AFTER initial check state is set)
+      setLoading(false); 
+      isInitialized = true; 
+
+      // Set up the Listener (AFTER initial check state is set)
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
         if (!isMountedRef.current) return; // Check mount status in listener
         console.log(`onAuthStateChange: Event = ${event}, User = ${currentSession?.user?.id ?? 'null'}`);
 
-        switch (event) {
-          case 'SIGNED_IN':
-            if (currentSession?.user) {
-              setUser(currentSession.user);
-              setSession(currentSession);
-              
-              // Check profile status on sign in
-              await ensureUserProfile(currentSession.user);
-            } else {
+        // Check if this event should be blocked due to tab visibility change
+        if ((window as any).blockNextAuthRefresh && 
+            (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
+          console.log(`Blocking auth event ${event} triggered by tab visibility change`);
+          if (isMountedRef.current) setLoading(false);
+          return; 
+        }
+
+        // Track if this auth event was triggered by visibility change
+        const wasTriggeredByVisibilityChange = !document.hidden && 
+          document.visibilityState === 'visible' && 
+          (window as any).isReturningToTab && 
+          Date.now() - (window as any).lastVisibilityChange < 5000;
+
+        // Skip loading for INITIAL_SESSION events when already initialized
+        // unless there's an actual change in token
+        const isTokenRefresh = 
+          event === 'INITIAL_SESSION' && isInitialized && 
+          (!session || !currentSession || session.access_token !== currentSession.access_token);
+
+        // Don't set loading to true if this event is triggered by tab visibility change
+        // or if we have a redundant INITIAL_SESSION
+        if (wasTriggeredByVisibilityChange) {
+          console.log(`Skipping loading state for ${event} triggered by tab visibility change`);
+          // Also skip the profile check for visibility-triggered events if we already have the user
+          if (user && currentSession?.user?.id === user.id) {
+            console.log('Skipping profile check for returning tab with same user');
+            if (isMountedRef.current) setLoading(false);
+            return; // Exit early to prevent reloading data
+          }
+        } else if (event === 'INITIAL_SESSION' && isInitialized) {
+          console.log('Skipping loading state for redundant INITIAL_SESSION');
+        } else if ((event !== 'INITIAL_SESSION' || isTokenRefresh) && !document.hidden) {
+          console.log(`Setting loading to true for auth event: ${event}`);
+          setLoading(true);
+        }
+
+        try {
+          // Wait for a small delay to allow the UI to show loading state
+          // This ensures the loading indicator appears before heavy operations
+          if (event !== 'INITIAL_SESSION' || isTokenRefresh) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+
+          switch (event) {
+            case 'SIGNED_IN':
+              if (currentSession?.user) {
+                // If this is triggered by a tab visibility change and we have the same user,
+                // just maintain the current state and avoid any profile checks or state updates
+                if (wasTriggeredByVisibilityChange && user && user.id === currentSession.user.id) {
+                  console.log('Maintaining current state on tab return with same user - preventing content reload');
+                  // Make sure we explicitly set loading to false since we're skipping the normal flow
+                  if (isMountedRef.current && loading) setLoading(false);
+                  break; // Exit early without updating state or checking profile
+                }
+                
+                // First set the basic auth state
+                setUser(currentSession.user);
+                setSession(currentSession);
+                
+                // Skip profile check if this is a tab visibility change and we already have user data
+                if (wasTriggeredByVisibilityChange && user && user.id === currentSession.user.id) {
+                  console.log('Skip profile check on tab return for existing user');
+                  break;
+                }
+                
+                // Then check profile status - with a maximum wait time to prevent hanging
+                const profileCheckPromise = ensureUserProfile(currentSession.user);
+                const timeoutPromise = new Promise<boolean>(resolve => setTimeout(() => {
+                  console.warn('Profile check timed out, continuing...');
+                  resolve(false);
+                }, 3000));
+                
+                await Promise.race([profileCheckPromise, timeoutPromise]);
+              } else {
+                setUser(null);
+                setSession(null);
+                setNeedsProfileCompletion(false);
+              }
+              break;
+
+            case 'SIGNED_OUT':
               setUser(null);
               setSession(null);
               setNeedsProfileCompletion(false);
-              if (isMountedRef.current) setLoading(false);
-            }
-            break;
-
-          case 'SIGNED_OUT':
-            setUser(null);
-            setSession(null);
-            setNeedsProfileCompletion(false);
-            if (isMountedRef.current) setLoading(false);
-            break;
-
-          case 'TOKEN_REFRESHED':
-            if (currentSession) {
-              setSession(currentSession);
-              if (currentSession.user && currentSession.user.id !== user?.id) {
-                setUser(currentSession.user);
-                // Check profile status on user change
-                const needsCompletion = await ensureUserProfile(currentSession.user);
-                if (needsCompletion) {
+              
+              // Force a delay before completing to ensure UI updates
+              await new Promise(resolve => setTimeout(resolve, 100));
+              
+              // Redirect to auth page if not already there, after signout completes
+              setTimeout(() => {
+                if (window.location.pathname !== '/auth') {
+                  console.log('Redirecting to auth page after signout');
                   window.location.href = '/auth';
                 }
+              }, 200);
+              break;
+
+            case 'TOKEN_REFRESHED':
+              if (currentSession) {
+                // If triggered by tab visibility change with same user, don't update state
+                if (wasTriggeredByVisibilityChange && user && user.id === currentSession.user?.id) {
+                  console.log('Skipping token refresh handling on tab return');
+                  if (isMountedRef.current && loading) setLoading(false);
+                  break;
+                }
+                
+                setSession(currentSession);
+                if (currentSession.user && currentSession.user.id !== user?.id) {
+                  setUser(currentSession.user);
+                  await ensureUserProfile(currentSession.user);
+                }
+              } else {
+                setUser(null);
+                setSession(null);
+                setNeedsProfileCompletion(false);
               }
-            } else {
-              setUser(null);
-              setSession(null);
-              setNeedsProfileCompletion(false);
+              break;
+
+            case 'USER_UPDATED':
+              if (currentSession?.user) {
+                setUser(currentSession.user);
+                await ensureUserProfile(currentSession.user);
+              }
+              break;
+
+            case 'PASSWORD_RECOVERY':
               if (isMountedRef.current) setLoading(false);
-            }
-            break;
+              break;
 
-          case 'USER_UPDATED':
-            if (currentSession?.user) {
-              setUser(currentSession.user);
-              // Check profile status on user update
-              const needsCompletion = await ensureUserProfile(currentSession.user);
-              if (needsCompletion) {
-                window.location.href = '/auth';
+            case 'INITIAL_SESSION':
+              // Only process INITIAL_SESSION if we don't already have a matching session
+              // or if we're in the initial loading phase (!isInitialized)
+              const shouldProcessInitialSession = !isInitialized || 
+                !session || 
+                !currentSession || 
+                session.access_token !== currentSession.access_token;
+              
+              if (shouldProcessInitialSession) {
+                console.log('Processing INITIAL_SESSION event');
+                if (currentSession?.user) {
+                  setUser(currentSession.user);
+                  setSession(currentSession);
+                  
+                  // Only check profile if we actually have a different user or session
+                  if (!session || session.access_token !== currentSession.access_token) {
+                    await ensureUserProfile(currentSession.user);
+                  }
+                } else {
+                  setUser(null);
+                  setSession(null);
+                  setNeedsProfileCompletion(false);
+                }
+              } else {
+                console.log('Skipping redundant INITIAL_SESSION event');
+                // Force the loading state to false to prevent getting stuck
+                if (loading && isMountedRef.current) {
+                  setLoading(false);
+                }
               }
-            }
-            break;
+              break;
 
-          case 'PASSWORD_RECOVERY':
-            if (isMountedRef.current) setLoading(false);
-            break;
-
-          case 'INITIAL_SESSION':
-            if (currentSession?.user) {
-              setUser(currentSession.user);
-              setSession(currentSession);
-              // Check profile status on initial session
-              await ensureUserProfile(currentSession.user);
-            } else {
-              setUser(null);
-              setSession(null);
-              setNeedsProfileCompletion(false);
-            }
-            if (isMountedRef.current) setLoading(false);
-            break;
-
-          default:
-            console.log(`Unhandled auth event: ${event}`);
-            if (isMountedRef.current) setLoading(false);
+            default:
+              console.log(`Unhandled auth event: ${event}`);
+              if (isMountedRef.current) setLoading(false);
+          }
+        } catch (error) {
+          console.error('Error during auth state change:', error);
+          logAuthError('authStateChange', error);
+        } finally {
+          if (isMountedRef.current) {
+            setLoading(false); // Always ensure loading is set to false at the end
+          }
         }
       });
       authListener = subscription;
@@ -240,11 +389,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("AuthContext unmounting. Cleaning up listener.");
       isMountedRef.current = false;
       authListener?.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (visibilityTimeout) {
+        clearTimeout(visibilityTimeout);
+      }
+      // Clear tab state flags
+      delete (window as any).isReturningToTab;
+      delete (window as any).blockNextAuthRefresh;
     };
   }, [ensureUserProfile, logAuthError]);
 
 
-  // --- Auth Action Implementations (Simplified) ---
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
@@ -256,6 +411,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // SUCCESS: onAuthStateChange will handle setting user/session and setLoading(false)
       toast({ title: 'Welcome back!', description: 'Signed in successfully.' });
+      
+      // Only redirect if we're on the auth page, no need to reload otherwise
+      if (window.location.pathname === '/auth') {
+        console.log('Redirecting to home page after signin');
+        window.location.href = '/';
+      }
+      
       return { success: true, error: null };
 
     } catch (error) {
@@ -307,8 +469,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Clear auth storage first to ensure clean state
       clearAuthStorage();
       
-      // Then sign out from Supabase
-      const { error } = await supabase.auth.signOut();
+      // Then sign out from Supabase with a maximum timeout
+      const signOutPromise = supabase.auth.signOut();
+      const timeoutPromise = new Promise<{error: Error}>((_, reject) => 
+        setTimeout(() => reject({error: new Error('Sign out timed out')}), 5000)
+      );
+      
+      const { error } = await Promise.race([signOutPromise, timeoutPromise]);
       if (error) {
         throw error;
       }
@@ -318,13 +485,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setSession(null);
         setNeedsProfileCompletion(false);
+        
+        // Force a small delay before clearing loading to ensure UI updates
+        await new Promise(resolve => setTimeout(resolve, 100));
         setLoading(false);
       }
       
       toast({ title: 'Signed Out', description: 'You have been successfully signed out.' });
+      
+      // Force a page reload after a small delay to ensure clean state
+      setTimeout(() => {
+        if (window.location.pathname !== '/auth') {
+          window.location.href = '/auth';
+        }
+      }, 300);
     } catch (error) {
       logAuthError('signOut', error);
       if (isMountedRef.current) setLoading(false);
+      
+      // Force a page reload even on error after a delay
+      setTimeout(() => {
+        if (window.location.pathname !== '/auth') {
+          window.location.href = '/auth';
+        }
+      }, 300);
     }
   };
   const signInWithGoogle = async () => {
@@ -574,11 +758,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
        if (existingProfile) {
          console.warn('completeGoogleSignUp: Profile found unexpectedly. Updating username.');
          const { error: updateExistingError } = await supabase.from('profiles').update({ username: username.trim(), updated_at: new Date().toISOString() }).eq('id', currentUser.id);
-         if (updateExistingError) { logAuthError('completeGoogleSignUp:updateExisting', updateExistingError, false); }
+         if (updateExistingError) logAuthError('completeGoogleSignUp:updateExisting', updateExistingError, false);
        } else {
          // 3. Update Auth Metadata FIRST
          const { error: updateMetaError } = await supabase.auth.updateUser({ data: { username: username.trim(), full_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || '', avatar_url: currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || '' }});
-         if (updateMetaError) { logAuthError('completeGoogleSignUp:updateMeta', updateMetaError, false); }
+         if (updateMetaError) logAuthError('completeGoogleSignUp:updateMeta', updateMetaError, false);
 
          // 4. Create Profile
          const { error: insertError } = await supabase.from('profiles').insert({ id: currentUser.id, username: username.trim(), full_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || '', avatar_url: currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || '', created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
