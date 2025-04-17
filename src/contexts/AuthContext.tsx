@@ -126,6 +126,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Initialize the last visibility change timestamp
     (window as any).lastVisibilityChange = Date.now();
+    // Track tab visibility state to prevent unnecessary reloads
+    (window as any).isReturningToTab = false;
 
     // Add visibility change listener to handle tab focus changes
     const handleVisibilityChange = () => {
@@ -136,17 +138,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Track when the visibility changed
       (window as any).lastVisibilityChange = Date.now();
 
-      if (!document.hidden && isMountedRef.current && isInitialized) {
+      if (document.hidden) {
+        // Tab is becoming hidden
+        (window as any).isReturningToTab = true;
+      } else if (!document.hidden && isMountedRef.current && isInitialized) {
         console.log("Tab became visible again");
         
+        // Prevent reloads by disabling Supabase auto-refresh temporarily
+        try {
+          console.log("Temporarily blocking auto-refresh to prevent reload on tab return");
+          // Set a flag to indicate we're handling a tab return
+          (window as any).blockNextAuthRefresh = true;
+          
+          // Clear the block after a short delay
+          setTimeout(() => {
+            delete (window as any).blockNextAuthRefresh;
+          }, 5000); 
+        } catch (err) {
+          console.error("Error trying to prevent auth refresh:", err);
+        }
+        
         // Force the loading state to be false when returning to the tab
-        // This ensures we don't get stuck in a loading state
         visibilityTimeout = setTimeout(() => {
           if (isMountedRef.current) {
             console.log("Resetting loading state after visibility change");
             setLoading(false);
           }
-        }, 100); // Reduce timeout from 300ms to 100ms to make it more responsive
+        }, 100);
       }
     };
 
@@ -183,9 +201,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!isMountedRef.current) return; // Check mount status in listener
         console.log(`onAuthStateChange: Event = ${event}, User = ${currentSession?.user?.id ?? 'null'}`);
 
+        // Check if this event should be blocked due to tab visibility change
+        if ((window as any).blockNextAuthRefresh && 
+            (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
+          console.log(`Blocking auth event ${event} triggered by tab visibility change`);
+          if (isMountedRef.current) setLoading(false);
+          return; 
+        }
+
         // Track if this auth event was triggered by visibility change
         const wasTriggeredByVisibilityChange = !document.hidden && 
           document.visibilityState === 'visible' && 
+          (window as any).isReturningToTab && 
           Date.now() - (window as any).lastVisibilityChange < 5000;
 
         // Skip loading for INITIAL_SESSION events when already initialized
@@ -194,17 +221,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           event === 'INITIAL_SESSION' && isInitialized && 
           (!session || !currentSession || session.access_token !== currentSession.access_token);
 
-        // Only set loading to true for significant auth events
-        // Skip loading state if triggered by visibility change
-        if ((event !== 'INITIAL_SESSION' || isTokenRefresh) && 
-            !document.hidden && 
-            !wasTriggeredByVisibilityChange) {
-          console.log(`Setting loading to true for auth event: ${event}`);
-          setLoading(true);
+        // Don't set loading to true if this event is triggered by tab visibility change
+        // or if we have a redundant INITIAL_SESSION
+        if (wasTriggeredByVisibilityChange) {
+          console.log(`Skipping loading state for ${event} triggered by tab visibility change`);
+          // Also skip the profile check for visibility-triggered events if we already have the user
+          if (user && currentSession?.user?.id === user.id) {
+            console.log('Skipping profile check for returning tab with same user');
+            if (isMountedRef.current) setLoading(false);
+            return; // Exit early to prevent reloading data
+          }
         } else if (event === 'INITIAL_SESSION' && isInitialized) {
           console.log('Skipping loading state for redundant INITIAL_SESSION');
-        } else if (wasTriggeredByVisibilityChange) {
-          console.log(`Skipping loading state for ${event} triggered by tab visibility change`);
+        } else if ((event !== 'INITIAL_SESSION' || isTokenRefresh) && !document.hidden) {
+          console.log(`Setting loading to true for auth event: ${event}`);
+          setLoading(true);
         }
 
         try {
@@ -217,9 +248,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           switch (event) {
             case 'SIGNED_IN':
               if (currentSession?.user) {
+                // If this is triggered by a tab visibility change and we have the same user,
+                // just maintain the current state and avoid any profile checks or state updates
+                if (wasTriggeredByVisibilityChange && user && user.id === currentSession.user.id) {
+                  console.log('Maintaining current state on tab return with same user - preventing content reload');
+                  // Make sure we explicitly set loading to false since we're skipping the normal flow
+                  if (isMountedRef.current && loading) setLoading(false);
+                  break; // Exit early without updating state or checking profile
+                }
+                
                 // First set the basic auth state
                 setUser(currentSession.user);
                 setSession(currentSession);
+                
+                // Skip profile check if this is a tab visibility change and we already have user data
+                if (wasTriggeredByVisibilityChange && user && user.id === currentSession.user.id) {
+                  console.log('Skip profile check on tab return for existing user');
+                  break;
+                }
                 
                 // Then check profile status - with a maximum wait time to prevent hanging
                 const profileCheckPromise = ensureUserProfile(currentSession.user);
@@ -255,6 +301,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             case 'TOKEN_REFRESHED':
               if (currentSession) {
+                // If triggered by tab visibility change with same user, don't update state
+                if (wasTriggeredByVisibilityChange && user && user.id === currentSession.user?.id) {
+                  console.log('Skipping token refresh handling on tab return');
+                  if (isMountedRef.current && loading) setLoading(false);
+                  break;
+                }
+                
                 setSession(currentSession);
                 if (currentSession.user && currentSession.user.id !== user?.id) {
                   setUser(currentSession.user);
@@ -340,6 +393,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (visibilityTimeout) {
         clearTimeout(visibilityTimeout);
       }
+      // Clear tab state flags
+      delete (window as any).isReturningToTab;
+      delete (window as any).blockNextAuthRefresh;
     };
   }, [ensureUserProfile, logAuthError]);
 
