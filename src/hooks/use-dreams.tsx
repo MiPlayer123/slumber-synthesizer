@@ -37,7 +37,8 @@ export const useDreams = (userId: string | undefined) => {
       return data as Dream[];
     },
     refetchOnMount: 'always',
-    staleTime: 0
+    staleTime: 0,
+    refetchOnWindowFocus: false
   });
 };
 
@@ -92,7 +93,8 @@ export const usePaginatedDreams = (userId: string | undefined, pageSize: number 
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
     refetchOnMount: 'always',
-    staleTime: 0
+    staleTime: 0,
+    refetchOnWindowFocus: false
   });
 };
 
@@ -151,7 +153,8 @@ export const usePublicDreams = (pageSize: number = 20) => {
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
     refetchOnMount: 'always',
-    staleTime: 0
+    staleTime: 0,
+    refetchOnWindowFocus: false
   });
 };
 
@@ -217,6 +220,7 @@ export const useCommunityDreams = (pageSize: number = 10) => {
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
     refetchOnMount: 'always',
-    staleTime: 0
+    staleTime: 0,
+    refetchOnWindowFocus: false
   });
 };
