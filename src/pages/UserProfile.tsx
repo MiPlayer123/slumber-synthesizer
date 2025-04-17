@@ -674,7 +674,10 @@ export const UserProfile = () => {
                             <div key={comment.id} className="flex gap-2">
                               {comment.profiles?.username && (
                                 <ProfileHoverCard username={comment.profiles.username}>
-                                  <Link to={`/profile/${comment.profiles.username}`}>
+                                  <Link 
+                                    to={`/profile/${comment.profiles.username}`}
+                                    onClick={() => setSelectedDream(null)}
+                                  >
                                     <Avatar className="h-7 w-7 flex-shrink-0 cursor-pointer transition-opacity hover:opacity-70">
                                       <AvatarImage src={comment.profiles?.avatar_url || ''} />
                                       <AvatarFallback>{comment.profiles?.username?.charAt(0) || 'U'}</AvatarFallback>
@@ -686,7 +689,10 @@ export const UserProfile = () => {
                                 <div className="flex items-baseline gap-1">
                                   {comment.profiles?.username && (
                                     <ProfileHoverCard username={comment.profiles.username}>
-                                      <Link to={`/profile/${comment.profiles.username}`}>
+                                      <Link 
+                                        to={`/profile/${comment.profiles.username}`}
+                                        onClick={() => setSelectedDream(null)}
+                                      >
                                         <span className="font-medium text-sm cursor-pointer transition-colors hover:text-muted-foreground">{comment.profiles?.username || 'Anonymous'}</span>
                                       </Link>
                                     </ProfileHoverCard>
