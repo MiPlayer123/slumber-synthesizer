@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Dream, Profile } from "@/lib/types";
 import {
@@ -25,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCommunityDreams } from "@/hooks/use-dreams";
+import { ProfileHoverCard } from "@/components/ui/profile-hover-card";
 
 const Community = () => {
   // References for infinite scrolling
@@ -121,6 +123,7 @@ interface DreamCardProps {
 
 function DreamCard({ dream }: DreamCardProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [showComments, setShowComments] = useState(false);
   
@@ -165,14 +168,22 @@ function DreamCard({ dream }: DreamCardProps) {
       {/* Card Header with Author Info */}
       <CardHeader className="flex flex-row items-center justify-between p-4 space-y-0">
         <div className="flex items-center space-x-3">
-          <Avatar>
-            {dream.profiles.avatar_url && (
-              <AvatarImage src={dream.profiles.avatar_url} alt={dream.profiles.username} />
-            )}
-            <AvatarFallback>{avatarFallback}</AvatarFallback>
-          </Avatar>
+          <ProfileHoverCard username={dream.profiles.username}>
+            <Link to={`/profile/${dream.profiles.username}`}>
+              <Avatar className="cursor-pointer transition-opacity hover:opacity-70">
+                {dream.profiles.avatar_url && (
+                  <AvatarImage src={dream.profiles.avatar_url} alt={dream.profiles.username} />
+                )}
+                <AvatarFallback>{avatarFallback}</AvatarFallback>
+              </Avatar>
+            </Link>
+          </ProfileHoverCard>
           <div>
-            <CardTitle className="text-base">{dream.profiles.username}</CardTitle>
+            <ProfileHoverCard username={dream.profiles.username}>
+              <Link to={`/profile/${dream.profiles.username}`}>
+                <CardTitle className="text-base cursor-pointer transition-colors hover:text-muted-foreground">{dream.profiles.username}</CardTitle>
+              </Link>
+            </ProfileHoverCard>
             <p className="text-xs text-muted-foreground">
               {new Date(dream.created_at).toLocaleDateString()}
             </p>
@@ -203,13 +214,21 @@ function DreamCard({ dream }: DreamCardProps) {
       
       {/* Dream Content */}
       <CardContent className="p-0">
-        {/* Dream Title - Moved above the image */}
+        {/* Dream Title - Clickable to view full dream */}
         <div className="px-4 pt-1 pb-3">
-          <h3 className="font-bold">{dream.title}</h3>
+          <h3 
+            className="font-bold cursor-pointer hover:underline"
+            onClick={() => navigate(`/dream/${dream.id}`)}
+          >
+            {dream.title}
+          </h3>
         </div>
         
         {dream.image_url && (
-          <div className="relative w-full aspect-video">
+          <div 
+            className="relative w-full aspect-video cursor-pointer"
+            onClick={() => navigate(`/dream/${dream.id}`)}
+          >
             <img
               src={dream.image_url}
               alt={dream.title}
