@@ -29,6 +29,8 @@ import { useDreamLikes } from '@/hooks/use-dream-likes';
 import { usePublicDreams } from '@/hooks/use-dreams';
 import { useDreamCommentCount } from "@/hooks/use-dream-comments";
 import { CommentButton } from "@/components/dreams/CommentButton";
+import { useNavigate, Link } from 'react-router-dom';
+import { ProfileHoverCard } from "@/components/ui/profile-hover-card";
 
 export default function DreamWall() {
   const { user } = useAuth();
@@ -225,6 +227,8 @@ export default function DreamWall() {
       refreshLikes();
     }
   };
+
+  const navigate = useNavigate();
 
   return (
     <div className="container mx-auto py-8">
@@ -482,11 +486,23 @@ export default function DreamWall() {
               <div className="md:w-2/5 flex flex-col h-full max-h-[600px] overflow-hidden">
                 <div className="p-4 border-b">
                   <div className="flex items-center gap-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={selectedDream.profiles?.avatar_url || ''} />
-                      <AvatarFallback>{selectedDream.profiles?.username?.charAt(0) || 'U'}</AvatarFallback>
-                    </Avatar>
-                    <span className="font-medium">{selectedDream.profiles?.username || 'Anonymous'}</span>
+                    {selectedDream.profiles?.username && (
+                      <ProfileHoverCard username={selectedDream.profiles.username}>
+                        <Link to={`/profile/${selectedDream.profiles.username}`}>
+                          <Avatar className="h-8 w-8 cursor-pointer transition-opacity hover:opacity-70">
+                            <AvatarImage src={selectedDream.profiles?.avatar_url || ''} />
+                            <AvatarFallback>{selectedDream.profiles?.username.charAt(0) || 'U'}</AvatarFallback>
+                          </Avatar>
+                        </Link>
+                      </ProfileHoverCard>
+                    )}
+                    {selectedDream.profiles?.username && (
+                      <ProfileHoverCard username={selectedDream.profiles.username}>
+                        <Link to={`/profile/${selectedDream.profiles.username}`}>
+                          <span className="font-medium cursor-pointer transition-colors hover:text-muted-foreground">{selectedDream.profiles?.username || 'Anonymous'}</span>
+                        </Link>
+                      </ProfileHoverCard>
+                    )}
                   </div>
                 </div>
                 
@@ -531,13 +547,25 @@ export default function DreamWall() {
                         <div className="space-y-3">
                           {comments.map((comment) => (
                             <div key={comment.id} className="flex gap-2">
-                              <Avatar className="h-7 w-7 flex-shrink-0">
-                                <AvatarImage src={comment.profiles?.avatar_url || ''} />
-                                <AvatarFallback>{comment.profiles?.username?.charAt(0) || 'U'}</AvatarFallback>
-                              </Avatar>
+                              {comment.profiles?.username && (
+                                <ProfileHoverCard username={comment.profiles.username}>
+                                  <Link to={`/profile/${comment.profiles.username}`}>
+                                    <Avatar className="h-7 w-7 flex-shrink-0 cursor-pointer transition-opacity hover:opacity-70">
+                                      <AvatarImage src={comment.profiles?.avatar_url || ''} />
+                                      <AvatarFallback>{comment.profiles?.username?.charAt(0) || 'U'}</AvatarFallback>
+                                    </Avatar>
+                                  </Link>
+                                </ProfileHoverCard>
+                              )}
                               <div>
                                 <div className="flex items-baseline gap-1">
-                                  <span className="font-medium text-sm">{comment.profiles?.username || 'Anonymous'}</span>
+                                  {comment.profiles?.username && (
+                                    <ProfileHoverCard username={comment.profiles.username}>
+                                      <Link to={`/profile/${comment.profiles.username}`}>
+                                        <span className="font-medium text-sm cursor-pointer transition-colors hover:text-muted-foreground">{comment.profiles?.username || 'Anonymous'}</span>
+                                      </Link>
+                                    </ProfileHoverCard>
+                                  )}
                                   <p className="text-sm">{comment.content}</p>
                                 </div>
                                 <span className="text-xs text-muted-foreground">
@@ -659,11 +687,23 @@ const DreamTile: React.FC<DreamTileProps> = ({
       
       <CardContent className="p-4">
         <div className="flex items-center gap-2 mb-2">
-          <Avatar className="h-6 w-6">
-            <AvatarImage src={dream.profiles?.avatar_url || ''} />
-            <AvatarFallback>{dream.profiles?.username?.charAt(0) || 'U'}</AvatarFallback>
-          </Avatar>
-          <span className="text-sm font-medium">{dream.profiles?.username || 'Anonymous'}</span>
+          {dream.profiles?.username && (
+            <ProfileHoverCard username={dream.profiles.username}>
+              <Link to={`/profile/${dream.profiles.username}`} onClick={(e) => e.stopPropagation()}>
+                <Avatar className="h-6 w-6 transition-opacity hover:opacity-70">
+                  <AvatarImage src={dream.profiles?.avatar_url || ''} />
+                  <AvatarFallback>{dream.profiles?.username?.charAt(0) || 'U'}</AvatarFallback>
+                </Avatar>
+              </Link>
+            </ProfileHoverCard>
+          )}
+          {dream.profiles?.username && (
+            <ProfileHoverCard username={dream.profiles.username}>
+              <Link to={`/profile/${dream.profiles.username}`} onClick={(e) => e.stopPropagation()}>
+                <span className="text-sm font-medium transition-colors hover:text-muted-foreground">{dream.profiles?.username || 'Anonymous'}</span>
+              </Link>
+            </ProfileHoverCard>
+          )}
         </div>
         
         <h3 className="font-bold line-clamp-1">{dream.title}</h3>

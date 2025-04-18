@@ -7,6 +7,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { ProfileHoverCard } from '@/components/ui/profile-hover-card';
 
 interface Comment {
   id: string;
@@ -133,23 +135,31 @@ export const CommentsSection = ({ dreamId }: CommentsSectionProps) => {
       ) : (
         comments.map(comment => (
           <div key={comment.id} className="flex items-start space-x-2 group">
-            <Avatar className="h-7 w-7 flex-shrink-0">
-              {comment.profiles.avatar_url ? (
-                <AvatarImage 
-                  src={comment.profiles.avatar_url} 
-                  alt={comment.profiles.username} 
-                />
-              ) : (
-                <AvatarFallback>
-                  {comment.profiles.username.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              )}
-            </Avatar>
+            <ProfileHoverCard username={comment.profiles.username}>
+              <Link to={`/profile/${comment.profiles.username}`}>
+                <Avatar className="h-7 w-7 flex-shrink-0 transition-opacity hover:opacity-70">
+                  {comment.profiles.avatar_url ? (
+                    <AvatarImage 
+                      src={comment.profiles.avatar_url} 
+                      alt={comment.profiles.username} 
+                    />
+                  ) : (
+                    <AvatarFallback>
+                      {comment.profiles.username.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+              </Link>
+            </ProfileHoverCard>
             <div className="flex-1">
               <div className="flex items-baseline gap-1">
-                <span className="font-medium text-sm">
-                  {comment.profiles.username}
-                </span>
+                <ProfileHoverCard username={comment.profiles.username}>
+                  <Link to={`/profile/${comment.profiles.username}`}>
+                    <span className="font-medium text-sm transition-colors hover:text-muted-foreground">
+                      {comment.profiles.username}
+                    </span>
+                  </Link>
+                </ProfileHoverCard>
                 <p className="text-sm break-words">{comment.content}</p>
               </div>
               <div className="flex items-center mt-1 text-xs text-muted-foreground space-x-2">
