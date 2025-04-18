@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageCircle, Filter, Search, Sparkles, Wand2, Share, Loader2, MoreHorizontal } from "lucide-react";
+import { MessageCircle, Filter, Search, Sparkles, Wand2, Share, Loader2, MoreHorizontal, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { DreamLikeButton } from '@/components/dreams/DreamLikeButton';
@@ -230,12 +230,20 @@ export default function DreamWall() {
 
   const navigate = useNavigate();
 
+  // Add a navigate handler function to properly close the dialog and navigate
+  const handleProfileNavigation = (username: string) => {
+    // Close the dialog first to avoid it persisting
+    setSelectedDream(null);
+    // Navigate to the profile
+    navigate(`/profile/${username}`);
+  };
+
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8 text-center text-purple-600">Dream Explorer</h1>
+    <div className="container mx-auto py-4 px-4 md:py-8">
+      <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-8 text-center text-purple-600">Dream Explorer</h1>
       
-      <div className="mb-8 bg-card rounded-lg p-4 shadow-md">
-        <div className="flex flex-col md:flex-row gap-4 mb-4">
+      <div className="mb-4 md:mb-8 bg-card rounded-lg p-3 md:p-4 shadow-md">
+        <div className="flex flex-col md:flex-row gap-3 md:gap-4 mb-2 md:mb-4">
           <div className="relative flex-grow">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <input
@@ -243,7 +251,8 @@ export default function DreamWall() {
               placeholder="Search dreams..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 w-full h-10 rounded-md border border-input bg-background px-3 py-2"
+              className="pl-10 w-full h-9 md:h-10 rounded-md border border-input bg-background px-3 py-2"
+              style={{ fontSize: '16px' }} // Prevent zoom on iOS
             />
           </div>
           
@@ -428,7 +437,7 @@ export default function DreamWall() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             {filteredDreams.map((dream) => (
               <DreamTile 
                 key={dream.id} 
@@ -443,11 +452,11 @@ export default function DreamWall() {
           {/* Load more indicator - ref is attached here */}
           <div 
             ref={loadMoreRef} 
-            className="py-8 text-center"
+            className="py-6 md:py-8 text-center"
           >
             {isFetchingNextPage ? (
               <div className="flex items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                <Loader2 className="h-5 w-5 md:h-6 md:w-6 animate-spin mr-2" />
                 <span>Loading more dreams...</span>
               </div>
             ) : hasNextPage ? (
@@ -463,13 +472,28 @@ export default function DreamWall() {
         open={!!selectedDream} 
         onOpenChange={handleDialogOpenChange}
       >
-        <DialogContent className="max-w-5xl p-0 overflow-hidden">
+        <DialogContent 
+          className="max-w-5xl p-0 overflow-hidden bg-background transition-all duration-300 will-change-transform will-change-opacity border-none sm:rounded-none md:rounded-lg"
+          style={{
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            transform: 'translate3d(-50%, -50%, 0)', // Force GPU acceleration
+            // Prevent any white line flashes with a subtle shadow
+            boxShadow: '0 0 0 1px rgba(0,0,0,0.1), 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)'
+          }}
+        >
           <DialogTitle className="sr-only">Dream Details</DialogTitle>
           <DialogDescription className="sr-only">View and interact with dream details</DialogDescription>
           
           {selectedDream && (
-            <div className="flex flex-col md:flex-row h-[90vh] md:h-auto">
-              <div className="md:w-3/5 bg-black flex items-center justify-center">
+            <div className="flex flex-col md:flex-row h-[90vh] md:h-auto overflow-hidden">
+              <div className="md:w-3/5 bg-black flex items-center justify-center"
+                style={{ 
+                  // Ensure smooth rendering of this section
+                  willChange: 'contents',
+                  transform: 'translateZ(0)'
+                }}
+              >
                 {selectedDream.image_url ? (
                   <img 
                     src={selectedDream.image_url} 
@@ -485,24 +509,43 @@ export default function DreamWall() {
               
               <div className="md:w-2/5 flex flex-col h-full max-h-[600px] overflow-hidden">
                 <div className="p-4 border-b">
-                  <div className="flex items-center gap-2">
-                    {selectedDream.profiles?.username && (
-                      <ProfileHoverCard username={selectedDream.profiles.username}>
-                        <Link to={`/profile/${selectedDream.profiles.username}`}>
-                          <Avatar className="h-8 w-8 cursor-pointer transition-opacity hover:opacity-70">
-                            <AvatarImage src={selectedDream.profiles?.avatar_url || ''} />
-                            <AvatarFallback>{selectedDream.profiles?.username.charAt(0) || 'U'}</AvatarFallback>
-                          </Avatar>
-                        </Link>
-                      </ProfileHoverCard>
-                    )}
-                    {selectedDream.profiles?.username && (
-                      <ProfileHoverCard username={selectedDream.profiles.username}>
-                        <Link to={`/profile/${selectedDream.profiles.username}`}>
-                          <span className="font-medium cursor-pointer transition-colors hover:text-muted-foreground">{selectedDream.profiles?.username || 'Anonymous'}</span>
-                        </Link>
-                      </ProfileHoverCard>
-                    )}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      {selectedDream.profiles?.username && (
+                        <ProfileHoverCard username={selectedDream.profiles.username}>
+                          <div 
+                            onClick={() => handleProfileNavigation(selectedDream.profiles.username)}
+                            className="cursor-pointer"
+                          >
+                            <Avatar className="h-8 w-8 transition-opacity hover:opacity-70">
+                              <AvatarImage src={selectedDream.profiles?.avatar_url || ''} />
+                              <AvatarFallback>{selectedDream.profiles?.username.charAt(0) || 'U'}</AvatarFallback>
+                            </Avatar>
+                          </div>
+                        </ProfileHoverCard>
+                      )}
+                      {selectedDream.profiles?.username && (
+                        <ProfileHoverCard username={selectedDream.profiles.username}>
+                          <span 
+                            onClick={() => handleProfileNavigation(selectedDream.profiles.username)}
+                            className="font-medium cursor-pointer transition-colors hover:text-muted-foreground"
+                          >
+                            {selectedDream.profiles?.username || 'Anonymous'}
+                          </span>
+                        </ProfileHoverCard>
+                      )}
+                    </div>
+                    
+                    {/* Add mobile-friendly back button */}
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="p-1 h-8 w-8 rounded-full md:hidden"
+                      onClick={() => setSelectedDream(null)}
+                    >
+                      <X className="h-4 w-4" />
+                      <span className="sr-only">Close</span>
+                    </Button>
                   </div>
                 </div>
                 
@@ -549,21 +592,27 @@ export default function DreamWall() {
                             <div key={comment.id} className="flex gap-2">
                               {comment.profiles?.username && (
                                 <ProfileHoverCard username={comment.profiles.username}>
-                                  <Link to={`/profile/${comment.profiles.username}`}>
-                                    <Avatar className="h-7 w-7 flex-shrink-0 cursor-pointer transition-opacity hover:opacity-70">
+                                  <div 
+                                    onClick={() => handleProfileNavigation(comment.profiles.username)}
+                                    className="cursor-pointer"
+                                  >
+                                    <Avatar className="h-7 w-7 flex-shrink-0 transition-opacity hover:opacity-70">
                                       <AvatarImage src={comment.profiles?.avatar_url || ''} />
                                       <AvatarFallback>{comment.profiles?.username?.charAt(0) || 'U'}</AvatarFallback>
                                     </Avatar>
-                                  </Link>
+                                  </div>
                                 </ProfileHoverCard>
                               )}
                               <div>
                                 <div className="flex items-baseline gap-1">
                                   {comment.profiles?.username && (
                                     <ProfileHoverCard username={comment.profiles.username}>
-                                      <Link to={`/profile/${comment.profiles.username}`}>
-                                        <span className="font-medium text-sm cursor-pointer transition-colors hover:text-muted-foreground">{comment.profiles?.username || 'Anonymous'}</span>
-                                      </Link>
+                                      <span 
+                                        onClick={() => handleProfileNavigation(comment.profiles.username)}
+                                        className="font-medium text-sm cursor-pointer transition-colors hover:text-muted-foreground"
+                                      >
+                                        {comment.profiles?.username || 'Anonymous'}
+                                      </span>
                                     </ProfileHoverCard>
                                   )}
                                   <p className="text-sm">{comment.content}</p>
@@ -605,6 +654,7 @@ export default function DreamWall() {
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
                         className="flex-1 bg-background text-sm rounded-md border border-input px-3 py-2"
+                        style={{ fontSize: '16px' }} // Prevents iOS zoom on focus
                       />
                       <Button 
                         type="submit" 
@@ -645,6 +695,13 @@ const DreamTile: React.FC<DreamTileProps> = ({
   
   const { commentCount, isLoading: isCommentCountLoading } = useDreamCommentCount(dream.id);
   
+  const navigate = useNavigate();
+  
+  const handleProfileClick = (e: React.MouseEvent, username: string) => {
+    e.stopPropagation();
+    navigate(`/profile/${username}`);
+  };
+  
   const handleShareClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onShare();
@@ -679,48 +736,55 @@ const DreamTile: React.FC<DreamTileProps> = ({
             />
           ) : (
             <div className="w-full h-full bg-muted flex items-center justify-center">
-              <Wand2 className="h-8 w-8 text-muted-foreground" />
+              <Wand2 className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground" />
             </div>
           )}
         </AspectRatio>
       </div>
       
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2 mb-2">
+      <CardContent className="p-3 md:p-4">
+        <div className="flex items-center gap-2 mb-1 md:mb-2">
           {dream.profiles?.username && (
             <ProfileHoverCard username={dream.profiles.username}>
-              <Link to={`/profile/${dream.profiles.username}`} onClick={(e) => e.stopPropagation()}>
-                <Avatar className="h-6 w-6 transition-opacity hover:opacity-70">
+              <div 
+                onClick={(e) => handleProfileClick(e, dream.profiles.username)}
+                className="cursor-pointer"
+              >
+                <Avatar className="h-5 w-5 md:h-6 md:w-6 transition-opacity hover:opacity-70">
                   <AvatarImage src={dream.profiles?.avatar_url || ''} />
                   <AvatarFallback>{dream.profiles?.username?.charAt(0) || 'U'}</AvatarFallback>
                 </Avatar>
-              </Link>
+              </div>
             </ProfileHoverCard>
           )}
+          
           {dream.profiles?.username && (
             <ProfileHoverCard username={dream.profiles.username}>
-              <Link to={`/profile/${dream.profiles.username}`} onClick={(e) => e.stopPropagation()}>
-                <span className="text-sm font-medium transition-colors hover:text-muted-foreground">{dream.profiles?.username || 'Anonymous'}</span>
-              </Link>
+              <span 
+                onClick={(e) => handleProfileClick(e, dream.profiles.username)}
+                className="text-xs md:text-sm font-medium cursor-pointer transition-colors hover:text-muted-foreground"
+              >
+                {dream.profiles.username}
+              </span>
             </ProfileHoverCard>
           )}
         </div>
         
-        <h3 className="font-bold line-clamp-1">{dream.title}</h3>
-        <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{dream.description}</p>
+        <h3 className="text-base md:text-lg font-bold line-clamp-1">{dream.title}</h3>
+        <p className="text-xs md:text-sm text-muted-foreground line-clamp-2 mt-1">{dream.description}</p>
         
         <div className="flex flex-wrap gap-1 mt-2">
           {dream.category && (
-            <Badge variant="outline" className="text-xs">{dream.category}</Badge>
+            <Badge variant="outline" className="text-xs px-1.5 py-0 md:px-2 md:py-0.5">{dream.category}</Badge>
           )}
           {dream.emotion && (
-            <Badge variant="outline" className="text-xs">{dream.emotion}</Badge>
+            <Badge variant="outline" className="text-xs px-1.5 py-0 md:px-2 md:py-0.5">{dream.emotion}</Badge>
           )}
         </div>
       </CardContent>
       
-      <CardFooter className="p-4 pt-0 flex justify-between">
-        <div className="flex items-center gap-4">
+      <CardFooter className="p-3 md:p-4 pt-0 flex justify-between">
+        <div className="flex items-center gap-2 md:gap-4">
           <div onClick={(e) => e.stopPropagation()} className="inline-block">
             <LikeButton
               isLiked={hasLiked}
@@ -728,6 +792,7 @@ const DreamTile: React.FC<DreamTileProps> = ({
               onClick={handleLikeClick}
               isLoading={isLikeLoading}
               showCount={true}
+              className="text-sm"
             />
           </div>
           
@@ -737,6 +802,7 @@ const DreamTile: React.FC<DreamTileProps> = ({
               isLoading={isCommentCountLoading}
               size="sm"
               onClick={handleCommentClick}
+              className="text-sm"
             />
           </div>
         </div>

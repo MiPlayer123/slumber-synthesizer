@@ -13,13 +13,13 @@ import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
 import NotFound from "@/pages/NotFound";
 import { Profile } from "@/pages/Profile";
+import { UserProfile } from "@/pages/UserProfile";
 import ResetPassword from "@/pages/ResetPassword";
 import PasswordResetTroubleshoot from "@/pages/PasswordResetTroubleshoot";
 import PasswordResetDebug from "@/pages/PasswordResetDebug";
 import About from "@/pages/About";
 import Privacy from "@/pages/Privacy";
 import Terms from "@/pages/Terms";
-import { UserProfile } from "./pages/UserProfile";
 
 // Lazy loaded pages for performance
 const Journal = lazy(() => import("@/pages/Journal"));
