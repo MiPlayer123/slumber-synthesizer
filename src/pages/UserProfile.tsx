@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Link as LinkIcon, ArrowLeft, Loader2, MessageCircle, MessageSquare, Share, Clock, ThumbsUp, ArrowUpDown } from "lucide-react";
+import { Calendar, Link as LinkIcon, ArrowLeft, Loader2, MessageCircle, MessageSquare, Share, Clock, ThumbsUp, ArrowUpDown, X } from "lucide-react";
 import { Dream as BaseDream, Profile as ProfileType } from "@/lib/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DreamCard } from "@/components/dreams/DreamCard";
@@ -36,6 +36,7 @@ export const UserProfile = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const location = useLocation();
   
   const [loading, setLoading] = useState(true);
   const [dreamsLoading, setDreamsLoading] = useState(true);
@@ -54,6 +55,21 @@ export const UserProfile = () => {
   });
   const [sortOption, setSortOption] = useState<'newest' | 'oldest' | 'most-liked' | 'most-commented'>('newest');
   const [sortedDreams, setSortedDreams] = useState<ExtendedDream[]>([]);
+  
+  // Reference to store the scroll position
+  const profileRef = useRef<HTMLDivElement>(null);
+  
+  // Restore scroll position when returning from a dream
+  useEffect(() => {
+    const scrollPosition = sessionStorage.getItem(`scroll_${username}`);
+    if (scrollPosition && !loading && !dreamsLoading) {
+      setTimeout(() => {
+        window.scrollTo(0, parseInt(scrollPosition));
+      }, 100);
+      // Clear the stored position after restoration
+      sessionStorage.removeItem(`scroll_${username}`);
+    }
+  }, [username, loading, dreamsLoading]);
   
   // Fetch user profile by username
   useEffect(() => {
@@ -283,9 +299,21 @@ export const UserProfile = () => {
 
   // When a dream is clicked
   const handleDreamClick = (dream: ExtendedDream) => {
-    setSelectedDream(dream);
-    if (dream && dream.id) {
-      fetchComments(dream.id);
+    // Check if on mobile device (screen width <= 768px)
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+      // Store current scroll position before navigating
+      sessionStorage.setItem(`scroll_${username}`, window.scrollY.toString());
+      
+      // On mobile, navigate directly to the dream detail page
+      navigate(`/dream/${dream.id}`, { state: { fromProfile: true } });
+    } else {
+      // On desktop, show the dialog as before
+      setSelectedDream(dream);
+      if (dream && dream.id) {
+        fetchComments(dream.id);
+      }
     }
   };
 
@@ -380,18 +408,19 @@ export const UserProfile = () => {
     return dreamsWithComments;
   };
 
-  // Add the SortSelect component
+  // Update the SortSelect component to be more mobile-friendly
   const SortSelect = () => {
     return (
-      <div className="flex items-center mb-4">
-        <p className="text-sm text-muted-foreground mr-2 flex items-center">
-          <ArrowUpDown className="h-4 w-4 mr-1" /> Sort by:
-        </p>
+      <div className="flex items-center flex-wrap gap-2">
+        <div className="flex items-center">
+          <ArrowUpDown className="h-4 w-4 mr-1" />
+          <span className="text-sm text-muted-foreground">Sort by:</span>
+        </div>
         <Select 
           value={sortOption} 
           onValueChange={(value) => setSortOption(value as typeof sortOption)}
         >
-          <SelectTrigger className="w-[180px] h-8 text-sm">
+          <SelectTrigger className="w-[140px] h-8 text-sm">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>
@@ -425,6 +454,14 @@ export const UserProfile = () => {
     );
   };
 
+  // Add a navigate handler function to properly close the dialog and navigate
+  const handleProfileNavigation = (username: string) => {
+    // Close the dialog first to avoid it persisting
+    setSelectedDream(null);
+    // Navigate to the profile
+    navigate(`/profile/${username}`);
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-12 flex justify-center items-center">
@@ -450,24 +487,24 @@ export const UserProfile = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-12">
+    <div className="container mx-auto px-4 py-6 md:py-12" ref={profileRef}>
       <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
         <ArrowLeft className="h-4 w-4 mr-2" /> Back
       </Button>
       
-      <h1 className="text-3xl font-bold mb-10">{profile.username}'s Profile</h1>
+      <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-10">{profile.username}'s Profile</h1>
       
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-8">
         {/* Profile Information - Left Side */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-4 space-y-4 md:space-y-6">
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-2 md:pb-4">
               <CardTitle>Profile</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col items-center text-center mb-6">
-                <div className="mb-4">
-                  <Avatar className="h-24 w-24">
+              <div className="flex flex-col items-center text-center mb-4 md:mb-6">
+                <div className="mb-3 md:mb-4">
+                  <Avatar className="h-20 w-20 md:h-24 md:w-24">
                     {profile?.avatar_url ? (
                       <AvatarImage src={profile.avatar_url} alt={profile.username} />
                     ) : (
@@ -479,7 +516,7 @@ export const UserProfile = () => {
                 <h2 className="text-xl font-bold">{profile.username}</h2>
               </div>
               
-              <div className="space-y-6">
+              <div className="space-y-4 md:space-y-6">
                 {profile.bio && (
                   <div className="space-y-2">
                     <h3 className="text-sm font-medium text-muted-foreground">Bio</h3>
@@ -487,7 +524,7 @@ export const UserProfile = () => {
                   </div>
                 )}
                 
-                <div className="space-y-4">
+                <div className="space-y-3 md:space-y-4">
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span>Joined {new Date(profile?.created_at || "").toLocaleDateString()}</span>
@@ -500,7 +537,7 @@ export const UserProfile = () => {
                         href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="text-primary hover:underline"
+                        className="text-primary hover:underline overflow-hidden text-ellipsis break-all"
                       >
                         {profile.website}
                       </a>
@@ -513,7 +550,7 @@ export const UserProfile = () => {
           
           {/* Dream Stats Card */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-2 md:pb-4">
               <CardTitle>Dream Stats</CardTitle>
             </CardHeader>
             <CardContent>
@@ -562,19 +599,19 @@ export const UserProfile = () => {
         {/* Dreams - Right Side */}
         <div className="lg:col-span-8">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex justify-between items-center">
-                <span>{profile.username}'s Dreams</span>
+            <CardHeader className="pb-2 md:pb-4">
+              <CardTitle className="flex justify-between items-center flex-wrap gap-2">
+                <span>{profile?.username}'s Dreams</span>
                 {dreams.length > 1 && <SortSelect />}
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-2 md:p-4">
               {dreamsLoading ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin" />
                 </div>
               ) : sortedDreams.length > 0 ? (
-                <div className="space-y-8">
+                <div className="space-y-4 md:space-y-8">
                   {sortedDreams.map(dream => (
                     <DreamListItem 
                       key={dream.id} 
@@ -594,15 +631,30 @@ export const UserProfile = () => {
         </div>
       </div>
 
-      {/* Dream Detail Dialog - Updated to match DreamWall layout */}
+      {/* Dream Detail Dialog - Updated to match DreamWall layout with improved animation */}
       <Dialog 
         open={!!selectedDream} 
         onOpenChange={handleDialogOpenChange}
       >
-        <DialogContent className="max-w-5xl p-0 overflow-hidden">
+        <DialogContent 
+          className="max-w-5xl p-0 overflow-hidden bg-background transition-all duration-300 will-change-transform will-change-opacity border-none sm:rounded-none md:rounded-lg"
+          style={{
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            transform: 'translate3d(-50%, -50%, 0)', // Force GPU acceleration
+            // Prevent any white line flashes with a subtle shadow
+            boxShadow: '0 0 0 1px rgba(0,0,0,0.1), 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)'
+          }}
+        >
           {selectedDream && (
-            <div className="flex flex-col md:flex-row h-[90vh] md:h-auto">
-              <div className="md:w-3/5 bg-black flex items-center justify-center">
+            <div className="flex flex-col md:flex-row h-[90vh] md:h-auto overflow-hidden">
+              <div className="md:w-3/5 bg-black flex items-center justify-center"
+                style={{ 
+                  // Ensure smooth rendering of this section
+                  willChange: 'contents',
+                  transform: 'translateZ(0)'
+                }}
+              >
                 {selectedDream.image_url ? (
                   <img 
                     src={selectedDream.image_url} 
@@ -618,15 +670,28 @@ export const UserProfile = () => {
               
               <div className="md:w-2/5 flex flex-col h-full max-h-[600px] overflow-hidden">
                 <div className="p-4 border-b">
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-8 w-8">
-                      {profile?.avatar_url ? (
-                        <AvatarImage src={profile.avatar_url} alt={profile.username} />
-                      ) : (
-                        <AvatarFallback>{(profile?.username?.charAt(0) || "U").toUpperCase()}</AvatarFallback>
-                      )}
-                    </Avatar>
-                    <span className="font-medium">{profile?.username}</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-8 w-8">
+                        {profile?.avatar_url ? (
+                          <AvatarImage src={profile.avatar_url} alt={profile.username} />
+                        ) : (
+                          <AvatarFallback>{(profile?.username?.charAt(0) || "U").toUpperCase()}</AvatarFallback>
+                        )}
+                      </Avatar>
+                      <span className="font-medium">{profile?.username}</span>
+                    </div>
+                    
+                    {/* Add mobile-friendly back button */}
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="p-1 h-8 w-8 rounded-full md:hidden"
+                      onClick={() => setSelectedDream(null)}
+                    >
+                      <X className="h-4 w-4" />
+                      <span className="sr-only">Close</span>
+                    </Button>
                   </div>
                 </div>
                 
@@ -674,27 +739,27 @@ export const UserProfile = () => {
                             <div key={comment.id} className="flex gap-2">
                               {comment.profiles?.username && (
                                 <ProfileHoverCard username={comment.profiles.username}>
-                                  <Link 
-                                    to={`/profile/${comment.profiles.username}`}
-                                    onClick={() => setSelectedDream(null)}
+                                  <div 
+                                    onClick={() => handleProfileNavigation(comment.profiles.username)}
+                                    className="cursor-pointer"
                                   >
-                                    <Avatar className="h-7 w-7 flex-shrink-0 cursor-pointer transition-opacity hover:opacity-70">
+                                    <Avatar className="h-7 w-7 flex-shrink-0 transition-opacity hover:opacity-70">
                                       <AvatarImage src={comment.profiles?.avatar_url || ''} />
                                       <AvatarFallback>{comment.profiles?.username?.charAt(0) || 'U'}</AvatarFallback>
                                     </Avatar>
-                                  </Link>
+                                  </div>
                                 </ProfileHoverCard>
                               )}
                               <div>
                                 <div className="flex items-baseline gap-1">
                                   {comment.profiles?.username && (
                                     <ProfileHoverCard username={comment.profiles.username}>
-                                      <Link 
-                                        to={`/profile/${comment.profiles.username}`}
-                                        onClick={() => setSelectedDream(null)}
+                                      <span 
+                                        onClick={() => handleProfileNavigation(comment.profiles.username)}
+                                        className="font-medium text-sm cursor-pointer transition-colors hover:text-muted-foreground"
                                       >
-                                        <span className="font-medium text-sm cursor-pointer transition-colors hover:text-muted-foreground">{comment.profiles?.username || 'Anonymous'}</span>
-                                      </Link>
+                                        {comment.profiles?.username || 'Anonymous'}
+                                      </span>
                                     </ProfileHoverCard>
                                   )}
                                   <p className="text-sm">{comment.content}</p>
@@ -738,6 +803,7 @@ export const UserProfile = () => {
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
                         className="flex-1 bg-background text-sm rounded-md border border-input px-3 py-2"
+                        style={{ fontSize: '16px' }} // Prevents iOS zoom on focus
                       />
                       <Button 
                         type="submit" 
@@ -780,11 +846,14 @@ const DreamListItem: React.FC<DreamListItemProps> = ({ dream, onClick, refreshLi
   };
   
   return (
-    <Card className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow" onClick={onClick}>
-      <div className="p-4">
-        <div className="flex items-start">
+    <Card 
+      className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow" 
+      onClick={onClick}
+    >
+      <div className="p-3 md:p-4">
+        <div className="flex flex-col sm:flex-row items-start">
           {dream.image_url && (
-            <div className="mr-4 flex-shrink-0 w-24 h-24 rounded-md overflow-hidden">
+            <div className="sm:mr-4 flex-shrink-0 w-full sm:w-24 h-32 sm:h-24 rounded-md overflow-hidden mb-3 sm:mb-0">
               <img 
                 src={dream.image_url} 
                 alt={dream.title} 
@@ -794,20 +863,20 @@ const DreamListItem: React.FC<DreamListItemProps> = ({ dream, onClick, refreshLi
           )}
           
           <div className="flex-1">
-            <h3 className="text-lg font-bold mb-1">{dream.title}</h3>
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{dream.description}</p>
+            <h3 className="text-base md:text-lg font-bold mb-1">{dream.title}</h3>
+            <p className="text-xs md:text-sm text-muted-foreground line-clamp-2 mb-2">{dream.description}</p>
             
             <div className="flex flex-wrap gap-1 mb-3">
               {dream.category && (
-                <Badge variant="outline" className="text-xs">{dream.category}</Badge>
+                <Badge variant="outline" className="text-xs px-1.5 py-0 md:px-2 md:py-0.5">{dream.category}</Badge>
               )}
               {dream.emotion && (
-                <Badge variant="outline" className="text-xs">{dream.emotion}</Badge>
+                <Badge variant="outline" className="text-xs px-1.5 py-0 md:px-2 md:py-0.5">{dream.emotion}</Badge>
               )}
             </div>
             
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between flex-wrap">
+              <div className="flex items-center gap-2 md:gap-3">
                 <div onClick={(e) => e.stopPropagation()}>
                   <LikeButton
                     isLiked={hasLiked}
@@ -815,6 +884,7 @@ const DreamListItem: React.FC<DreamListItemProps> = ({ dream, onClick, refreshLi
                     onClick={handleLikeClick}
                     isLoading={isLikeLoading}
                     showCount={true}
+                    className="text-sm"
                   />
                 </div>
                 
@@ -823,6 +893,7 @@ const DreamListItem: React.FC<DreamListItemProps> = ({ dream, onClick, refreshLi
                     commentCount={commentCount}
                     isLoading={isCommentCountLoading}
                     onClick={(() => onClick()) as any}
+                    className="text-sm"
                   />
                 </div>
               </div>

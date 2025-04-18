@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   HoverCard,
   HoverCardContent,
@@ -21,6 +21,7 @@ export function ProfileHoverCard({ username, children }: ProfileHoverCardProps) 
   const [stats, setStats] = useState<{ dreamCount: number }>({ dreamCount: 0 })
   const [loading, setLoading] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (!username || !isOpen) return
@@ -60,6 +61,13 @@ export function ProfileHoverCard({ username, children }: ProfileHoverCardProps) 
     
     fetchProfileData()
   }, [username, isOpen])
+  
+  const handleProfileClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    navigate(`/profile/${username}`)
+    setIsOpen(false)
+  }
   
   return (
     <HoverCard openDelay={300} closeDelay={200} onOpenChange={setIsOpen}>
@@ -101,9 +109,12 @@ export function ProfileHoverCard({ username, children }: ProfileHoverCardProps) 
               </div>
             </div>
             
-            <Link to={`/profile/${profile.username}`} className="text-sm text-primary hover:underline">
+            <button
+              onClick={handleProfileClick}
+              className="text-sm text-primary hover:underline text-left"
+            >
               View full profile
-            </Link>
+            </button>
           </div>
         ) : (
           <div className="text-center py-2">
