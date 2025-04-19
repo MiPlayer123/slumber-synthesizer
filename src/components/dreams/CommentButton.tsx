@@ -36,7 +36,8 @@ export const CommentButton = ({
       )} />
       {showCount && commentCount > 0 && (
         <span className={cn(
-          size === "default" ? "text-sm" : "text-xs"
+          "text-sm",
+          className
         )}>
           {commentCount}
         </span>

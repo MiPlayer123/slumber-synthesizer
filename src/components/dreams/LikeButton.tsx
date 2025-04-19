@@ -34,7 +34,7 @@ export function LikeButton({
         )}
       />
       {showCount && (
-        <span className="font-normal text-sm">
+        <span className={cn("font-normal text-sm", className)}>
           {likesCount}
         </span>
       )}
