@@ -172,6 +172,15 @@ export const Navigation = () => {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+                    {theme === "dark" ? (
+                      <Sun className="mr-2 h-4 w-4" />
+                    ) : (
+                      <Moon className="mr-2 h-4 w-4" />
+                    )}
+                    <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
@@ -184,27 +193,6 @@ export const Navigation = () => {
               <Button variant="default">Sign In</Button>
             </Link>
           )}
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                >
-                  {theme === "dark" ? (
-                    <Sun className="h-5 w-5" />
-                  ) : (
-                    <Moon className="h-5 w-5" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{theme === "dark" ? "Light Mode" : "Dark Mode"}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         </div>
 
         {/* Mobile Navigation */}
@@ -258,27 +246,6 @@ export const Navigation = () => {
             </>
           )}
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                >
-                  {theme === "dark" ? (
-                    <Sun className="h-5 w-5" />
-                  ) : (
-                    <Moon className="h-5 w-5" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{theme === "dark" ? "Light Mode" : "Dark Mode"}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden">
@@ -314,6 +281,19 @@ export const Navigation = () => {
                       variant="ghost" 
                       className="w-full justify-start" 
                       size="lg"
+                      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    >
+                      {theme === "dark" ? (
+                        <Sun className="h-5 w-5 mr-2" />
+                      ) : (
+                        <Moon className="h-5 w-5 mr-2" />
+                      )}
+                      <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start" 
+                      size="lg"
                       onClick={(e) => {
                         handleSignOut(e);
                         handleNavigation('/');
@@ -324,12 +304,27 @@ export const Navigation = () => {
                     </Button>
                   </>
                 ) : (
-                  <Link to="/auth" onClick={() => handleNavigation('/auth')}>
-                    <Button variant="ghost" className="w-full justify-start" size="lg">
-                      <LogOut className="h-5 w-5 mr-2" />
-                      <span>Sign In</span>
+                  <>
+                    <Link to="/auth" onClick={() => handleNavigation('/auth')}>
+                      <Button variant="ghost" className="w-full justify-start" size="lg">
+                        <LogOut className="h-5 w-5 mr-2" />
+                        <span>Sign In</span>
+                      </Button>
+                    </Link>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start" 
+                      size="lg"
+                      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    >
+                      {theme === "dark" ? (
+                        <Sun className="h-5 w-5 mr-2" />
+                      ) : (
+                        <Moon className="h-5 w-5 mr-2" />
+                      )}
+                      <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
                     </Button>
-                  </Link>
+                  </>
                 )}
               </div>
             </SheetContent>
