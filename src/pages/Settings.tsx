@@ -94,15 +94,28 @@ const Settings = () => {
     
     if (tabParam && tabParam !== 'notifications') {
       setActiveTab(tabParam);
+    }
+    
+    // Only refresh on initial component mount, not on tab changes or returns to the page
+    if (!isLoadingSubscription && !sessionStorage.getItem('initial_load_complete')) {
+      // Set flag that we've done the initial load
+      sessionStorage.setItem('initial_load_complete', 'true');
       
-      // If the subscription tab is selected, refresh subscription data
-      if (tabParam === 'subscription') {
+      // Silently fetch subscription data in background without showing loading spinner
+      if (user) {
         refreshSubscription().catch(err => {
-          console.error("Error refreshing subscription on tab change:", err);
+          console.error("Error refreshing subscription data:", err);
         });
       }
     }
-  }, [refreshSubscription]);
+  }, [refreshSubscription, user]);
+
+  // Remove the session storage when component unmounts to ensure it's fresh on next Settings visit
+  useEffect(() => {
+    return () => {
+      sessionStorage.removeItem('initial_load_complete');
+    };
+  }, []);
 
   // Handle form submissions
   const handleProfileUpdate = async (e: React.FormEvent) => {
@@ -305,7 +318,7 @@ const Settings = () => {
   // Handle subscription management
   const handleManageSubscription = async () => {
     if (subscription?.customerPortalUrl) {
-      window.open(subscription.customerPortalUrl, '_blank');
+      window.location.href = subscription.customerPortalUrl;
     } else {
       // Set up for processing
       setIsRefreshingSubscription(true);
@@ -370,8 +383,8 @@ const Settings = () => {
             console.error("Error updating portal URL:", updateError);
           }
           
-          // Redirect to the management portal
-          window.open(data.url, '_blank');
+          // Redirect to the management portal in the same tab
+          window.location.href = data.url;
         } else {
           throw new Error("No management portal URL returned");
         }
@@ -391,7 +404,7 @@ const Settings = () => {
         
         // Short delay before redirecting
         setTimeout(() => {
-          window.open(supportFormUrl, '_blank');
+          window.location.href = supportFormUrl;
         }, 1500);
       } finally {
         setIsRefreshingSubscription(false);
@@ -436,8 +449,8 @@ const Settings = () => {
   // Cancel subscription
   const cancelSubscription = async () => {
     if (subscription?.customerPortalUrl) {
-      // If portal URL is available, open it in a new tab
-      window.open(subscription.customerPortalUrl, '_blank');
+      // If portal URL is available, open it in the same tab
+      window.location.href = subscription.customerPortalUrl;
     } else {
       // Set up for processing
       setIsRefreshingSubscription(true);
@@ -462,11 +475,40 @@ const Settings = () => {
           throw new Error("Could not retrieve subscription information");
         }
         
-        if (!subData?.subscription_id && !subData?.stripe_customer_id) {
+        if (!subData?.stripe_customer_id) {
           throw new Error("No active subscription found to cancel");
         }
         
+        // If we don't have a subscription_id but have customer_id, retrieve it from Stripe
+        if (!subData.subscription_id && subData.stripe_customer_id) {
+          console.log("Missing subscription ID, fetching from Stripe...");
+          
+          // Call the get-stripe-subscription endpoint to retrieve and store the subscription ID
+          const fetchResponse = await fetch('/api/functions/v1/get-stripe-subscription', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`,
+              'x-client-info': 'slumber-synthesizer/1.0.0'
+            },
+            body: JSON.stringify({
+              userId: user.id,
+              stripeCustomerId: subData.stripe_customer_id
+            })
+          });
+          
+          if (!fetchResponse.ok) {
+            const errorData = await fetchResponse.text();
+            console.error("Failed to fetch subscription ID:", fetchResponse.status, errorData);
+          } else {
+            // Successfully fetched subscription ID, refresh data
+            const fetchData = await fetchResponse.json();
+            console.log("Retrieved subscription ID:", fetchData.subscription_id);
+          }
+        }
+        
         // Call the API to create a management portal URL
+        console.log("Calling create-portal API with customer ID:", subData.stripe_customer_id);
         const response = await fetch('/api/functions/v1/create-portal', {
           method: 'POST',
           headers: {
@@ -482,8 +524,37 @@ const Settings = () => {
         });
         
         if (!response.ok) {
-          // If API call fails, provide a support form fallback
-          throw new Error("Could not create management portal. Please contact support.");
+          const errorText = await response.text();
+          console.error("Create portal API error:", response.status, errorText);
+          
+          // Check for specific Stripe configuration error
+          if (errorText.includes("No configuration provided") || errorText.includes("portal settings")) {
+            toast({
+              variant: "destructive",
+              title: "Stripe Portal Not Configured",
+              description: "The Stripe Customer Portal hasn't been set up yet. Please contact support.",
+            });
+            
+            // Open support form after a short delay
+            setTimeout(() => {
+              window.location.href = "https://forms.gle/aMFrfqbqiMMBSEKr9";
+            }, 1500);
+            
+            return;
+          }
+          
+          // As a fallback for other errors, try to use customer support link
+          const supportUrl = "https://billing.stripe.com/p/login/test_3cs8xSc4bcCt9aw9AA";
+          toast({
+            title: "Using Alternate Portal",
+            description: "We'll redirect you to the Stripe billing portal directly.",
+          });
+          
+          setTimeout(() => {
+            window.location.href = supportUrl;
+          }, 1000);
+          
+          return;
         }
         
         const data = await response.json();
@@ -502,8 +573,8 @@ const Settings = () => {
             console.error("Error updating portal URL:", updateError);
           }
           
-          // Redirect to the management portal
-          window.open(data.url, '_blank');
+          // Redirect to the management portal in the same tab
+          window.location.href = data.url;
         } else {
           throw new Error("No management portal URL returned");
         }
@@ -523,7 +594,7 @@ const Settings = () => {
         
         // Short delay before redirecting
         setTimeout(() => {
-          window.open(supportFormUrl, '_blank');
+          window.location.href = supportFormUrl;
         }, 1500);
       } finally {
         setIsRefreshingSubscription(false);
@@ -747,12 +818,88 @@ const Settings = () => {
                           {subscription?.planName || "Premium"} plan - Unlimited features unlocked
                         </CardDescription>
                       </div>
-                      <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
-                        Active
-                      </Badge>
+                      {subscription?.cancelAtPeriodEnd === true ? (
+                        <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20">
+                          Canceling
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
+                          Active
+                        </Badge>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-6">
+                    {subscription?.currentPeriodEnd && (
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Subscription period</span>
+                          {subscription?.cancelAtPeriodEnd ? (
+                            <span className="font-medium text-yellow-500">
+                              Ends {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+                            </span>
+                          ) : (
+                            <span className="font-medium">
+                              Renews {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          {/* Calculate days remaining as percentage */}
+                          {(() => {
+                            const now = new Date().getTime();
+                            const end = new Date(subscription.currentPeriodEnd).getTime();
+                            const total = subscription.canceledAt 
+                              ? (end - new Date(subscription.canceledAt).getTime())
+                              : (end - (end - 30 * 24 * 60 * 60 * 1000)); // Assume 30 days if we don't know start
+                            const elapsed = end - now;
+                            const percent = Math.max(0, Math.min(100, (elapsed / total) * 100));
+                            
+                            // Calculate days remaining
+                            const daysRemaining = Math.ceil(elapsed / (1000 * 60 * 60 * 24));
+                            
+                            return (
+                              <div 
+                                className={`h-full rounded-full transition-all ${
+                                  subscription.cancelAtPeriodEnd 
+                                    ? "bg-yellow-500" 
+                                    : "bg-primary"
+                                }`}
+                                style={{ width: `${percent}%` }}
+                                title={`${daysRemaining} days remaining`}
+                              ></div>
+                            );
+                          })()}
+                        </div>
+                        
+                        {/* Display days remaining calculation */}
+                        <p className="flex justify-between items-center text-xs">
+                          <span className="text-muted-foreground">
+                            {subscription?.cancelAtPeriodEnd 
+                              ? "Your subscription benefits will continue until this date" 
+                              : "Your subscription will automatically renew on this date"}
+                          </span>
+                          <span className={`font-medium ${subscription?.cancelAtPeriodEnd ? "text-yellow-500" : "text-primary"}`}>
+                            {(() => {
+                              const now = new Date().getTime();
+                              const end = new Date(subscription.currentPeriodEnd).getTime();
+                              const daysRemaining = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
+                              
+                              // Determine if this is a monthly or 6-month subscription by the days remaining when new
+                              const periodLength = subscription.planName.toLowerCase().includes('6') || 
+                                                   subscription.planName.toLowerCase().includes('six') || 
+                                                   (new Date(subscription.currentPeriodEnd).getTime() - 
+                                                    (subscription.canceledAt ? new Date(subscription.canceledAt).getTime() : now)) > 
+                                                    (60 * 24 * 60 * 60 * 1000) // More than 60 days total = 6 month plan
+                                                  ? '6 months' : '1 month';
+                              
+                              return `${daysRemaining} / ${periodLength === '1 month' ? '30' : '180'} days left`;
+                            })()}
+                          </span>
+                        </p>
+                      </div>
+                    )}
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="bg-primary/5 p-4 rounded-lg flex items-center">
                         <ImageIcon className="h-5 w-5 mr-3 text-primary" />
@@ -809,25 +956,6 @@ const Settings = () => {
                           </>
                         )}
                       </Button>
-                      
-                      <Button 
-                        variant="ghost"
-                        onClick={handleRefreshSubscription} 
-                        disabled={isRefreshingSubscription}
-                        className="sm:flex-1"
-                      >
-                        {isRefreshingSubscription ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Refreshing
-                          </>
-                        ) : (
-                          <>
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            Refresh Status
-                          </>
-                        )}
-                      </Button>
                     </div>
                     
                     <div className="border-t pt-4 mt-2">
@@ -847,10 +975,6 @@ const Settings = () => {
                         </li>
                       </ul>
                     </div>
-                    
-                    <p className="text-xs text-muted-foreground text-center">
-                      If you just completed payment, click "Refresh Status" to update your account
-                    </p>
                   </CardContent>
                 </Card>
               ) : (

@@ -124,19 +124,30 @@ serve(async (req) => {
         
         const customerId = subscription.customer;
         
-        // Update the subscription status in our database
+        // Special handling for canceled-but-not-ended subscriptions
+        const subscriptionStatus = subscription.cancel_at_period_end ? "canceling" : subscription.status;
+        
+        // Store additional important information
         const { error: updateError } = await supabase
           .from("customer_subscriptions")
           .update({
-            subscription_status: subscription.status,
+            subscription_status: subscriptionStatus,
             updated_at: new Date().toISOString(),
+            // Additional metadata to be stored about cancellation
+            cancel_at_period_end: subscription.cancel_at_period_end,
+            canceled_at: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
+            current_period_end: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null
           })
           .eq("stripe_customer_id", customerId);
         
         if (updateError) {
           logDebug("Error updating subscription status", updateError);
         } else {
-          logDebug("Successfully updated subscription status");
+          logDebug("Successfully updated subscription status to: " + subscriptionStatus);
+          logDebug("Cancel at period end: " + (subscription.cancel_at_period_end ? "Yes" : "No"));
+          if (subscription.current_period_end) {
+            logDebug("Current period ends: " + new Date(subscription.current_period_end * 1000).toISOString());
+          }
         }
         
         break;
