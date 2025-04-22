@@ -30,7 +30,7 @@ serve(async (req) => {
   }
 
   try {
-    const { userId } = await req.json();
+    const { userId, stripeCustomerId } = await req.json();
 
     if (!userId) {
       return new Response(
@@ -42,70 +42,65 @@ serve(async (req) => {
       );
     }
 
-    // Get the customer ID from the database
-    const { data: customerData, error: customerError } = await supabase
-      .from("customer_subscriptions")
-      .select("stripe_customer_id, subscription_id, customer_portal_url")
-      .eq("user_id", userId)
-      .maybeSingle();
+    // If we don't have a customer ID, try to look it up
+    let customerId = stripeCustomerId;
+    if (!customerId) {
+      const { data: customerData, error: customerError } = await supabase
+        .from("customer_subscriptions")
+        .select("stripe_customer_id")
+        .eq("user_id", userId)
+        .maybeSingle();
 
-    if (customerError) {
-      console.error("Error fetching customer data:", customerError);
+      if (customerError || !customerData?.stripe_customer_id) {
+        return new Response(
+          JSON.stringify({ error: "Customer not found" }),
+          {
+            status: 404,
+            headers: { ...customCorsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      customerId = customerData.stripe_customer_id;
+    }
+
+    // Fetch the customer's subscriptions from Stripe
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      status: 'all',
+      expand: ['data.default_payment_method'],
+      limit: 100, // Get all subscriptions for this customer
+    });
+
+    if (!subscriptions || subscriptions.data.length === 0) {
       return new Response(
-        JSON.stringify({ error: "Failed to retrieve customer information" }),
+        JSON.stringify({ error: "No subscriptions found for this customer" }),
         {
-          status: 500,
+          status: 404,
           headers: { ...customCorsHeaders, "Content-Type": "application/json" },
         }
       );
     }
 
-    // If no customer data, return null subscription
-    if (!customerData || !customerData.subscription_id) {
-      return new Response(
-        JSON.stringify({ subscription: null }),
-        {
-          status: 200,
-          headers: { ...customCorsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    // Get subscription details from Stripe
-    const subscription = await stripe.subscriptions.retrieve(
-      customerData.subscription_id
-    );
-
-    // Determine the plan name based on the price ID or product
-    let planName = "";
-    if (subscription.items.data.length > 0) {
-      const priceId = subscription.items.data[0].price.id;
+    // Get active subscription first, or the most recent one
+    const sortedSubscriptions = subscriptions.data.sort((a, b) => {
+      // Sort by active status first
+      if (a.status === 'active' && b.status !== 'active') return -1;
+      if (a.status !== 'active' && b.status === 'active') return 1;
       
-      // Fetch product details
-      const product = await stripe.products.retrieve(
-        subscription.items.data[0].price.product as string
-      );
-      
-      planName = product.name || "";
-    }
+      // Then sort by creation date (most recent first)
+      return b.created - a.created;
+    });
 
-    // Format the response with full cancellation details
-    const formattedSubscription = {
-      id: subscription.id,
-      status: subscription.cancel_at_period_end ? "canceling" : subscription.status,
-      planName,
-      currentPeriodEnd: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
-      customerPortalUrl: customerData.customer_portal_url || null,
-      cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
-      canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
-    };
-
-    // Update the database with the latest information
+    const subscription = sortedSubscriptions[0];
+    
+    // Update the subscription data in the database with all cancellation info
     const { error: updateError } = await supabase
       .from("customer_subscriptions")
       .update({
-        subscription_status: formattedSubscription.status,
-        cancel_at_period_end: subscription.cancel_at_period_end,
+        subscription_id: subscription.id,
+        subscription_status: subscription.cancel_at_period_end ? "canceling" : subscription.status,
+        cancel_at_period_end: subscription.cancel_at_period_end || false,
         canceled_at: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
         current_period_end: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
         updated_at: new Date().toISOString()
@@ -116,8 +111,15 @@ serve(async (req) => {
       console.error("Error updating subscription details:", updateError);
     }
 
+    // Return subscription details with full cancellation info
     return new Response(
-      JSON.stringify({ subscription: formattedSubscription }),
+      JSON.stringify({
+        subscription_id: subscription.id,
+        status: subscription.cancel_at_period_end ? "canceling" : subscription.status,
+        current_period_end: subscription.current_period_end,
+        cancel_at_period_end: subscription.cancel_at_period_end,
+        canceled_at: subscription.canceled_at,
+      }),
       {
         status: 200,
         headers: { ...customCorsHeaders, "Content-Type": "application/json" },

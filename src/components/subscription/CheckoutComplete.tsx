@@ -51,7 +51,7 @@ export const CheckoutComplete = () => {
             // First check if a record exists
             const { data: existingRecord, error: checkError } = await supabase
               .from("customer_subscriptions")
-              .select("id, subscription_status")
+              .select("id, subscription_status, stripe_customer_id")
               .eq("user_id", user.id)
               .maybeSingle();
               
@@ -74,6 +74,40 @@ export const CheckoutComplete = () => {
                 .eq("user_id", user.id);
               
               console.log("Updated subscription status to active");
+              
+              // If we have a stripe_customer_id but no subscription_id, try to fetch it
+              if (existingRecord.stripe_customer_id && !('subscription_id' in existingRecord && existingRecord.subscription_id)) {
+                try {
+                  // Get the current session for auth
+                  const { data: sessionData } = await supabase.auth.getSession();
+                  const accessToken = sessionData?.session?.access_token;
+                  
+                  if (accessToken) {
+                    // Call our new endpoint to fetch and store the subscription ID
+                    const fetchResponse = await fetch('/api/functions/v1/get-stripe-subscription', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`,
+                        'x-client-info': 'slumber-synthesizer/1.0.0'
+                      },
+                      body: JSON.stringify({
+                        userId: user.id,
+                        stripeCustomerId: existingRecord.stripe_customer_id
+                      })
+                    });
+                    
+                    if (fetchResponse.ok) {
+                      const fetchData = await fetchResponse.json();
+                      console.log("Successfully retrieved subscription ID:", fetchData.subscription_id);
+                    } else {
+                      console.error("Failed to fetch subscription ID:", await fetchResponse.text());
+                    }
+                  }
+                } catch (subIdError) {
+                  console.error("Error fetching subscription ID:", subIdError);
+                }
+              }
             } else if (!checkError) {
               // Insert new record if none exists - with subscription_status as 'active'
               await supabase
