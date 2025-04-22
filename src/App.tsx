@@ -20,6 +20,8 @@ import PasswordResetDebug from "@/pages/PasswordResetDebug";
 import About from "@/pages/About";
 import Privacy from "@/pages/Privacy";
 import Terms from "@/pages/Terms";
+import { CheckoutComplete } from "@/components/subscription/CheckoutComplete";
+import { CheckoutRedirect } from "@/components/subscription/CheckoutRedirect";
 
 // Lazy loaded pages for performance
 const Journal = lazy(() => import("@/pages/Journal"));
@@ -181,6 +183,34 @@ function AppRoutes() {
       <Route path="/about" element={<About />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
+      <Route 
+        path="/checkout-complete" 
+        element={
+          <ProtectedRoute>
+            <CheckoutComplete />
+          </ProtectedRoute>
+        } 
+      />
+      
+      {/* Special route to handle Stripe's malformed URL with & instead of ? */}
+      <Route 
+        path="/checkout-complete&success=true" 
+        element={
+          <ProtectedRoute>
+            <CheckoutRedirect />
+          </ProtectedRoute>
+        } 
+      />
+      
+      {/* Special wildcard route to handle any other malformed checkout URLs */}
+      <Route 
+        path="/checkout-complete/*" 
+        element={
+          <ProtectedRoute>
+            <CheckoutRedirect />
+          </ProtectedRoute>
+        } 
+      />
       <Route 
         path="/journal" 
         element={
