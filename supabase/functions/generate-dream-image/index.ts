@@ -24,12 +24,12 @@ serve(async (req) => {
       );
     }
 
-    const { dreamId, description } = await req.json();
+    const { dreamId, description, userId } = await req.json();
     
-    if (!dreamId || !description) {
+    if (!dreamId || !description || !userId) {
       // Using standard error response for missing params, consistent with both branches
       return new Response(
-        JSON.stringify({ error: 'Dream ID and description are required' }),
+        JSON.stringify({ error: 'Dream ID, description, and user ID are required' }),
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -37,7 +37,7 @@ serve(async (req) => {
       );
     }
     
-    console.log('Processing dream:', dreamId);
+    console.log('Processing dream:', dreamId, 'for user:', userId);
     console.log('Initial description:', description);
 
     // Use OpenAI to enhance the description

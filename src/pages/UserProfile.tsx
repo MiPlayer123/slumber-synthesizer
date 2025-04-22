@@ -420,32 +420,32 @@ export const UserProfile = () => {
           value={sortOption} 
           onValueChange={(value) => setSortOption(value as typeof sortOption)}
         >
-          <SelectTrigger className="w-[140px] h-8 text-sm">
+          <SelectTrigger className="w-[170px] h-8 text-sm whitespace-nowrap">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="newest">
-              <div className="flex items-center">
-                <Clock className="mr-2 h-4 w-4" />
-                <span>Newest</span>
+          <SelectContent className="min-w-[170px]">
+            <SelectItem value="newest" className="whitespace-nowrap">
+              <div className="flex items-center w-full">
+                <Clock className="mr-2 h-4 w-4 flex-shrink-0" />
+                <span className="truncate">Newest</span>
               </div>
             </SelectItem>
-            <SelectItem value="oldest">
-              <div className="flex items-center">
-                <Clock className="mr-2 h-4 w-4" />
-                <span>Oldest</span>
+            <SelectItem value="oldest" className="whitespace-nowrap">
+              <div className="flex items-center w-full">
+                <Clock className="mr-2 h-4 w-4 flex-shrink-0" />
+                <span className="truncate">Oldest</span>
               </div>
             </SelectItem>
-            <SelectItem value="most-liked">
-              <div className="flex items-center">
-                <ThumbsUp className="mr-2 h-4 w-4" />
-                <span>Most Liked</span>
+            <SelectItem value="most-liked" className="whitespace-nowrap">
+              <div className="flex items-center w-full">
+                <ThumbsUp className="mr-2 h-4 w-4 flex-shrink-0" />
+                <span className="truncate">Most Liked</span>
               </div>
             </SelectItem>
-            <SelectItem value="most-commented">
-              <div className="flex items-center">
-                <MessageSquare className="mr-2 h-4 w-4" />
-                <span>Most Commented</span>
+            <SelectItem value="most-commented" className="whitespace-nowrap">
+              <div className="flex items-center w-full">
+                <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />
+                <span className="truncate">Most Commented</span>
               </div>
             </SelectItem>
           </SelectContent>
