@@ -21,13 +21,13 @@ serve(async (req) => {
   }
 
   try {
-    const { dreamContent, dreamId } = await req.json()
+    const { dreamContent, dreamId, userId } = await req.json()
     
-    if (!dreamContent || !dreamId) {
-      throw new Error('Dream content and dream ID are required')
+    if (!dreamContent || !dreamId || !userId) {
+      throw new Error('Dream content, dream ID, and user ID are required')
     }
 
-    console.log('Analyzing dream:', { dreamId, contentLength: dreamContent.length })
+    console.log('Analyzing dream:', { dreamId, userId, contentLength: dreamContent.length })
     
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -167,6 +167,7 @@ Ensure the JSON is complete and valid. Do not include any introductory text or e
       .insert([
         {
           dream_id: dreamId,
+          user_id: userId,
           rating: analysis.rating,
           themes: analysis.themes,
           symbols: analysis.symbols,

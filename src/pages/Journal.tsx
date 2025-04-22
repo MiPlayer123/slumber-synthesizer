@@ -21,10 +21,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
+import { useSubscription } from '@/hooks/use-subscription';
 
 const Journal = () => {
   const { user, completeGoogleSignUp } = useAuth();
   const { toast } = useToast();
+  const { subscription, recordUsage } = useSubscription();
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -329,9 +331,20 @@ const Journal = () => {
         // Get current session for auth
         const { data: sessionData } = await supabase.auth.getSession();
         
+        // Check if user is authenticated
+        if (!user?.id) {
+          throw new Error('User must be logged in to generate an image');
+        }
+        
+        // Record usage for free tier users
+        if (subscription?.status !== 'active') {
+          await recordUsage('image');
+        }
+        
         const { data, error } = await supabase.functions.invoke('generate-dream-image', {
           body: { 
             dreamId: dream.id,
+            userId: user.id,
             description: `${dream.title} - ${dream.description}`
           },
           // Add authentication headers to ensure the function can be called
@@ -358,10 +371,9 @@ const Journal = () => {
       if (data?.status === 'blocked_content') {
         // Show a specific warning toast for blocked content
         toast({
-          variant: "warning",
-          title: "Image Generation Blocked",
-          description: data.message || "The image could not be generated due to content guidelines. Please try rephrasing your dream description.",
-          duration: 7000,
+          variant: "default",
+          title: "Content Filtered",
+          description: "Your dream contains content that may not be appropriate. Please revise and try again.",
         });
         
         // Optionally update the dream state locally if enhanced_description changed
@@ -552,9 +564,20 @@ const Journal = () => {
         // Get current session for auth
         const { data: sessionData } = await supabase.auth.getSession();
         
+        // Check if user is authenticated
+        if (!user?.id) {
+          throw new Error('User must be logged in to analyze a dream');
+        }
+        
+        // Record usage for free tier users
+        if (subscription?.status !== 'active') {
+          await recordUsage('analysis');
+        }
+        
         const { data, error } = await supabase.functions.invoke('analyze-dream', {
           body: { 
             dreamId: dream.id,
+            userId: user.id,
             dreamContent: `Title: ${dream.title}\n\nDescription: ${dream.description}\n\nCategory: ${dream.category}\n\nEmotion: ${dream.emotion}`
           },
           // Add authentication headers to ensure the function can be called
