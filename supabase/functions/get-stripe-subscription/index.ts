@@ -94,21 +94,87 @@ serve(async (req) => {
 
     const subscription = sortedSubscriptions[0];
     
+    // Log the subscription ID we're about to store
+    console.log(`Retrieved subscription from Stripe: ID=${subscription.id}, status=${subscription.status}, cancel_at_period_end=${subscription.cancel_at_period_end}`);
+    
+    // Set the proper subscription status based on cancel_at_period_end
+    const subscriptionStatus = subscription.cancel_at_period_end ? "canceling" : subscription.status;
+    
     // Update the subscription data in the database with all cancellation info
-    const { error: updateError } = await supabase
-      .from("customer_subscriptions")
-      .update({
-        subscription_id: subscription.id,
-        subscription_status: subscription.cancel_at_period_end ? "canceling" : subscription.status,
-        cancel_at_period_end: subscription.cancel_at_period_end || false,
-        canceled_at: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
-        current_period_end: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
-        updated_at: new Date().toISOString()
-      })
-      .eq("user_id", userId);
-
-    if (updateError) {
-      console.error("Error updating subscription details:", updateError);
+    console.log(`Updating subscription_id in database to: ${subscription.id}, status: ${subscriptionStatus}`);
+    
+    try {
+      // Try updating with all fields first
+      const { error: updateError } = await supabase
+        .from("customer_subscriptions")
+        .update({
+          subscription_id: subscription.id,
+          subscription_status: subscriptionStatus,
+          cancel_at_period_end: subscription.cancel_at_period_end || false,
+          canceled_at: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
+          current_period_end: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
+          updated_at: new Date().toISOString()
+        })
+        .eq("user_id", userId);
+  
+      if (updateError) {
+        console.error("Error updating subscription details:", updateError);
+        
+        // Check if error is due to missing columns
+        if (updateError.message && (
+            updateError.message.includes("cancel_at_period_end") ||
+            updateError.message.includes("canceled_at") ||
+            updateError.message.includes("current_period_end")
+          )) {
+          console.log("Missing cancellation columns, trying update with just status and subscription_id");
+          
+          // Fall back to just updating the status and subscription_id
+          const { error: fallbackError } = await supabase
+            .from("customer_subscriptions")
+            .update({
+              subscription_id: subscription.id,
+              subscription_status: subscriptionStatus,
+              updated_at: new Date().toISOString()
+            })
+            .eq("user_id", userId);
+            
+          if (fallbackError) {
+            console.error("Error with fallback update too:", fallbackError);
+          } else {
+            console.log(`Successfully updated just the subscription_id and status to: ${subscription.id}, ${subscriptionStatus}`);
+          }
+        }
+        
+        // Try to get details about the current record to help debugging
+        const { data: currentData, error: fetchError } = await supabase
+          .from("customer_subscriptions")
+          .select("subscription_id, subscription_status")
+          .eq("user_id", userId)
+          .single();
+          
+        if (fetchError) {
+          console.error("Could not fetch current subscription state for diagnostics:", fetchError);
+        } else {
+          console.log(`Current record state: subscription_id=${currentData.subscription_id || 'NULL'}, status=${currentData.subscription_status || 'NULL'}`);
+        }
+      } else {
+        console.log(`Successfully updated subscription_id to ${subscription.id} in database`);
+        
+        // Verify the update
+        const { data: verifyData, error: verifyError } = await supabase
+          .from("customer_subscriptions")
+          .select("subscription_id, subscription_status")
+          .eq("user_id", userId)
+          .single();
+          
+        if (verifyError) {
+          console.error("Error verifying subscription update:", verifyError);
+        } else {
+          console.log(`Verified database update, subscription_id is now: ${verifyData.subscription_id || 'NULL'}`);
+        }
+      }
+    } catch (error) {
+      console.error("Unexpected error updating subscription:", error);
     }
 
     // Return subscription details with full cancellation info
