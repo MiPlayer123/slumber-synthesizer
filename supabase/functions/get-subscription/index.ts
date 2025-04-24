@@ -100,14 +100,49 @@ serve(async (req) => {
       canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
     };
 
+    // Special handling for canceled subscriptions still in paid period
+    let statusToStore = formattedSubscription.status;
+    let cancelAtPeriodEnd = subscription.cancel_at_period_end || false;
+    
+    // Ensure current_period_end is always set
+    let currentPeriodEnd = null;
+    if (subscription.current_period_end) {
+      currentPeriodEnd = new Date(subscription.current_period_end * 1000).toISOString();
+      console.log(`Current period ends at ${currentPeriodEnd}`);
+    } else {
+      // If the subscription doesn't have current_period_end, try to get it from a fresh API call
+      try {
+        const refreshedSubscription = await stripe.subscriptions.retrieve(subscription.id);
+        if (refreshedSubscription.current_period_end) {
+          currentPeriodEnd = new Date(refreshedSubscription.current_period_end * 1000).toISOString();
+          console.log(`Retrieved current_period_end from fresh Stripe call: ${currentPeriodEnd}`);
+          
+          // Update the formatted subscription object as well
+          formattedSubscription.currentPeriodEnd = currentPeriodEnd;
+        }
+      } catch (error) {
+        console.error("Failed to fetch current_period_end from Stripe:", error);
+      }
+    }
+    
+    // If subscription is canceled but paid period hasn't ended,
+    // store as 'active' with cancel_at_period_end=true
+    if (subscription.status === 'canceled' && 
+        subscription.current_period_end && 
+        subscription.current_period_end * 1000 > Date.now()) {
+      statusToStore = 'canceling'; // This maps to 'active' with cancel_at_period_end in the database
+      cancelAtPeriodEnd = true;
+      console.log(`Setting cancelAtPeriodEnd=true for canceled subscription still in paid period until ${new Date(subscription.current_period_end * 1000).toISOString()}`);
+    }
+
     // Update the database with the latest information
     const { error: updateError } = await supabase
       .from("customer_subscriptions")
       .update({
-        subscription_status: formattedSubscription.status,
-        cancel_at_period_end: subscription.cancel_at_period_end,
+        subscription_status: statusToStore,
+        cancel_at_period_end: cancelAtPeriodEnd,
         canceled_at: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
-        current_period_end: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
+        current_period_end: currentPeriodEnd,
         updated_at: new Date().toISOString()
       })
       .eq("user_id", userId);

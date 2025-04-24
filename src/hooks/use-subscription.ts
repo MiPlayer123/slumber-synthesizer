@@ -5,11 +5,12 @@ import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/types/supabase";
 
 // Types for the subscription system
-export type SubscriptionStatus = "active" | "canceled" | "canceling" | "past_due" | "trialing" | "unpaid" | null;
+export type SubscriptionStatus = "active" | "canceled" | "trialing" | "past_due" | "unpaid" | null;
 
 export interface Subscription {
   id: string;
   status: SubscriptionStatus;
+  displayStatus: "active" | "canceling" | "inactive"; // UI display status
   planName: string;
   currentPeriodEnd: string | null;
   customerPortalUrl: string | null;
@@ -89,7 +90,7 @@ export const useSubscription = () => {
         // Directly query the customer_subscriptions table to get the current status
         const { data: subscriptionData, error: subscriptionError } = await supabase
           .from("customer_subscriptions")
-          .select("subscription_id, subscription_status, customer_portal_url, stripe_customer_id")
+          .select("subscription_id, status, customer_portal_url, stripe_customer_id, cancel_at_period_end, current_period_end, canceled_at")
           .eq("user_id", user.id)
           .maybeSingle();
         
@@ -97,8 +98,61 @@ export const useSubscription = () => {
           console.error("Error fetching subscription data:", subscriptionError);
           // Don't show a toast to users about database errors - just fall back to free tier
           await safelyFetchUsageData();
-        } else if (subscriptionData?.subscription_status === "active") {
-          // For active subscriptions, check with Stripe for cancel_at_period_end
+        } else if (subscriptionData && subscriptionData.status === "active") {
+          // Check if subscription_id is NULL but status is active - attempt to fix
+          if (!subscriptionData.subscription_id && subscriptionData.stripe_customer_id) {
+            console.log("Found active subscription with NULL subscription_id, attempting to fix...");
+            
+            try {
+              // Get current session
+              const { data: sessionData } = await supabase.auth.getSession();
+              const accessToken = sessionData?.session?.access_token;
+              
+              if (accessToken) {
+                // Call the get-stripe-subscription endpoint to get the subscription_id
+                const fetchResponse = await fetch('/api/functions/v1/get-stripe-subscription', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`,
+                    'x-client-info': 'slumber-synthesizer/1.0.0'
+                  },
+                  body: JSON.stringify({
+                    userId: user.id,
+                    stripeCustomerId: subscriptionData.stripe_customer_id
+                  })
+                });
+                
+                if (fetchResponse.ok) {
+                  const stripeData = await fetchResponse.json();
+                  if (stripeData.subscription_id) {
+                    console.log("Retrieved subscription_id from Stripe:", stripeData.subscription_id);
+                    
+                    // Update the subscription_id in the database
+                    const { error: updateError } = await supabase
+                      .from("customer_subscriptions")
+                      .update({
+                        subscription_id: stripeData.subscription_id,
+                        updated_at: new Date().toISOString()
+                      })
+                      .eq("user_id", user.id);
+                      
+                    if (updateError) {
+                      console.error("Error updating NULL subscription_id:", updateError);
+                    } else {
+                      console.log("Successfully updated NULL subscription_id in database");
+                      // Update local data with the corrected subscription_id
+                      subscriptionData.subscription_id = stripeData.subscription_id;
+                    }
+                  }
+                }
+              }
+            } catch (err) {
+              console.error("Error fixing NULL subscription_id:", err);
+            }
+          }
+          
+          // For active & canceling subscriptions, check with Stripe for full details
           try {
             if (subscriptionData.subscription_id) {
               // Get current session
@@ -124,28 +178,48 @@ export const useSubscription = () => {
                   // Successfully fetched subscription ID, check for cancellation
                   const stripeData = await fetchResponse.json();
                   
-                  // Set subscription with proper cancellation status
+                  // Set subscription with proper cancellation status and generate display status
+                  let isActive = stripeData.status === "active";
+                  let isCanceling = isActive && stripeData.cancel_at_period_end;
+                  
+                  // Special case: "canceled" status from Stripe but still in paid period
+                  // should be treated as "canceling"
+                  if (stripeData.status === "canceled" && 
+                     stripeData.current_period_end && 
+                     new Date(stripeData.current_period_end * 1000) > new Date()) {
+                    isActive = true;
+                    isCanceling = true;
+                    console.log("Detected canceled subscription still in paid period - treating as canceling");
+                  }
+                  
+                  // Determine the display status based on Stripe values
+                  let displayStatus: "active" | "canceling" | "inactive" = "inactive";
+                  if (isActive) {
+                    displayStatus = isCanceling ? "canceling" : "active";
+                  }
+                  
                   setSubscription({
                     id: subscriptionData.subscription_id || "",
-                    status: stripeData.cancel_at_period_end ? "canceling" : "active",
+                    status: isActive ? "active" : stripeData.status,
+                    displayStatus,
                     planName: "Premium",
                     currentPeriodEnd: stripeData.current_period_end ? new Date(stripeData.current_period_end * 1000).toISOString() : null,
                     customerPortalUrl: subscriptionData.customer_portal_url || null,
-                    cancelAtPeriodEnd: stripeData.cancel_at_period_end || false,
+                    cancelAtPeriodEnd: isCanceling || stripeData.cancel_at_period_end || false,
                     canceledAt: stripeData.canceled_at ? new Date(stripeData.canceled_at * 1000).toISOString() : null,
                   });
                   
                   // Save status
-                  saveStatusToStorage(stripeData.cancel_at_period_end ? "canceling" : "active");
+                  saveStatusToStorage(displayStatus);
                   
-                  // ALWAYS set unlimited for active subscribers, even if canceling
+                  // ALWAYS set unlimited for active subscribers and canceling subscribers within the paid period
                   setRemainingUsage({
                     imageGenerations: Infinity,
                     dreamAnalyses: Infinity,
                   });
                   
                   console.log("Subscription status checked with Stripe: ", 
-                    stripeData.cancel_at_period_end ? "canceling" : "active");
+                    stripeData.status === "active" && stripeData.cancel_at_period_end ? "canceling" : stripeData.status);
                   
                   // Only show notification when status changes from non-active/non-canceling to active
                   // AND not on initial load/refresh if already active
@@ -169,6 +243,7 @@ export const useSubscription = () => {
           setSubscription({
             id: subscriptionData.subscription_id || "",
             status: "active",
+            displayStatus: "active",
             planName: "Premium",
             currentPeriodEnd: null,
             customerPortalUrl: subscriptionData.customer_portal_url || null,
@@ -191,7 +266,7 @@ export const useSubscription = () => {
             saveStatusToStorage("active");
           }
         } else if (subscriptionData && subscriptionData.stripe_customer_id && 
-                  (subscriptionData.subscription_status === null || subscriptionData.subscription_status === undefined)) {
+                  (subscriptionData.status === null || subscriptionData.status === undefined)) {
           // Special case: Has stripe_customer_id but missing status - fix it in-place
           console.log("Found subscription with stripe_customer_id but null status, updating to active");
           
@@ -199,7 +274,7 @@ export const useSubscription = () => {
           const { error: updateError } = await supabase
             .from("customer_subscriptions")
             .update({ 
-              subscription_status: "active",
+              status: "active",
               updated_at: new Date().toISOString()
             })
             .eq("user_id", user.id);
@@ -211,6 +286,7 @@ export const useSubscription = () => {
             setSubscription({
               id: subscriptionData.subscription_id || "",
               status: "active",
+              displayStatus: "active",
               planName: "Premium", 
               currentPeriodEnd: null,
               customerPortalUrl: subscriptionData.customer_portal_url || null,
@@ -337,7 +413,7 @@ export const useSubscription = () => {
         // Directly query the customer_subscriptions table to get the current status
         const { data: subscriptionData, error: subscriptionError } = await supabase
           .from("customer_subscriptions")
-          .select("subscription_id, subscription_status, customer_portal_url, stripe_customer_id")
+          .select("subscription_id, status, customer_portal_url, stripe_customer_id, cancel_at_period_end, current_period_end, canceled_at")
           .eq("user_id", user.id)
           .maybeSingle();
           
@@ -345,8 +421,8 @@ export const useSubscription = () => {
         if (subscriptionError) {
           console.error("Error fetching subscription data:", subscriptionError);
           await safelyFetchUsageData();
-        } else if (subscriptionData?.subscription_status === "active") {
-          // For active subscriptions, check with Stripe for cancel_at_period_end
+        } else if (subscriptionData && subscriptionData.status === "active") {
+          // For active & canceling subscriptions, check with Stripe for full details
           try {
             if (subscriptionData.subscription_id) {
               // Get current session
@@ -372,28 +448,48 @@ export const useSubscription = () => {
                   // Successfully fetched subscription ID, check for cancellation
                   const stripeData = await fetchResponse.json();
                   
-                  // Set subscription with proper cancellation status
+                  // Set subscription with proper cancellation status and generate display status
+                  let isActive = stripeData.status === "active";
+                  let isCanceling = isActive && stripeData.cancel_at_period_end;
+                  
+                  // Special case: "canceled" status from Stripe but still in paid period
+                  // should be treated as "canceling"
+                  if (stripeData.status === "canceled" && 
+                     stripeData.current_period_end && 
+                     new Date(stripeData.current_period_end * 1000) > new Date()) {
+                    isActive = true;
+                    isCanceling = true;
+                    console.log("Detected canceled subscription still in paid period - treating as canceling");
+                  }
+                  
+                  // Determine the display status based on Stripe values
+                  let displayStatus: "active" | "canceling" | "inactive" = "inactive";
+                  if (isActive) {
+                    displayStatus = isCanceling ? "canceling" : "active";
+                  }
+                  
                   setSubscription({
                     id: subscriptionData.subscription_id || "",
-                    status: stripeData.cancel_at_period_end ? "canceling" : "active",
+                    status: isActive ? "active" : stripeData.status,
+                    displayStatus,
                     planName: "Premium",
                     currentPeriodEnd: stripeData.current_period_end ? new Date(stripeData.current_period_end * 1000).toISOString() : null,
                     customerPortalUrl: subscriptionData.customer_portal_url || null,
-                    cancelAtPeriodEnd: stripeData.cancel_at_period_end || false,
+                    cancelAtPeriodEnd: isCanceling || stripeData.cancel_at_period_end || false,
                     canceledAt: stripeData.canceled_at ? new Date(stripeData.canceled_at * 1000).toISOString() : null,
                   });
                   
                   // Save status
-                  saveStatusToStorage(stripeData.cancel_at_period_end ? "canceling" : "active");
+                  saveStatusToStorage(displayStatus);
                   
-                  // ALWAYS set unlimited for active subscribers, even if canceling
+                  // ALWAYS set unlimited for active subscribers and canceling subscribers within the paid period
                   setRemainingUsage({
                     imageGenerations: Infinity,
                     dreamAnalyses: Infinity,
                   });
                   
                   console.log("Post-Stripe portal refresh: Subscription status checked with Stripe: ", 
-                    stripeData.cancel_at_period_end ? "canceling" : "active");
+                    isCanceling ? "canceling" : stripeData.status);
                 }
               }
             }
@@ -425,22 +521,11 @@ export const useSubscription = () => {
       }
     };
     
-    // Check on mount
+    // Check on mount - but only if URL has tab=subscription parameter
     checkReturnFromStripe();
     
-    // Also add a visibility change listener to detect when user returns from another tab
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        checkReturnFromStripe();
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Cleanup
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
+    // Return cleanup function - nothing to clean up
+    return () => {};
   }, [user]);
 
   // Safely fetch usage data, with fallbacks for any errors
@@ -468,6 +553,20 @@ export const useSubscription = () => {
         dreamAnalyses: Infinity,
       });
       return;
+    }
+    
+    // For canceling subscriptions, check if they're still within their paid period
+    if (subscription?.status === "canceling" && subscription?.currentPeriodEnd) {
+      const endDate = new Date(subscription.currentPeriodEnd);
+      const now = new Date();
+      if (now < endDate) {
+        // Still have unlimited access until end date
+        setRemainingUsage({
+          imageGenerations: Infinity,
+          dreamAnalyses: Infinity,
+        });
+        return;
+      }
     }
 
     try {
@@ -602,10 +701,21 @@ export const useSubscription = () => {
     }
   };
 
-  // Check if the user has reached their free tier limit
+  // Check if user has reached their usage limit for a specific feature
   const hasReachedLimit = (type: 'image' | 'analysis') => {
-    // Active subscribers never reach limits
-    if (subscription?.status === 'active') return false;
+    if (!user) return true;
+    
+    // Always unlimited access for active subscriptions
+    if (subscription?.status === "active") return false;
+    
+    // Check if cancelling but still within subscription period
+    if (subscription?.status === "canceling" && subscription?.currentPeriodEnd) {
+      const endDate = new Date(subscription.currentPeriodEnd);
+      const now = new Date();
+      if (now < endDate) {
+        return false; // Still have unlimited access until end date
+      }
+    }
     
     if (type === 'image') {
       return remainingUsage.imageGenerations <= 0;
@@ -614,21 +724,33 @@ export const useSubscription = () => {
     }
   };
 
-  // Update usage count when a feature is used - only needed for free tier
+  // Record feature usage in the database and decrement local counter
   const recordUsage = async (type: 'image' | 'analysis') => {
     if (!user) return;
     
-    // No need to record usage for active subscribers
+    // No need to record usage for users with active subscriptions
     if (subscription?.status === "active") return;
     
-    try {
-      // We no longer need to explicitly track usage in the usage_logs table
-      // since we're using SQL functions to count directly from dreams and dream_analyses tables
-      
-      // Refresh usage data to update UI
-      await fetchUsageData();
-    } catch (error) {
-      console.error("Error recording usage:", error);
+    // No need to record usage for canceling subscriptions still within their paid period
+    if (subscription?.status === "canceling" && subscription?.currentPeriodEnd) {
+      const endDate = new Date(subscription.currentPeriodEnd);
+      const now = new Date();
+      if (now < endDate) {
+        return; // Still have unlimited access until end date
+      }
+    }
+    
+    // For free tier users, decrement the local counter
+    if (type === 'image') {
+      setRemainingUsage(prev => ({
+        ...prev,
+        imageGenerations: Math.max(0, prev.imageGenerations - 1)
+      }));
+    } else {
+      setRemainingUsage(prev => ({
+        ...prev,
+        dreamAnalyses: Math.max(0, prev.dreamAnalyses - 1)
+      }));
     }
   };
 
@@ -708,160 +830,195 @@ export const useSubscription = () => {
       const previousStatus = getPreviousStatus();
       
       // Call fetchSubscription logic again
-      const { data: subscriptionData, error: subscriptionError } = await supabase
-        .from("customer_subscriptions")
-        .select("subscription_id, subscription_status, customer_portal_url, stripe_customer_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      
-      if (subscriptionData?.subscription_status === "active") {
-        // For active subscriptions, check with Stripe for cancel_at_period_end
-        try {
-          if (subscriptionData.subscription_id) {
+      try {
+        const { data: subscriptionData, error: subscriptionError } = await supabase
+          .from("customer_subscriptions")
+          .select("subscription_id, status, customer_portal_url, stripe_customer_id, cancel_at_period_end, current_period_end, canceled_at")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        
+        if (subscriptionError) {
+          console.error("Error fetching subscription data:", subscriptionError);
+          await safelyFetchUsageData();
+          setIsLoading(false);
+          return;
+        }
+        
+        if (subscriptionData && subscriptionData.status === "active") {
+          // For active & canceling subscriptions, check with Stripe for full details
+          try {
+            if (subscriptionData.subscription_id) {
+              // Get current session
+              const { data: sessionData } = await supabase.auth.getSession();
+              const accessToken = sessionData?.session?.access_token;
+              
+              if (accessToken) {
+                // Call the get-stripe-subscription endpoint to verify cancellation status
+                const fetchResponse = await fetch('/api/functions/v1/get-stripe-subscription', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`,
+                    'x-client-info': 'slumber-synthesizer/1.0.0'
+                  },
+                  body: JSON.stringify({
+                    userId: user.id,
+                    stripeCustomerId: subscriptionData.stripe_customer_id
+                  })
+                });
+                
+                if (fetchResponse.ok) {
+                  // Successfully fetched subscription ID, check for cancellation
+                  const stripeData = await fetchResponse.json();
+                  
+                  // Set subscription with proper cancellation status and generate display status
+                  let isActive = stripeData.status === "active";
+                  let isCanceling = isActive && stripeData.cancel_at_period_end;
+                  
+                  // Special case: "canceled" status from Stripe but still in paid period
+                  // should be treated as "canceling"
+                  if (stripeData.status === "canceled" && 
+                     stripeData.current_period_end && 
+                     new Date(stripeData.current_period_end * 1000) > new Date()) {
+                    isActive = true;
+                    isCanceling = true;
+                    console.log("Detected canceled subscription still in paid period - treating as canceling");
+                  }
+                  
+                  // Determine the display status based on Stripe values
+                  let displayStatus: "active" | "canceling" | "inactive" = "inactive";
+                  if (isActive) {
+                    displayStatus = isCanceling ? "canceling" : "active";
+                  }
+                  
+                  setSubscription({
+                    id: subscriptionData.subscription_id || "",
+                    status: isActive ? "active" : stripeData.status,
+                    displayStatus,
+                    planName: "Premium",
+                    currentPeriodEnd: stripeData.current_period_end ? new Date(stripeData.current_period_end * 1000).toISOString() : null,
+                    customerPortalUrl: subscriptionData.customer_portal_url || null,
+                    cancelAtPeriodEnd: isCanceling || stripeData.cancel_at_period_end || false,
+                    canceledAt: stripeData.canceled_at ? new Date(stripeData.canceled_at * 1000).toISOString() : null,
+                  });
+                  
+                  // Save status
+                  saveStatusToStorage(displayStatus);
+                  
+                  // ALWAYS set unlimited for active subscribers and canceling subscribers within the paid period
+                  setRemainingUsage({
+                    imageGenerations: Infinity,
+                    dreamAnalyses: Infinity,
+                  });
+                  
+                  console.log("Subscription status checked with Stripe: ", 
+                    stripeData.status === "active" && stripeData.cancel_at_period_end ? "canceling" : stripeData.status);
+                  
+                  // Only show notification when status changes from non-active/non-canceling to active
+                  // AND not on initial load/refresh if already active
+                  if (previousStatus !== "active" && previousStatus !== "canceling") {
+                    toast({
+                      title: "Premium Active",
+                      description: "Your premium subscription is active. You have unlimited dream analyses and image generations!",
+                    });
+                  }
+                  
+                  setIsLoading(false);
+                  return;
+                }
+              }
+            }
+          } catch (err) {
+            console.error("Error checking cancellation status:", err);
+          }
+          
+          // Fallback if Stripe check fails: Set subscription to active
+          setSubscription({
+            id: subscriptionData.subscription_id || "",
+            status: "active",
+            displayStatus: "active",
+            planName: "Premium",
+            currentPeriodEnd: null,
+            customerPortalUrl: subscriptionData.customer_portal_url || null,
+            cancelAtPeriodEnd: false,
+            canceledAt: null,
+          });
+          
+          // Always set unlimited for active subscribers
+          setRemainingUsage({
+            imageGenerations: Infinity,
+            dreamAnalyses: Infinity,
+          });
+          
+          // Only show notification when status changes from non-active to active
+          if (previousStatus !== "active") {
+            toast({
+              title: "Premium Active",
+              description: "Your premium subscription is active. You have unlimited dream analyses and image generations!",
+            });
+            saveStatusToStorage("active");
+          }
+        } else {
+          // No active subscription, fall back to the Edge Function for more details
+          try {
             // Get current session
             const { data: sessionData } = await supabase.auth.getSession();
             const accessToken = sessionData?.session?.access_token;
             
-            if (accessToken) {
-              // Call the get-stripe-subscription endpoint to verify cancellation status
-              const fetchResponse = await fetch('/api/functions/v1/get-stripe-subscription', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${accessToken}`,
-                  'x-client-info': 'slumber-synthesizer/1.0.0'
-                },
-                body: JSON.stringify({
-                  userId: user.id,
-                  stripeCustomerId: subscriptionData.stripe_customer_id
-                })
-              });
+            if (!accessToken) {
+              throw new Error("No authentication token available");
+            }
+            
+            // Use the local proxy to avoid CORS issues
+            const response = await fetch('/api/functions/v1/get-subscription', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`,
+                'x-client-info': 'slumber-synthesizer/1.0.0'
+              },
+              body: JSON.stringify({ userId: user.id })
+            });
+            
+            if (!response.ok) {
+              throw new Error(`HTTP error: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data?.subscription) {
+              setSubscription(data.subscription);
               
-              if (fetchResponse.ok) {
-                // Successfully fetched subscription ID, check for cancellation
-                const stripeData = await fetchResponse.json();
-                
-                // Set subscription with proper cancellation status
-                setSubscription({
-                  id: subscriptionData.subscription_id || "",
-                  status: stripeData.cancel_at_period_end ? "canceling" : "active",
-                  planName: "Premium",
-                  currentPeriodEnd: stripeData.current_period_end ? new Date(stripeData.current_period_end * 1000).toISOString() : null,
-                  customerPortalUrl: subscriptionData.customer_portal_url || null,
-                  cancelAtPeriodEnd: stripeData.cancel_at_period_end || false,
-                  canceledAt: stripeData.canceled_at ? new Date(stripeData.canceled_at * 1000).toISOString() : null,
-                });
-                
-                // Save status
-                saveStatusToStorage(stripeData.cancel_at_period_end ? "canceling" : "active");
-                
-                // ALWAYS set unlimited for active subscribers, even if canceling
+              // If active from the API response, set unlimited usage
+              if (data.subscription.status === "active") {
                 setRemainingUsage({
                   imageGenerations: Infinity,
                   dreamAnalyses: Infinity,
                 });
                 
-                console.log("Subscription status checked with Stripe: ", 
-                  stripeData.cancel_at_period_end ? "canceling" : "active");
-                
-                // Only show notification when status changes from non-active/non-canceling to active
-                // AND not on initial load/refresh if already active
-                if (previousStatus !== "active" && previousStatus !== "canceling") {
-                  toast({
-                    title: "Premium Active",
-                    description: "Your premium subscription is active. You have unlimited dream analyses and image generations!",
-                  });
-                }
-                
-                setIsLoading(false);
-                return;
+                saveStatusToStorage(data.subscription.status);
+              } else {
+                // Not active, use the free tier limits
+                saveStatusToStorage(data.subscription.status);
+                await safelyFetchUsageData();
               }
-            }
-          }
-        } catch (err) {
-          console.error("Error checking cancellation status:", err);
-        }
-        
-        // Fallback if Stripe check fails: Set subscription to active
-        setSubscription({
-          id: subscriptionData.subscription_id || "",
-          status: "active",
-          planName: "Premium",
-          currentPeriodEnd: null,
-          customerPortalUrl: subscriptionData.customer_portal_url || null,
-          cancelAtPeriodEnd: false,
-          canceledAt: null,
-        });
-        
-        // Always set unlimited for active subscribers
-        setRemainingUsage({
-          imageGenerations: Infinity,
-          dreamAnalyses: Infinity,
-        });
-        
-        // Only show notification when status changes from non-active to active
-        if (previousStatus !== "active") {
-          toast({
-            title: "Premium Active",
-            description: "Your premium subscription is active. You have unlimited dream analyses and image generations!",
-          });
-          saveStatusToStorage("active");
-        }
-      } else {
-        // No active subscription, fall back to the Edge Function for more details
-        try {
-          // Get current session
-          const { data: sessionData } = await supabase.auth.getSession();
-          const accessToken = sessionData?.session?.access_token;
-          
-          if (!accessToken) {
-            throw new Error("No authentication token available");
-          }
-          
-          // Use the local proxy to avoid CORS issues
-          const response = await fetch('/api/functions/v1/get-subscription', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`,
-              'x-client-info': 'slumber-synthesizer/1.0.0'
-            },
-            body: JSON.stringify({ userId: user.id })
-          });
-          
-          if (!response.ok) {
-            throw new Error(`HTTP error: ${response.status}`);
-          }
-          
-          const data = await response.json();
-          
-          if (data?.subscription) {
-            setSubscription(data.subscription);
-            
-            // If active from the API response, set unlimited usage
-            if (data.subscription.status === "active" || data.subscription.status === "canceling") {
-              setRemainingUsage({
-                imageGenerations: Infinity,
-                dreamAnalyses: Infinity,
-              });
-              
-              saveStatusToStorage(data.subscription.status);
             } else {
-              // Not active, use the free tier limits
-              saveStatusToStorage(data.subscription.status);
+              setSubscription(null);
+              saveStatusToStorage(null);
               await safelyFetchUsageData();
             }
-          } else {
+          } catch (error) {
+            console.error('Error fetching subscription from API:', error);
             setSubscription(null);
             saveStatusToStorage(null);
             await safelyFetchUsageData();
           }
-        } catch (error) {
-          console.error('Error fetching subscription from API:', error);
-          setSubscription(null);
-          saveStatusToStorage(null);
-          await safelyFetchUsageData();
         }
+      } catch (error) {
+        console.error('Error fetching subscription data:', error);
+        setSubscription(null);
+        saveStatusToStorage(null);
+        await safelyFetchUsageData();
       }
     } catch (error) {
       console.error('Error refreshing subscription:', error);
@@ -884,6 +1041,7 @@ export const useSubscription = () => {
     recordUsage,
     startCheckout,
     refreshUsage: fetchUsageData,
-    refreshSubscription
+    refreshSubscription,
+    setSubscription,
   };
 }; 

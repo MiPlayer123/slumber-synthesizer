@@ -81,19 +81,31 @@ serve(async (req) => {
 
     let customerId = custRow?.stripe_customer_id;
     if (!customerId) {
+      console.log(`No existing Stripe customer for user ${userId}, creating new customer`);
       const customer = await stripe.customers.create({
         email: uData.user.email!,
         metadata: { user_id: userId },
       });
       customerId = customer.id;
+      console.log(`Created new Stripe customer with ID: ${customerId}`);
 
-      await supabase.from("customer_subscriptions").insert({
+      // Create initial subscription record with stripe_customer_id
+      const { error: insertError } = await supabase.from("customer_subscriptions").insert({
         user_id: userId,
         stripe_customer_id: customerId,
       });
+      
+      if (insertError) {
+        console.error(`Error creating initial subscription record: ${JSON.stringify(insertError)}`);
+      } else {
+        console.log(`Created initial subscription record for user ${userId} with Stripe customer ID ${customerId}`);
+      }
+    } else {
+      console.log(`Found existing Stripe customer ID ${customerId} for user ${userId}`);
     }
 
     /* ---------- create checkout session ---------- */
+    console.log(`Creating checkout session for customer ${customerId} with plan ${planId} (price: ${priceId})`);
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",
@@ -102,6 +114,9 @@ serve(async (req) => {
       cancel_url : `${returnUrl || SITE_URL + "/checkout-complete"}?canceled=true`,
       subscription_data: { metadata: { user_id: userId } },
     });
+    
+    console.log(`Created checkout session: ${session.id}, url: ${session.url}`);
+    console.log(`Note: subscription_id will be assigned by Stripe after checkout completion`);
 
     return new Response(JSON.stringify({ url: session.url }), {
       status: 200, headers: { ...customCorsHeaders, "Content-Type": "application/json" },
