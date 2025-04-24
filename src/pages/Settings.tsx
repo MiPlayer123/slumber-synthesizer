@@ -58,7 +58,8 @@ const Settings = () => {
     isLoading: isLoadingSubscription, 
     remainingUsage, 
     startCheckout, 
-    refreshSubscription 
+    refreshSubscription,
+    setSubscription
   } = useSubscription();
   const navigate = useNavigate();
   
@@ -85,6 +86,16 @@ const Settings = () => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isLoadingPassword, setIsLoadingPassword] = useState(false);
   const [isLoadingDataExport, setIsLoadingDataExport] = useState(false);
+
+  // Calculate progress percentage for subscription period
+  const calculateProgressPercent = (endDate: string) => {
+    const now = new Date().getTime();
+    const end = new Date(endDate).getTime();
+    const total = 30 * 24 * 60 * 60 * 1000; // Assume 30 days if we don't know start
+    const remaining = end - now;
+    // Show percentage remaining of the period
+    return Math.max(0, Math.min(100, (remaining / total) * 100));
+  };
 
   // Check for tab parameter and refresh data when needed
   useEffect(() => {
@@ -449,7 +460,49 @@ const Settings = () => {
   // Cancel subscription
   const cancelSubscription = async () => {
     if (subscription?.customerPortalUrl) {
-      // If portal URL is available, open it in the same tab
+      // First update the database to set cancel_at_period_end = true but keep status as "active"
+      // This ensures we show the right status even before the webhook updates it
+      try {
+        setIsRefreshingSubscription(true);
+        // Try with the cancel_at_period_end column
+        const { error: updateError } = await supabase
+          .from("customer_subscriptions")
+          .update({
+            // Keep status as "active" since subscription is still usable until period end
+            status: "active", 
+            cancel_at_period_end: true,
+            canceled_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq("user_id", user.id);
+          
+        if (updateError) {
+          console.error("Error updating subscription for cancellation:", updateError);
+          toast({
+            variant: "destructive",
+            title: "Update Failed",
+            description: "Could not update subscription status before redirecting to Stripe."
+          });
+        } else {
+          console.log("Successfully updated subscription with cancel_at_period_end=true");
+          
+          // Show notification to user
+          toast({
+            title: "Subscription Canceling",
+            description: "Your subscription will remain active until the end of the billing period.",
+            variant: "default"
+          });
+          
+          // Refresh subscription data to update the UI
+          await refreshSubscription();
+        }
+      } catch (dbError) {
+        console.error("Error updating database before redirect:", dbError);
+      } finally {
+        setIsRefreshingSubscription(false);
+      }
+      
+      // Redirect to portal after updating database
       window.location.href = subscription.customerPortalUrl;
     } else {
       // Set up for processing
@@ -599,6 +652,42 @@ const Settings = () => {
       } finally {
         setIsRefreshingSubscription(false);
       }
+    }
+  };
+
+  const renewSubscription = async () => {
+    if (subscription?.customerPortalUrl) {
+      // First update the database to remove cancellation status
+      try {
+        // Try with the cancel_at_period_end column
+        const { error: updateError } = await supabase
+          .from("customer_subscriptions")
+          .update({
+            status: "active",
+            cancel_at_period_end: false,
+            updated_at: new Date().toISOString()
+          })
+          .eq("user_id", user.id);
+          
+        if (updateError) {
+          console.error("Error updating subscription status to active:", updateError);
+          toast({
+            variant: "destructive",
+            title: "Update Failed",
+            description: "Could not update subscription status before redirecting to Stripe."
+          });
+        } else {
+          console.log("Successfully updated subscription status to active in database");
+        }
+      } catch (dbError) {
+        console.error("Error updating database before redirect:", dbError);
+      }
+      
+      // If portal URL is available, open it in the same tab
+      window.location.href = subscription.customerPortalUrl;
+    } else {
+      // Handle same as manage subscription if portal URL isn't available
+      handleManageSubscription();
     }
   };
 
@@ -807,99 +896,57 @@ const Settings = () => {
                 </Card>
               ) : subscription?.status === "active" ? (
                 <Card className="mb-4">
-                  <CardHeader>
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <CardTitle className="flex items-center gap-2">
-                          <CheckCircle className="h-5 w-5 text-green-500" />
-                          Premium Subscription Active
-                        </CardTitle>
-                        <CardDescription>
-                          {subscription?.planName || "Premium"} plan - Unlimited features unlocked
-                        </CardDescription>
-                      </div>
-                      {subscription?.cancelAtPeriodEnd === true ? (
-                        <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20">
-                          Canceling
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
-                          Active
-                        </Badge>
-                      )}
+                  <CardHeader className="flex flex-row items-start gap-4 space-y-0">
+                    <div className="space-y-1 flex-1">
+                      <CardTitle>Premium Subscription</CardTitle>
+                      <CardDescription>
+                        {subscription?.displayStatus === "active" ? 
+                          "Your premium subscription is active." :
+                          subscription?.displayStatus === "canceling" ? 
+                          "Your subscription will remain active until the end of the billing period." :
+                          "Your subscription is inactive."
+                        }
+                      </CardDescription>
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {subscription?.currentPeriodEnd && (
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Subscription period</span>
-                          {subscription?.cancelAtPeriodEnd ? (
-                            <span className="font-medium text-yellow-500">
-                              Ends {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
-                            </span>
-                          ) : (
-                            <span className="font-medium">
-                              Renews {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
-                            </span>
-                          )}
-                        </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          {/* Calculate days remaining as percentage */}
-                          {(() => {
-                            const now = new Date().getTime();
-                            const end = new Date(subscription.currentPeriodEnd).getTime();
-                            const total = subscription.canceledAt 
-                              ? (end - new Date(subscription.canceledAt).getTime())
-                              : (end - (end - 30 * 24 * 60 * 60 * 1000)); // Assume 30 days if we don't know start
-                            const elapsed = end - now;
-                            const percent = Math.max(0, Math.min(100, (elapsed / total) * 100));
-                            
-                            // Calculate days remaining
-                            const daysRemaining = Math.ceil(elapsed / (1000 * 60 * 60 * 24));
-                            
-                            return (
-                              <div 
-                                className={`h-full rounded-full transition-all ${
-                                  subscription.cancelAtPeriodEnd 
-                                    ? "bg-yellow-500" 
-                                    : "bg-primary"
-                                }`}
-                                style={{ width: `${percent}%` }}
-                                title={`${daysRemaining} days remaining`}
-                              ></div>
-                            );
-                          })()}
-                        </div>
-                        
-                        {/* Display days remaining calculation */}
-                        <p className="flex justify-between items-center text-xs">
-                          <span className="text-muted-foreground">
-                            {subscription?.cancelAtPeriodEnd 
-                              ? "Your subscription benefits will continue until this date" 
-                              : "Your subscription will automatically renew on this date"}
-                          </span>
-                          <span className={`font-medium ${subscription?.cancelAtPeriodEnd ? "text-yellow-500" : "text-primary"}`}>
-                            {(() => {
-                              const now = new Date().getTime();
-                              const end = new Date(subscription.currentPeriodEnd).getTime();
-                              const daysRemaining = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
-                              
-                              // Determine if this is a monthly or 6-month subscription by the days remaining when new
-                              const periodLength = subscription.planName.toLowerCase().includes('6') || 
-                                                   subscription.planName.toLowerCase().includes('six') || 
-                                                   (new Date(subscription.currentPeriodEnd).getTime() - 
-                                                    (subscription.canceledAt ? new Date(subscription.canceledAt).getTime() : now)) > 
-                                                    (60 * 24 * 60 * 60 * 1000) // More than 60 days total = 6 month plan
-                                                  ? '6 months' : '1 month';
-                              
-                              return `${daysRemaining} / ${periodLength === '1 month' ? '30' : '180'} days left`;
-                            })()}
-                          </span>
-                        </p>
-                      </div>
+                    {subscription?.displayStatus === "active" && (
+                      <Badge className="bg-green-500/20 text-green-700 dark:text-green-400 border border-green-500 hover:bg-green-500/30">Active</Badge>
                     )}
-                    
+                    {subscription?.displayStatus === "canceling" && (
+                      <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500 hover:bg-amber-500/30">Canceling</Badge>
+                    )}
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          {subscription?.displayStatus === "canceling" ? "Ends" : "Renews"}
+                        </span>
+                        <span>
+                          {subscription?.currentPeriodEnd ? 
+                            new Date(subscription.currentPeriodEnd).toLocaleDateString(undefined, {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            }) : 'N/A'}
+                        </span>
+                      </div>
+                      
+                      <div className="h-2 w-full rounded-full bg-secondary">
+                        <div 
+                          className={`h-full rounded-full ${
+                            subscription?.displayStatus === "canceling" 
+                              ? "bg-amber-500/70" 
+                              : "bg-primary/70"
+                          }`} 
+                          style={{ 
+                            width: subscription?.currentPeriodEnd ? 
+                              `${Math.max(5, calculateProgressPercent(subscription.currentPeriodEnd))}%` : 
+                              '0%' 
+                          }}
+                        />
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="bg-primary/5 p-4 rounded-lg flex items-center">
                         <ImageIcon className="h-5 w-5 mr-3 text-primary" />
@@ -938,24 +985,45 @@ const Settings = () => {
                         )}
                       </Button>
                       
-                      <Button 
-                        onClick={cancelSubscription} 
-                        variant="destructive"
-                        className="sm:flex-1"
-                        disabled={isRefreshingSubscription}
-                      >
-                        {isRefreshingSubscription ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            <XCircle className="mr-2 h-4 w-4" />
-                            Cancel Subscription
-                          </>
-                        )}
-                      </Button>
+                      {subscription?.displayStatus === "canceling" ? (
+                        <Button 
+                          onClick={renewSubscription} 
+                          variant="default"
+                          className="sm:flex-1"
+                          disabled={isRefreshingSubscription}
+                        >
+                          {isRefreshingSubscription ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Renew Subscription
+                            </>
+                          )}
+                        </Button>
+                      ) : (
+                        <Button 
+                          onClick={cancelSubscription} 
+                          variant="destructive"
+                          className="sm:flex-1"
+                          disabled={isRefreshingSubscription}
+                        >
+                          {isRefreshingSubscription ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Cancel Subscription
+                            </>
+                          )}
+                        </Button>
+                      )}
                     </div>
                     
                     <div className="border-t pt-4 mt-2">

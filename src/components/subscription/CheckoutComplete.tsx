@@ -51,13 +51,13 @@ export const CheckoutComplete = () => {
             // First check if a record exists
             const { data: existingRecord, error: checkError } = await supabase
               .from("customer_subscriptions")
-              .select("id, subscription_status, stripe_customer_id")
+              .select("id, subscription_status, stripe_customer_id, subscription_id")
               .eq("user_id", user.id)
               .maybeSingle();
               
             // Skip DB updates if subscription is already active
-            if (!checkError && existingRecord?.subscription_status === "active") {
-              console.log("Subscription already active, skipping update");
+            if (!checkError && existingRecord?.subscription_status === "active" && existingRecord?.subscription_id) {
+              console.log("Subscription already active with subscription_id, skipping update");
               setLoading(false);
               setSubscriptionActivated(true);
               return;
@@ -76,14 +76,14 @@ export const CheckoutComplete = () => {
               console.log("Updated subscription status to active");
               
               // If we have a stripe_customer_id but no subscription_id, try to fetch it
-              if (existingRecord.stripe_customer_id && !('subscription_id' in existingRecord && existingRecord.subscription_id)) {
+              if (existingRecord.stripe_customer_id) {
                 try {
                   // Get the current session for auth
                   const { data: sessionData } = await supabase.auth.getSession();
                   const accessToken = sessionData?.session?.access_token;
                   
                   if (accessToken) {
-                    // Call our new endpoint to fetch and store the subscription ID
+                    // Call our endpoint to fetch and store the subscription ID
                     const fetchResponse = await fetch('/api/functions/v1/get-stripe-subscription', {
                       method: 'POST',
                       headers: {
@@ -100,6 +100,49 @@ export const CheckoutComplete = () => {
                     if (fetchResponse.ok) {
                       const fetchData = await fetchResponse.json();
                       console.log("Successfully retrieved subscription ID:", fetchData.subscription_id);
+                      
+                      // Update the subscription_id in the database
+                      if (fetchData.subscription_id) {
+                        try {
+                          // Try to update with cancel_at_period_end field
+                          const { error: updateError } = await supabase
+                            .from("customer_subscriptions")
+                            .update({
+                              subscription_id: fetchData.subscription_id,
+                              subscription_status: "active",
+                              cancel_at_period_end: fetchData.cancel_at_period_end || false,
+                              updated_at: new Date().toISOString()
+                            })
+                            .eq("user_id", user.id);
+                            
+                          if (updateError) {
+                            // If error mentions cancel_at_period_end, try without that field
+                            if (updateError.message && updateError.message.includes('cancel_at_period_end')) {
+                              console.log("Database missing cancel_at_period_end column, trying without it");
+                              const { error: fallbackError } = await supabase
+                                .from("customer_subscriptions")
+                                .update({
+                                  subscription_id: fetchData.subscription_id,
+                                  subscription_status: "active",
+                                  updated_at: new Date().toISOString()
+                                })
+                                .eq("user_id", user.id);
+                                
+                              if (fallbackError) {
+                                console.error("Error updating subscription_id (fallback):", fallbackError);
+                              } else {
+                                console.log("Successfully updated subscription_id in database (without cancel_at_period_end)");
+                              }
+                            } else {
+                              console.error("Error updating subscription_id:", updateError);
+                            }
+                          } else {
+                            console.log("Successfully updated subscription_id in database");
+                          }
+                        } catch (updateError) {
+                          console.error("Error during subscription_id update:", updateError);
+                        }
+                      }
                     } else {
                       console.error("Failed to fetch subscription ID:", await fetchResponse.text());
                     }
@@ -110,17 +153,94 @@ export const CheckoutComplete = () => {
               }
             } else if (!checkError) {
               // Insert new record if none exists - with subscription_status as 'active'
-              await supabase
+              // Don't set subscription_id here - we'll fetch it from Stripe
+              const { data: insertedRecord, error: insertError } = await supabase
                 .from("customer_subscriptions")
                 .insert({
                   user_id: user.id,
                   subscription_status: 'active',
-                  subscription_id: 'stripe-subscription',
                   created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString()
-                });
+                })
+                .select();
               
-              console.log("Created new subscription record with active status");
+              if (insertError) {
+                console.error("Error creating subscription record:", insertError);
+              } else {
+                console.log("Created new subscription record with active status");
+                
+                // Now that we've created a record, try to get the subscription details from Stripe
+                try {
+                  // Get the current session for auth
+                  const { data: sessionData } = await supabase.auth.getSession();
+                  const accessToken = sessionData?.session?.access_token;
+                  
+                  if (accessToken) {
+                    // Call our endpoint to fetch and store the subscription ID
+                    const fetchResponse = await fetch('/api/functions/v1/get-stripe-subscription', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`,
+                        'x-client-info': 'slumber-synthesizer/1.0.0'
+                      },
+                      body: JSON.stringify({
+                        userId: user.id
+                      })
+                    });
+                    
+                    if (fetchResponse.ok) {
+                      const fetchData = await fetchResponse.json();
+                      console.log("Successfully retrieved subscription ID:", fetchData.subscription_id);
+                      
+                      // Update the subscription_id in the database
+                      if (fetchData.subscription_id) {
+                        try {
+                          // Try to update with cancel_at_period_end field
+                          const { error: updateError } = await supabase
+                            .from("customer_subscriptions")
+                            .update({
+                              subscription_id: fetchData.subscription_id,
+                              subscription_status: "active",
+                              cancel_at_period_end: fetchData.cancel_at_period_end || false,
+                              updated_at: new Date().toISOString()
+                            })
+                            .eq("user_id", user.id);
+                            
+                          if (updateError) {
+                            // If error mentions cancel_at_period_end, try without that field
+                            if (updateError.message && updateError.message.includes('cancel_at_period_end')) {
+                              console.log("Database missing cancel_at_period_end column, trying without it");
+                              const { error: fallbackError } = await supabase
+                                .from("customer_subscriptions")
+                                .update({
+                                  subscription_id: fetchData.subscription_id,
+                                  subscription_status: "active",
+                                  updated_at: new Date().toISOString()
+                                })
+                                .eq("user_id", user.id);
+                                
+                              if (fallbackError) {
+                                console.error("Error updating subscription_id (fallback):", fallbackError);
+                              } else {
+                                console.log("Successfully updated subscription_id in database (without cancel_at_period_end)");
+                              }
+                            } else {
+                              console.error("Error updating subscription_id:", updateError);
+                            }
+                          } else {
+                            console.log("Successfully updated subscription_id in database");
+                          }
+                        } catch (updateError) {
+                          console.error("Error during subscription_id update after record creation:", updateError);
+                        }
+                      }
+                    }
+                  }
+                } catch (subIdError) {
+                  console.error("Error fetching subscription ID after record creation:", subIdError);
+                }
+              }
             }
             
             // Only refresh subscription once after updating the database
@@ -190,7 +310,6 @@ export const CheckoutComplete = () => {
           .from("customer_subscriptions")
           .insert({
             user_id: user.id,
-            subscription_id: 'manual-activation',
             subscription_status: 'active',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
@@ -204,6 +323,52 @@ export const CheckoutComplete = () => {
             description: "Could not activate subscription manually."
           });
         }
+      }
+      
+      // After activating, try to fetch the subscription ID from Stripe
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData?.session?.access_token;
+        
+        if (accessToken) {
+          // Call our endpoint to fetch and store the subscription ID
+          const fetchResponse = await fetch('/api/functions/v1/get-stripe-subscription', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`,
+              'x-client-info': 'slumber-synthesizer/1.0.0'
+            },
+            body: JSON.stringify({
+              userId: user.id
+            })
+          });
+          
+          if (fetchResponse.ok) {
+            const fetchData = await fetchResponse.json();
+            console.log("Successfully retrieved subscription ID for manual activation:", fetchData.subscription_id);
+            
+            // Update the subscription_id in the database
+            if (fetchData.subscription_id) {
+              const { error: updateError } = await supabase
+                .from("customer_subscriptions")
+                .update({
+                  subscription_id: fetchData.subscription_id,
+                  subscription_status: "active",
+                  updated_at: new Date().toISOString()
+                })
+                .eq("user_id", user.id);
+                
+              if (updateError) {
+                console.error("Error updating subscription_id for manual activation:", updateError);
+              } else {
+                console.log("Successfully updated subscription_id in database for manual activation");
+              }
+            }
+          }
+        }
+      } catch (subIdError) {
+        console.error("Error fetching subscription ID for manual activation:", subIdError);
       }
       
       // Refresh subscription

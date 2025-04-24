@@ -78,11 +78,12 @@ serve(async (req) => {
         
         // Get the Stripe subscription to check its status
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        logDebug(`Retrieved Stripe subscription details: ID=${subscriptionId}, status=${subscription.status}`);
         
         // Find the customer record in our database
         const { data: customerData, error: customerError } = await supabase
           .from("customer_subscriptions")
-          .select("user_id")
+          .select("user_id, subscription_id")
           .eq("stripe_customer_id", customerId)
           .single();
         
@@ -90,6 +91,9 @@ serve(async (req) => {
           logDebug("Error finding customer", customerError || "No customer found");
           break;
         }
+        
+        // Log the current subscription_id in the database
+        logDebug(`Current subscription_id in database: ${customerData.subscription_id || 'NULL'}`);
         
         // Create a customer portal URL for managing the subscription
         const portalSession = await stripe.billingPortal.sessions.create({
@@ -99,11 +103,12 @@ serve(async (req) => {
         logDebug("Created portal session", portalSession);
         
         // Update the customer_subscriptions table
+        logDebug(`About to update database with subscription_id=${subscriptionId}`);
         const { error: updateError } = await supabase
           .from("customer_subscriptions")
           .update({
             subscription_id: subscriptionId,
-            subscription_status: subscription.status,
+            status: subscription.status,
             customer_portal_url: portalSession.url,
             updated_at: new Date().toISOString(),
           })
@@ -112,7 +117,20 @@ serve(async (req) => {
         if (updateError) {
           logDebug("Error updating subscription record", updateError);
         } else {
-          logDebug("Successfully updated subscription record");
+          logDebug(`Successfully updated subscription record with subscription_id=${subscriptionId}`);
+          
+          // Verify the update by selecting the record again
+          const { data: verifyData, error: verifyError } = await supabase
+            .from("customer_subscriptions")
+            .select("subscription_id")
+            .eq("stripe_customer_id", customerId)
+            .single();
+            
+          if (verifyError) {
+            logDebug("Error verifying update", verifyError);
+          } else {
+            logDebug(`Verified database update, subscription_id is now: ${verifyData.subscription_id || 'NULL'}`);
+          }
         }
         
         break;
@@ -124,30 +142,105 @@ serve(async (req) => {
         
         const customerId = subscription.customer;
         
-        // Special handling for canceled-but-not-ended subscriptions
-        const subscriptionStatus = subscription.cancel_at_period_end ? "canceling" : subscription.status;
+        // Log subscription update details clearly
+        logDebug(`Updating subscription: customer=${customerId}, status=${subscription.status}, cancel_at_period_end=${subscription.cancel_at_period_end}`);
         
-        // Store additional important information
-        const { error: updateError } = await supabase
-          .from("customer_subscriptions")
-          .update({
-            subscription_status: subscriptionStatus,
-            updated_at: new Date().toISOString(),
-            // Additional metadata to be stored about cancellation
-            cancel_at_period_end: subscription.cancel_at_period_end,
-            canceled_at: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
-            current_period_end: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null
-          })
-          .eq("stripe_customer_id", customerId);
+        // Special handling for cancellations - if status is 'canceled' but period has not ended
+        // we should keep status as 'active' but set cancel_at_period_end=true
+        let statusToStore = subscription.status;
+        let cancelAtPeriodEnd = subscription.cancel_at_period_end || false;
         
-        if (updateError) {
-          logDebug("Error updating subscription status", updateError);
+        // Make sure we always have the current_period_end value even if not provided
+        let currentPeriodEnd = null;
+        if (subscription.current_period_end) {
+          currentPeriodEnd = new Date(subscription.current_period_end * 1000).toISOString();
+          logDebug(`Current period ends at ${currentPeriodEnd}`);
         } else {
-          logDebug("Successfully updated subscription status to: " + subscriptionStatus);
-          logDebug("Cancel at period end: " + (subscription.cancel_at_period_end ? "Yes" : "No"));
-          if (subscription.current_period_end) {
-            logDebug("Current period ends: " + new Date(subscription.current_period_end * 1000).toISOString());
+          // If current_period_end is missing, try to fetch it directly from Stripe
+          try {
+            const subscriptionDetails = await stripe.subscriptions.retrieve(subscription.id);
+            if (subscriptionDetails.current_period_end) {
+              currentPeriodEnd = new Date(subscriptionDetails.current_period_end * 1000).toISOString();
+              logDebug(`Retrieved current_period_end from Stripe: ${currentPeriodEnd}`);
+            } else {
+              logDebug('Could not determine current_period_end, even after fetching from Stripe');
+            }
+          } catch (error) {
+            logDebug(`Error fetching subscription details from Stripe: ${error.message}`);
           }
+        }
+        
+        if (subscription.status === 'canceled' && 
+            subscription.current_period_end && 
+            subscription.current_period_end * 1000 > Date.now()) {
+          // This is a canceled subscription still in paid period
+          statusToStore = 'active';
+          cancelAtPeriodEnd = true;
+          logDebug(`Treating canceled subscription as active with cancel_at_period_end=true until period ends at ${new Date(subscription.current_period_end * 1000).toISOString()}`);
+        }
+        
+        // Try to update with all fields first
+        try {
+          const { error: updateError } = await supabase
+            .from("customer_subscriptions")
+            .update({
+              status: statusToStore,
+              updated_at: new Date().toISOString(),
+              // Additional metadata to be stored about cancellation
+              cancel_at_period_end: cancelAtPeriodEnd,
+              canceled_at: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
+              current_period_end: currentPeriodEnd
+            })
+            .eq("stripe_customer_id", customerId);
+          
+          if (updateError) {
+            logDebug("Error updating subscription status", updateError);
+            
+            // Check if error is due to missing columns
+            if (updateError.message && (
+                updateError.message.includes("cancel_at_period_end") ||
+                updateError.message.includes("canceled_at") ||
+                updateError.message.includes("current_period_end")
+              )) {
+              logDebug("Missing cancellation columns, trying update with just status");
+              
+              // Fall back to just updating the status
+              const { error: fallbackError } = await supabase
+                .from("customer_subscriptions")
+                .update({
+                  status: subscription.status,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("stripe_customer_id", customerId);
+                
+              if (fallbackError) {
+                logDebug("Error with fallback update too", fallbackError);
+              } else {
+                logDebug(`Successfully updated just the subscription status to: ${subscription.status}`);
+              }
+            }
+          } else {
+            logDebug(`Successfully updated subscription status to: ${subscription.status}`);
+            logDebug(`Cancel at period end: ${subscription.cancel_at_period_end ? "Yes" : "No"}`);
+            if (subscription.current_period_end) {
+              logDebug(`Current period ends: ${new Date(subscription.current_period_end * 1000).toISOString()}`);
+            }
+            
+            // Verify the update by selecting the record again
+            const { data: verifyData, error: verifyError } = await supabase
+              .from("customer_subscriptions")
+              .select("subscription_id, status, cancel_at_period_end")
+              .eq("stripe_customer_id", customerId)
+              .single();
+              
+            if (verifyError) {
+              logDebug("Error verifying subscription status update", verifyError);
+            } else {
+              logDebug(`Verified database update, status is now: ${verifyData.status || 'NULL'}, cancel_at_period_end: ${verifyData.cancel_at_period_end ? 'true' : 'false'}`);
+            }
+          }
+        } catch (error) {
+          logDebug("Unexpected error updating subscription", error);
         }
         
         break;
@@ -163,7 +256,7 @@ serve(async (req) => {
         const { error: updateError } = await supabase
           .from("customer_subscriptions")
           .update({
-            subscription_status: "canceled",
+            status: subscription.status,
             subscription_id: null,
             updated_at: new Date().toISOString(),
           })
@@ -188,11 +281,14 @@ serve(async (req) => {
           break;
         }
         
-        // Update the subscription status to active
+        // Need to fetch the subscription to get its status
+        const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+        
+        // Update the subscription status
         const { error: updateError } = await supabase
           .from("customer_subscriptions")
           .update({
-            subscription_status: "active",
+            status: subscription.status,
             updated_at: new Date().toISOString(),
           })
           .eq("subscription_id", invoice.subscription);
@@ -216,11 +312,14 @@ serve(async (req) => {
           break;
         }
         
-        // Update the subscription status to reflect payment failure
+        // Need to fetch the subscription to get its status
+        const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+        
+        // Update the subscription status
         const { error: updateError } = await supabase
           .from("customer_subscriptions")
           .update({
-            subscription_status: "past_due",
+            status: subscription.status,
             updated_at: new Date().toISOString(),
           })
           .eq("subscription_id", invoice.subscription);
