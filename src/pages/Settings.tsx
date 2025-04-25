@@ -378,26 +378,47 @@ const Settings = () => {
         }
         
         // Call the API to create a management portal URL
-        const response = await fetch('/api/functions/v1/create-portal', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-            'x-client-info': 'slumber-synthesizer/1.0.0'
-          },
-          body: JSON.stringify({
+        console.log("Calling create-portal API with customer ID:", subData.stripe_customer_id);
+        const { data, error: portalError } = await supabase.functions.invoke('create-portal', {
+          body: {
             userId: user.id,
             customerId: subData.stripe_customer_id,
             returnUrl: window.location.origin + '/settings?tab=subscription'
-          })
+          }
         });
         
-        if (!response.ok) {
-          // If API call fails, provide a support form fallback
-          throw new Error("Could not create management portal. Please contact support.");
+        if (portalError) {
+          console.error("Create portal API error:", portalError);
+          
+          // Check for specific Stripe configuration error
+          if (portalError.message.includes("No configuration provided") || portalError.message.includes("portal settings")) {
+            toast({
+              variant: "destructive",
+              title: "Stripe Portal Not Configured",
+              description: "The Stripe Customer Portal hasn't been set up yet. Please contact support.",
+            });
+            
+            // Open support form after a short delay
+            setTimeout(() => {
+              window.location.href = "https://forms.gle/aMFrfqbqiMMBSEKr9";
+            }, 1500);
+            
+            return;
+          }
+          
+          // As a fallback for other errors, try to use customer support link
+          const supportUrl = "https://billing.stripe.com/p/login/test_3cs8xSc4bcCt9aw9AA";
+          toast({
+            title: "Using Alternate Portal",
+            description: "We'll redirect you to the Stripe billing portal directly.",
+          });
+          
+          setTimeout(() => {
+            window.location.href = supportUrl;
+          }, 1000);
+          
+          return;
         }
-        
-        const data = await response.json();
         
         if (data?.url) {
           // Store the portal URL for future use
@@ -566,52 +587,36 @@ const Settings = () => {
           console.log("Missing subscription ID, fetching from Stripe...");
           
           // Call the get-stripe-subscription endpoint to retrieve and store the subscription ID
-          const fetchResponse = await fetch('/api/functions/v1/get-stripe-subscription', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`,
-              'x-client-info': 'slumber-synthesizer/1.0.0'
-            },
-            body: JSON.stringify({
+          const { data: fetchData, error: fetchError } = await supabase.functions.invoke('get-stripe-subscription', {
+            body: {
               userId: user.id,
-              stripeCustomerId: subData.stripe_customer_id,
-              subscriptionId: subData.subscription_id // Add subscription_id as fallback
-            })
+              stripeCustomerId: subData.stripe_customer_id
+            }
           });
           
-          if (!fetchResponse.ok) {
-            const errorData = await fetchResponse.text();
-            console.error("Failed to fetch subscription ID:", fetchResponse.status, errorData);
+          if (fetchError) {
+            console.error("Failed to fetch subscription ID:", fetchError);
           } else {
             // Successfully fetched subscription ID, refresh data
-            const fetchData = await fetchResponse.json();
             console.log("Retrieved subscription ID:", fetchData.subscription_id);
           }
         }
         
         // Call the API to create a management portal URL
         console.log("Calling create-portal API with customer ID:", subData.stripe_customer_id);
-        const response = await fetch('/api/functions/v1/create-portal', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-            'x-client-info': 'slumber-synthesizer/1.0.0'
-          },
-          body: JSON.stringify({
+        const { data, error: portalError } = await supabase.functions.invoke('create-portal', {
+          body: {
             userId: user.id,
             customerId: subData.stripe_customer_id,
             returnUrl: window.location.origin + '/settings?tab=subscription'
-          })
+          }
         });
         
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Create portal API error:", response.status, errorText);
+        if (portalError) {
+          console.error("Create portal API error:", portalError);
           
           // Check for specific Stripe configuration error
-          if (errorText.includes("No configuration provided") || errorText.includes("portal settings")) {
+          if (portalError.message.includes("No configuration provided") || portalError.message.includes("portal settings")) {
             toast({
               variant: "destructive",
               title: "Stripe Portal Not Configured",
@@ -639,8 +644,6 @@ const Settings = () => {
           
           return;
         }
-        
-        const data = await response.json();
         
         if (data?.url) {
           // Store the portal URL for future use
