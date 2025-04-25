@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -51,9 +51,6 @@ export const useSubscription = () => {
     dreamAnalyses: 3,
   });
   const [isLoading, setIsLoading] = useState(true);
-  // Add tracking for last notification time to prevent duplicates
-  const lastNotificationRef = useRef<number>(0);
-  const lastStatusLogRef = useRef<string>("");
   
   // Get previous status from localStorage, not from state to persist across page reloads
   const getPreviousStatus = (): SubscriptionStatus => {
@@ -73,37 +70,6 @@ export const useSubscription = () => {
       localStorage.setItem(`${SUBSCRIPTION_STATUS_KEY}_${user.id}`, status || "null");
     } catch (e) {
       console.error("Failed to save subscription status to localStorage:", e);
-    }
-  };
-
-  // Add helper function for logging status to avoid duplication
-  const logStatusOnce = (status: string, forceLog = false) => {
-    // Only log if status changed or if it's been more than 30 seconds since the last log of this status
-    const now = Date.now();
-    const timeSinceLastLog = typeof lastNotificationRef.current === 'number' ? now - lastNotificationRef.current : Infinity;
-    
-    if (forceLog || 
-        status !== lastStatusLogRef.current || 
-        timeSinceLastLog > 30000) {
-      console.log("Subscription status checked with Stripe: ", status);
-      lastStatusLogRef.current = status;
-      // Store the timestamp to throttle future logs of the same status
-      lastNotificationRef.current = now;
-    }
-  };
-
-  // Add helper function for showing toast notifications
-  const showActivationToast = (prevStatus: SubscriptionStatus) => {
-    // Only show notification when status changes from non-active to active
-    // AND not if we've shown it in the last 5 seconds
-    const now = Date.now();
-    if ((prevStatus !== "active" && prevStatus !== "canceling" as any) && 
-        now - lastNotificationRef.current > 5000) {
-      toast({
-        title: "Premium Active",
-        description: "Your premium subscription is active. You have unlimited dream analyses and image generations!",
-      });
-      lastNotificationRef.current = now;
     }
   };
 
@@ -144,40 +110,31 @@ export const useSubscription = () => {
               
               if (accessToken) {
                 // Call the get-stripe-subscription endpoint to get the subscription_id
-                const fetchResponse = await fetch('/api/functions/v1/get-stripe-subscription', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`,
-                    'x-client-info': 'slumber-synthesizer/1.0.0'
-                  },
-                  body: JSON.stringify({
+                const { data: stripeData, error: stripeError } = await supabase.functions.invoke('get-stripe-subscription', {
+                  body: {
                     userId: user.id,
                     stripeCustomerId: subscriptionData.stripe_customer_id
-                  })
+                  }
                 });
                 
-                if (fetchResponse.ok) {
-                  const stripeData = await fetchResponse.json();
-                  if (stripeData.subscription_id) {
-                    console.log("Retrieved subscription_id from Stripe:", stripeData.subscription_id);
+                if (!stripeError && stripeData && stripeData.subscription_id) {
+                  console.log("Retrieved subscription_id from Stripe:", stripeData.subscription_id);
+                  
+                  // Update the subscription_id in the database
+                  const { error: updateError } = await supabase
+                    .from("customer_subscriptions")
+                    .update({
+                      subscription_id: stripeData.subscription_id,
+                      updated_at: new Date().toISOString()
+                    })
+                    .eq("user_id", user.id);
                     
-                    // Update the subscription_id in the database
-                    const { error: updateError } = await supabase
-                      .from("customer_subscriptions")
-                      .update({
-                        subscription_id: stripeData.subscription_id,
-                        updated_at: new Date().toISOString()
-                      })
-                      .eq("user_id", user.id);
-                      
-                    if (updateError) {
-                      console.error("Error updating NULL subscription_id:", updateError);
-                    } else {
-                      console.log("Successfully updated NULL subscription_id in database");
-                      // Update local data with the corrected subscription_id
-                      subscriptionData.subscription_id = stripeData.subscription_id;
-                    }
+                  if (updateError) {
+                    console.error("Error updating NULL subscription_id:", updateError);
+                  } else {
+                    console.log("Successfully updated NULL subscription_id in database");
+                    // Update local data with the corrected subscription_id
+                    subscriptionData.subscription_id = stripeData.subscription_id;
                   }
                 }
               }
@@ -194,23 +151,17 @@ export const useSubscription = () => {
               const accessToken = sessionData?.session?.access_token;
               
               if (accessToken) {
-                // Call the get-stripe-subscription endpoint to verify cancellation status
-                const fetchResponse = await fetch('/api/functions/v1/get-stripe-subscription', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`,
-                    'x-client-info': 'slumber-synthesizer/1.0.0'
-                  },
-                  body: JSON.stringify({
+                // Call the get-stripe-subscription endpoint using supabase.functions.invoke
+                const { data: stripeDataResponse, error: stripeError } = await supabase.functions.invoke('get-stripe-subscription', {
+                  body: {
                     userId: user.id,
                     stripeCustomerId: subscriptionData.stripe_customer_id
-                  })
+                  }
                 });
                 
-                if (fetchResponse.ok) {
+                if (!stripeError) {
                   // Successfully fetched subscription ID, check for cancellation
-                  const stripeData = await fetchResponse.json();
+                  const stripeData = stripeDataResponse;
                   
                   // Set subscription with proper cancellation status and generate display status
                   let isActive = stripeData.status === "active";
@@ -252,12 +203,17 @@ export const useSubscription = () => {
                     dreamAnalyses: Infinity,
                   });
                   
-                  const statusToLog = stripeData.status === "active" && stripeData.cancel_at_period_end ? "canceling" : stripeData.status;
-                  logStatusOnce(statusToLog);
+                  console.log("Subscription status checked with Stripe: ", 
+                    stripeData.status === "active" && stripeData.cancel_at_period_end ? "canceling" : stripeData.status);
                   
                   // Only show notification when status changes from non-active/non-canceling to active
                   // AND not on initial load/refresh if already active
-                  showActivationToast(previousStatus);
+                  if (previousStatus !== "active" && previousStatus !== "canceling") {
+                    toast({
+                      title: "Premium Active",
+                      description: "Your premium subscription is active. You have unlimited dream analyses and image generations!",
+                    });
+                  }
                   
                   setIsLoading(false);
                   return;
@@ -288,7 +244,10 @@ export const useSubscription = () => {
           
           // Only show notification when status changes from non-active to active
           if (previousStatus !== "active") {
-            showActivationToast(previousStatus);
+            toast({
+              title: "Premium Active",
+              description: "Your premium subscription is active. You have unlimited dream analyses and image generations!",
+            });
             saveStatusToStorage("active");
           }
         } else if (subscriptionData && subscriptionData.stripe_customer_id && 
@@ -328,51 +287,30 @@ export const useSubscription = () => {
             
             // Show notification if status changed
             if (previousStatus !== "active") {
-              showActivationToast(previousStatus);
+              toast({
+                title: "Premium Active",
+                description: "Your premium subscription is active. You have unlimited dream analyses and image generations!",
+              });
               saveStatusToStorage("active");
             }
           }
         } else {
           // No active subscription, fall back to the Edge Function for more details
           try {
-            // Get current session
-            const { data: sessionData } = await supabase.auth.getSession();
-            const accessToken = sessionData?.session?.access_token;
-            
-            if (!accessToken) {
-              throw new Error("No authentication token available");
-            }
-            
-            // Use the local proxy to avoid CORS issues
-            const response = await fetch('/api/functions/v1/get-subscription', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${accessToken}`,
-                'x-client-info': 'slumber-synthesizer/1.0.0'
-              },
-              body: JSON.stringify({ userId: user.id })
+            // Use supabase.functions.invoke instead of direct fetch
+            const { data: apiData, error: apiError } = await supabase.functions.invoke('get-subscription', {
+              body: { userId: user.id }
             });
             
-            if (!response.ok) {
-              // Handle 404 errors specifically - likely due to Edge Function not being available in dev
-              if (response.status === 404) {
-                console.warn("Subscription API not available. Using free tier fallback in development.");
-                setSubscription(null);
-                saveStatusToStorage(null);
-                await safelyFetchUsageData();
-                return;
-              }
-              throw new Error(`HTTP error: ${response.status}`);
+            if (apiError) {
+              throw new Error(`API error: ${apiError.message}`);
             }
             
-            const data = await response.json();
-            
-            if (data?.subscription) {
-              setSubscription(data.subscription);
+            if (apiData?.subscription) {
+              setSubscription(apiData.subscription);
               
               // If active from the API response, set unlimited usage
-              if (data.subscription.status === "active") {
+              if (apiData.subscription.status === "active") {
                 setRemainingUsage({
                   imageGenerations: Infinity,
                   dreamAnalyses: Infinity,
@@ -381,12 +319,15 @@ export const useSubscription = () => {
                 
                 // Only show notification when status changes from non-active to active
                 if (previousStatus !== "active") {
-                  showActivationToast(previousStatus);
+                  toast({
+                    title: "Premium Active",
+                    description: "Your premium subscription is active. You have unlimited dream analyses and image generations!",
+                  });
                 }
                 saveStatusToStorage("active");
               } else {
                 // Not active, use the free tier limits
-                saveStatusToStorage(data.subscription.status);
+                saveStatusToStorage(apiData.subscription.status);
                 await safelyFetchUsageData();
               }
             } else {
@@ -396,14 +337,6 @@ export const useSubscription = () => {
             }
           } catch (error) {
             console.error('Error fetching subscription from API:', error);
-            // Don't show the error toast in development mode
-            if (!import.meta.env.DEV) {
-              toast({
-                variant: "destructive",
-                title: "Subscription Check Failed",
-                description: "Using free tier limits for now. Please try again later.",
-              });
-            }
             setSubscription(null);
             saveStatusToStorage(null);
             await safelyFetchUsageData();
@@ -450,23 +383,17 @@ export const useSubscription = () => {
               const accessToken = sessionData?.session?.access_token;
               
               if (accessToken) {
-                // Call the get-stripe-subscription endpoint to verify cancellation status
-                const fetchResponse = await fetch('/api/functions/v1/get-stripe-subscription', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`,
-                    'x-client-info': 'slumber-synthesizer/1.0.0'
-                  },
-                  body: JSON.stringify({
+                // Call the get-stripe-subscription endpoint using supabase.functions.invoke
+                const { data: stripeDataResponse, error: stripeError } = await supabase.functions.invoke('get-stripe-subscription', {
+                  body: {
                     userId: user.id,
                     stripeCustomerId: subscriptionData.stripe_customer_id
-                  })
+                  }
                 });
                 
-                if (fetchResponse.ok) {
+                if (!stripeError) {
                   // Successfully fetched subscription ID, check for cancellation
-                  const stripeData = await fetchResponse.json();
+                  const stripeData = stripeDataResponse;
                   
                   // Set subscription with proper cancellation status and generate display status
                   let isActive = stripeData.status === "active";
@@ -508,8 +435,8 @@ export const useSubscription = () => {
                     dreamAnalyses: Infinity,
                   });
                   
-                  const statusToLog = stripeData.status === "active" && stripeData.cancel_at_period_end ? "canceling" : stripeData.status;
-                  logStatusOnce(statusToLog);
+                  console.log("Post-Stripe portal refresh: Subscription status checked with Stripe: ", 
+                    isCanceling ? "canceling" : stripeData.status);
                 }
               }
             }
@@ -774,13 +701,7 @@ export const useSubscription = () => {
     }
   };
 
-  // Function to get the correct return URL for Stripe portal
-  const getReturnUrl = () => {
-    // Always use the current origin to ensure we return to the right domain and port
-    return `${window.location.origin}/settings?tab=subscription`;
-  };
-
-  // Update startCheckout function to use dynamic return URL
+  // Start the checkout process
   const startCheckout = async (planId: string, returnUrl?: string) => {
     if (!user) {
       toast({
@@ -802,7 +723,7 @@ export const useSubscription = () => {
         body: {
           userId: user.id, 
           planId,
-          returnUrl: returnUrl || `${window.location.origin}/checkout-complete`
+          returnUrl: returnUrl || window.location.origin + '/checkout-complete'
         }
       });
 
@@ -861,23 +782,17 @@ export const useSubscription = () => {
               const accessToken = sessionData?.session?.access_token;
               
               if (accessToken) {
-                // Call the get-stripe-subscription endpoint to verify cancellation status
-                const fetchResponse = await fetch('/api/functions/v1/get-stripe-subscription', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`,
-                    'x-client-info': 'slumber-synthesizer/1.0.0'
-                  },
-                  body: JSON.stringify({
+                // Call the get-stripe-subscription endpoint using supabase.functions.invoke
+                const { data: stripeDataResponse, error: stripeError } = await supabase.functions.invoke('get-stripe-subscription', {
+                  body: {
                     userId: user.id,
                     stripeCustomerId: subscriptionData.stripe_customer_id
-                  })
+                  }
                 });
                 
-                if (fetchResponse.ok) {
+                if (!stripeError) {
                   // Successfully fetched subscription ID, check for cancellation
-                  const stripeData = await fetchResponse.json();
+                  const stripeData = stripeDataResponse;
                   
                   // Set subscription with proper cancellation status and generate display status
                   let isActive = stripeData.status === "active";
@@ -919,12 +834,17 @@ export const useSubscription = () => {
                     dreamAnalyses: Infinity,
                   });
                   
-                  const statusToLog = stripeData.status === "active" && stripeData.cancel_at_period_end ? "canceling" : stripeData.status;
-                  logStatusOnce(statusToLog);
+                  console.log("Subscription status checked with Stripe: ", 
+                    stripeData.status === "active" && stripeData.cancel_at_period_end ? "canceling" : stripeData.status);
                   
                   // Only show notification when status changes from non-active/non-canceling to active
                   // AND not on initial load/refresh if already active
-                  showActivationToast(previousStatus);
+                  if (previousStatus !== "active" && previousStatus !== "canceling") {
+                    toast({
+                      title: "Premium Active",
+                      description: "Your premium subscription is active. You have unlimited dream analyses and image generations!",
+                    });
+                  }
                   
                   setIsLoading(false);
                   return;
@@ -955,7 +875,10 @@ export const useSubscription = () => {
           
           // Only show notification when status changes from non-active to active
           if (previousStatus !== "active") {
-            showActivationToast(previousStatus);
+            toast({
+              title: "Premium Active",
+              description: "Your premium subscription is active. You have unlimited dream analyses and image generations!",
+            });
             saveStatusToStorage("active");
           }
         } else {
@@ -970,7 +893,6 @@ export const useSubscription = () => {
             }
             
             // Use the local proxy to avoid CORS issues
-            const response = await fetch('/api/functions/v1/get-subscription', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

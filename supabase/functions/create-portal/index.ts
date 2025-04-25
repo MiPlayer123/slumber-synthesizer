@@ -122,7 +122,7 @@ serve(async (req) => {
     
     // Create a portal session for the customer
     console.log("Creating portal session for customer:", stripeCustomerId);
-    const defaultReturnUrl = `${Deno.env.get("SITE_URL") || 'http://localhost:8080'}/settings?tab=subscription`;
+    const defaultReturnUrl = `${Deno.env.get("SITE_URL") || 'http://localhost'}/settings?tab=subscription`;
     
     try {
       const portalSession = await stripe.billingPortal.sessions.create({

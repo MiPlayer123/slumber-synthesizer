@@ -69,7 +69,7 @@ GEMINI_API_KEY=your_gemini_api_key
 npm run dev
 ```
 
-The application will be available at `http://localhost:8080`
+The application will be available at `http://localhost:8080` or at the port specified by the `PORT` environment variable.
 
 ## Development
 

@@ -7,7 +7,7 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 8080,
+    port: process.env.PORT ? parseInt(process.env.PORT) : 8080,
     proxy: {
       // Proxy requests to the Supabase Edge Functions
       "/api/functions/v1": {
@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/functions\/v1/, "/functions/v1"),
         headers: {
-          "Origin": "http://localhost:8080"
+          "Origin": process.env.ORIGIN || "http://localhost"
         }
       },
       // Proxy requests to the Supabase REST API
@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/rest\/v1/, "/rest/v1"),
         headers: {
-          "Origin": "http://localhost:8080"
+          "Origin": process.env.ORIGIN || "http://localhost"
         }
       }
     }
