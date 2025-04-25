@@ -52,9 +52,11 @@ serve(async (req) => {
         const { error: updateError } = await supabase
           .from("customer_subscriptions")
           .update({
+            status: "canceled",
             subscription_status: "canceled",
+            subscription_id: null,
+            canceled_at: now.toISOString(),
             updated_at: now.toISOString(),
-            // Set cancel_at_period_end to false since the cancellation is now complete
             cancel_at_period_end: false
           })
           .eq("id", subscription.id);

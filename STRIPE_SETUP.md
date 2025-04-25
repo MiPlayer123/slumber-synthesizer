@@ -40,18 +40,48 @@ This guide will help you set up the subscription system using Stripe and Supabas
    supabase functions deploy create-checkout --project-ref your-project-ref
    supabase functions deploy get-subscription --project-ref your-project-ref
    supabase functions deploy stripe-webhook --project-ref your-project-ref
+   supabase functions deploy verify-payment --project-ref your-project-ref
    ```
 
-3. Set the environment variables for the Edge Functions:
-   ```bash
-   supabase secrets set --env production STRIPE_SECRET_KEY=sk_test_... --project-ref your-project-ref
-   supabase secrets set --env production STRIPE_WEBHOOK_SECRET=whsec_... --project-ref your-project-ref
-   supabase secrets set --env production STRIPE_MONTHLY_PRICE_ID=price_... --project-ref your-project-ref
-   supabase secrets set --env production STRIPE_SIXMONTH_PRICE_ID=price_... --project-ref your-project-ref
-   supabase secrets set --env production SITE_URL=https://your-app-url.com --project-ref your-project-ref
-   ```
+## 4. Payment Verification Flow
 
-## 4. Set Up Stripe Webhook
+To ensure users don't receive a free subscription without successful payment, the following verification process is in place:
+
+### Frontend Flow
+
+1. When a user starts checkout, they are redirected to Stripe Checkout
+2. After payment:
+   - Success: User is redirected to the success URL with `session_id` parameter
+   - Canceled: User is redirected to the cancel URL
+3. On the success page, the app verifies the payment with Stripe before activating the subscription:
+   - Calls verify-payment endpoint with the session_id
+   - Only marks subscription as active if verification confirms payment
+   - Handles cases where the user might abandon checkout or close the tab
+
+### Backend Verification
+
+1. **verify-payment** Edge Function:
+   - Checks that the Stripe session exists and has payment_status = "paid"
+   - For subscriptions, confirms a subscription object exists and is active
+   - Verifies the customer ID matches our records
+   - Only returns success if all verification steps pass
+
+2. **stripe-webhook** Edge Function handles events from Stripe:
+   - `checkout.session.completed`: Updates subscription record with subscription_id
+   - `invoice.payment_succeeded`: Handles recurring payments, ensures subscription remains active
+   - `customer.subscription.updated`: Updates metadata such as cancellation status
+   - `customer.subscription.deleted`: Marks subscription as canceled
+
+### Failsafes
+
+The system includes multiple failsafes to prevent unauthorized access:
+
+1. The front-end CheckoutComplete component never automatically marks a subscription as active
+2. The verify-payment endpoint must confirm with Stripe that payment was successful
+3. The webhook handler processes events from Stripe in real-time to keep subscription status in sync
+4. Database queries check for valid subscription_id and active status before granting premium features
+
+## 5. Set Up Stripe Webhook
 
 1. In your Stripe Dashboard, go to **Developers** > **Webhooks**.
 2. Click **Add endpoint**.
@@ -68,7 +98,7 @@ This guide will help you set up the subscription system using Stripe and Supabas
 
 5. Copy the signing secret (starts with `whsec_`) and use it as the `STRIPE_WEBHOOK_SECRET` environment variable.
 
-## 5. Configure Environment Variables for the Frontend
+## 6. Configure Environment Variables for the Frontend
 
 Create or update your `.env` file with the following variables:
 
@@ -90,7 +120,7 @@ SITE_URL=http://localhost:5173  # For development
 # SITE_URL=https://your-app-url.com  # For production
 ```
 
-## 6. Testing the Integration
+## 7. Testing the Integration
 
 1. Start the development server:
    ```bash
