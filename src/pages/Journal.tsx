@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Dream } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { CreateDreamForm } from "@/components/dreams/CreateDreamForm";
 import { DreamsList } from "@/components/dreams/DreamsList";
 import { DreamHeader } from "@/components/dreams/DreamHeader";
@@ -26,7 +26,7 @@ import { useSubscription } from '@/hooks/use-subscription';
 const Journal = () => {
   const { user, completeGoogleSignUp } = useAuth();
   const { toast } = useToast();
-  const { subscription, recordUsage } = useSubscription();
+  const { subscription, recordUsage, hasReachedLimit, remainingUsage } = useSubscription();
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -43,6 +43,56 @@ const Journal = () => {
   const [newUsername, setNewUsername] = useState("");
   const [usernameError, setUsernameError] = useState("");
   const [isSubmittingUsername, setIsSubmittingUsername] = useState(false);
+
+  const location = useLocation();
+  const redirectStateData = location.state as { fromDreamDetail?: boolean; analyzeDreamId?: string } | null;
+  
+  // Handle redirected analysis request once on component mount
+  useEffect(() => {
+    // One-time check for redirected dream analysis request
+    const checkRedirectedAnalysis = () => {
+      if (redirectStateData?.fromDreamDetail && redirectStateData?.analyzeDreamId && user) {
+        // Double-check limit (defense in depth)
+        if (hasReachedLimit('analysis')) {
+          toast({
+            variant: "destructive",
+            title: "Free Limit Reached",
+            description: "You've reached your free dream analysis limit this week. Upgrade to premium for unlimited analyses.",
+          });
+          return;
+        }
+        
+        // Set timeout to allow component to fully initialize
+        setTimeout(() => {
+          // Get the dream ID from the redirect data
+          const dreamId = redirectStateData.analyzeDreamId;
+          
+          // ALWAYS check if user has reached analysis limit
+          if (hasReachedLimit('analysis')) {
+            toast({
+              variant: "destructive",
+              title: "Free Limit Reached",
+              description: "You've reached your free dream analysis limit this week. Upgrade to premium for unlimited analyses.",
+            });
+            return;
+          }
+          
+          // Proceed with analysis
+          track('dream_analysis_started', { dream_id: dreamId });
+          analyzeDream.mutate(dreamId);
+          
+          // Clear the state to prevent repeated analyses on refresh
+          window.history.replaceState({}, document.title, location.pathname);
+        }, 100);
+      }
+    };
+    
+    if (user && !isAnalyzing) {
+      checkRedirectedAnalysis();
+    }
+  // Only run once on mount, not on every render
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Effect to scroll to top when editing a dream
   useEffect(() => {
@@ -217,11 +267,33 @@ const Journal = () => {
         description: "Your dream has been successfully recorded.",
       });
       
+      // Immediately mark analysis limit as reached if this would be the last dream
+      // This instantly grays out the "Analyze Dream" button before server update
+      if (subscription?.status !== 'active' && 
+          remainingUsage?.dreamAnalyses <= 1 && 
+          hasReachedLimit !== undefined) {
+        // Force UI to immediately reflect that we can't analyze more dreams
+        recordUsage('analysis');
+      }
+      
       // If file is provided, upload it; otherwise generate AI image
       if (file) {
         uploadMedia.mutate({ dreamId: newDream.id, file });
       } else {
-        generateImage.mutate(newDream);
+        // Check if user has reached image generation limit
+        if (hasReachedLimit('image')) {
+          toast({
+            variant: "destructive",
+            title: "Image Generation Limit Reached",
+            description: "You've reached your free image generation limit this week. Upgrade to premium for unlimited images.",
+          });
+        } else {
+          // Preemptively record usage to update UI without waiting for server
+          if (subscription?.status !== 'active') {
+            recordUsage('image');
+          }
+          generateImage.mutate(newDream);
+        }
       }
     },
     onError: (error) => {
@@ -340,6 +412,8 @@ const Journal = () => {
         if (subscription?.status !== 'active') {
           await recordUsage('image');
         }
+        
+        console.log('Sending generate image request with user ID:', user.id);
         
         const { data, error } = await supabase.functions.invoke('generate-dream-image', {
           body: { 
@@ -681,6 +755,16 @@ const Journal = () => {
   });
 
   const handleAnalyzeDream = (dreamId: string) => {
+    // ALWAYS check if user has reached analysis limit
+    if (hasReachedLimit('analysis')) {
+      toast({
+        variant: "destructive",
+        title: "Free Limit Reached",
+        description: "You've reached your free dream analysis limit this week. Upgrade to premium for unlimited analyses.",
+      });
+      return;
+    }
+    
     track('dream_analysis_started', { dream_id: dreamId });
     analyzeDream.mutate(dreamId);
   };

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { fixStripeRedirectUrl } from "@/utils/urlUtils";
 export const CheckoutRedirect = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // This component handles malformed URLs from Stripe
@@ -17,9 +18,26 @@ export const CheckoutRedirect = () => {
         const url = window.location.href;
         console.log("Original URL:", url);
         
+        // Check if this is a cancellation redirect
+        if (url.includes('canceled=true')) {
+          console.log("Detected cancellation, immediately redirecting");
+          // Don't show loading UI for canceled checkouts
+          setLoading(false);
+          // Set flag in session storage to indicate coming from checkout
+          sessionStorage.setItem('from_checkout', 'true');
+          // Use history.pushState to avoid page reload
+          window.history.pushState({}, '', '/settings?tab=subscription');
+          // Force a dispatch of popstate event to trigger route change without reload
+          window.dispatchEvent(new PopStateEvent('popstate', { state: {} }));
+          return;
+        }
+        
         // Handle specific case: /checkout-complete&success=true
         if (window.location.pathname.includes('checkout-complete&success=true')) {
-          navigate('/checkout-complete?success=true', { replace: true });
+          // Use history.pushState to avoid page reload
+          window.history.pushState({}, '', '/checkout-complete?success=true');
+          // Force a dispatch of popstate event to trigger route change without reload
+          window.dispatchEvent(new PopStateEvent('popstate', { state: {} }));
           return;
         }
         
@@ -34,8 +52,10 @@ export const CheckoutRedirect = () => {
           const pathWithSearch = urlObj.pathname + urlObj.search;
           
           console.log("Redirecting to:", pathWithSearch);
-          // Navigate to the fixed URL
-          navigate(pathWithSearch, { replace: true });
+          // Use history.pushState to avoid page reload
+          window.history.pushState({}, '', pathWithSearch);
+          // Force a dispatch of popstate event to trigger route change without reload
+          window.dispatchEvent(new PopStateEvent('popstate', { state: {} }));
         } else {
           // Extract success or canceled parameter
           const parts = window.location.pathname.split('/');
@@ -48,11 +68,16 @@ export const CheckoutRedirect = () => {
               query = '?success=true';
             } else if (lastPart.includes('canceled=true')) {
               query = '?canceled=true';
+              // Don't show loading UI for canceled checkouts
+              setLoading(false);
             }
             
             if (query) {
               // Navigate to the correct URL format
-              navigate(`/checkout-complete${query}`, { replace: true });
+              // Use history.pushState to avoid page reload
+              window.history.pushState({}, '', `/checkout-complete${query}`);
+              // Force a dispatch of popstate event to trigger route change without reload
+              window.dispatchEvent(new PopStateEvent('popstate', { state: {} }));
               return;
             }
           }
@@ -64,18 +89,37 @@ export const CheckoutRedirect = () => {
             title: "Navigation Error",
             description: "There was a problem with the checkout process. Please check your subscription status.",
           });
-          navigate('/settings?tab=subscription', { replace: true });
+          // Set flag in session storage to indicate coming from checkout
+          sessionStorage.setItem('from_checkout', 'true');
+          // Don't show loading UI when redirecting to settings
+          setLoading(false);
+          // Use history.pushState to avoid page reload
+          window.history.pushState({}, '', '/settings?tab=subscription');
+          // Force a dispatch of popstate event to trigger route change without reload
+          window.dispatchEvent(new PopStateEvent('popstate', { state: {} }));
         }
       } catch (error) {
         console.error('Error in checkout redirect:', error);
         // Fallback to settings page
-        navigate('/settings?tab=subscription', { replace: true });
+        // Set flag in session storage to indicate coming from checkout
+        sessionStorage.setItem('from_checkout', 'true');
+        // Don't show loading UI when redirecting to settings
+        setLoading(false);
+        // Use history.pushState to avoid page reload
+        window.history.pushState({}, '', '/settings?tab=subscription');
+        // Force a dispatch of popstate event to trigger route change without reload
+        window.dispatchEvent(new PopStateEvent('popstate', { state: {} }));
       }
     };
     
     // Run the fix immediately
     fixAndRedirect();
-  }, [navigate, toast]);
+  }, [toast]);
+
+  // Don't show anything if we're not loading
+  if (!loading) {
+    return null;
+  }
 
   return (
     <div className="container max-w-md py-12">

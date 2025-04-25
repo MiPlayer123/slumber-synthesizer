@@ -50,3 +50,25 @@ CREATE TRIGGER set_updated_at
 BEFORE UPDATE ON usage_logs
 FOR EACH ROW
 EXECUTE FUNCTION trigger_set_updated_at();
+
+-- Create function to count usage logs since a specific date for a user
+CREATE OR REPLACE FUNCTION public.count_user_usage_since(
+  user_id_input UUID, 
+  usage_type TEXT,
+  since_date TIMESTAMPTZ
+)
+RETURNS INTEGER
+LANGUAGE SQL
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT COALESCE(SUM(count), 0)::INTEGER
+  FROM usage_logs
+  WHERE 
+    user_id = user_id_input AND
+    type = usage_type AND
+    created_at >= since_date;
+$$;
+
+-- Grant execute permissions
+GRANT EXECUTE ON FUNCTION public.count_user_usage_since TO authenticated;
