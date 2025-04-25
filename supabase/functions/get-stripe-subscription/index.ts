@@ -6,7 +6,7 @@ import Stripe from "https://esm.sh/stripe@12.0.0?target=deno";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "content-type, authorization, x-client-info",
+  "Access-Control-Allow-Headers": "content-type, authorization, x-client-info, apikey, X-Client-Info",
 };
 
 // Environment variables
@@ -90,7 +90,7 @@ serve(async (req) => {
         // Create portal URL for subscription management
         const portalSession = await stripe.billingPortal.sessions.create({
           customer: stripeCustomerId,
-          return_url: `${Deno.env.get("SITE_URL") || 'http://localhost:5173'}/settings?tab=subscription`,
+          return_url: `${Deno.env.get("SITE_URL") || 'http://localhost'}/settings?tab=subscription`,
         });
         
         // Build the row for database update
@@ -309,7 +309,7 @@ serve(async (req) => {
       // Create portal URL for subscription management
       const portalSession = await stripe.billingPortal.sessions.create({
         customer: customerId,
-        return_url: `${Deno.env.get("SITE_URL") || 'http://localhost:5173'}/settings?tab=subscription`,
+        return_url: `${Deno.env.get("SITE_URL") || 'http://localhost'}/settings?tab=subscription`,
       });
       
       // Build the row for database insert/update

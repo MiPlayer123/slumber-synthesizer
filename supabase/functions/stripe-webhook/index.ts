@@ -23,7 +23,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "content-type, stripe-signature, x-client-info",
+  "Access-Control-Allow-Headers": "content-type, authorization, x-client-info, apikey, X-Client-Info",
 };
 
 serve(async (req) => {
@@ -114,7 +114,7 @@ serve(async (req) => {
         // Create a customer portal URL for managing the subscription
         const portalSession = await stripe.billingPortal.sessions.create({
           customer: customerId as string,
-          return_url: `${Deno.env.get("SITE_URL") || 'http://localhost:8080'}/settings?tab=subscription`,
+          return_url: `${Deno.env.get("SITE_URL") || 'http://localhost'}/settings?tab=subscription`,
         });
         logDebug("Created portal session", portalSession);
         

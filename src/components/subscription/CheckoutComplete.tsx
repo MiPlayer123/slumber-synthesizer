@@ -206,21 +206,14 @@ export const CheckoutComplete = () => {
       
       // Call the get-stripe-subscription API to verify payment
       try {
-        const verifyResponse = await fetch('/api/functions/v1/get-stripe-subscription', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-            'x-client-info': 'slumber-synthesizer/1.0.0'
-          },
-          body: JSON.stringify({
+        const { data: verifyData, error: verifyError } = await supabase.functions.invoke('get-stripe-subscription', {
+          body: {
             sessionId // This is the primary parameter for this API
-          })
+          }
         });
         
-        if (!verifyResponse.ok) {
-          const errorText = await verifyResponse.text();
-          console.error("Failed to verify payment:", errorText);
+        if (verifyError) {
+          console.error("Failed to verify payment:", verifyError);
           
           // Attempt fallback verification
           console.log("Attempting fallback verification via Stripe API");
@@ -228,7 +221,6 @@ export const CheckoutComplete = () => {
           return;
         }
         
-        const verifyData = await verifyResponse.json();
         console.log("Payment verification response:", verifyData);
         
         if (verifyData.success && verifyData.subscription_id) {
@@ -367,21 +359,15 @@ export const CheckoutComplete = () => {
       }
       
       // Try to verify using the old endpoint first for compatibility
-      const fetchResponse = await fetch('/api/functions/v1/verify-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-          'x-client-info': 'slumber-synthesizer/1.0.0'
-        },
-        body: JSON.stringify({
+      const { data: fetchData, error: fetchError } = await supabase.functions.invoke('verify-payment', {
+        body: {
           userId: user.id,
           sessionId: "fallback" // This won't match a real session, but it will trigger verification logic
-        })
+        }
       });
       
-      if (!fetchResponse.ok) {
-        console.error("Failed to fetch subscription from Stripe:", await fetchResponse.text());
+      if (fetchError) {
+        console.error("Failed to fetch subscription from Stripe:", fetchError);
         setLoading(false);
         // Set flag in session storage to indicate coming from checkout
         sessionStorage.setItem('from_checkout', 'true');
@@ -391,8 +377,6 @@ export const CheckoutComplete = () => {
         window.dispatchEvent(new PopStateEvent('popstate', { state: {} }));
         return;
       }
-      
-      const fetchData = await fetchResponse.json();
       
       // If we got a subscription ID and status is active, we can trust it
       if (fetchData.subscriptionId && fetchData.verified) {
@@ -498,20 +482,13 @@ export const CheckoutComplete = () => {
         
         if (accessToken) {
           // Call get-stripe-subscription with the subscription ID to get full details
-          const response = await fetch('/api/functions/v1/get-stripe-subscription', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`,
-              'x-client-info': 'slumber-synthesizer/1.0.0'
-            },
-            body: JSON.stringify({
+          const { data, error: stripeError } = await supabase.functions.invoke('get-stripe-subscription', {
+            body: {
               subscriptionId: subscriptionId
-            })
+            }
           });
           
-          if (response.ok) {
-            const data = await response.json();
+          if (!stripeError && data) {
             if (data.success && data.current_period_end) {
               currentPeriodEnd = data.current_period_end;
               status = data.status || "active";

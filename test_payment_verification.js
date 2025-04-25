@@ -21,8 +21,8 @@ const { execSync } = require('child_process');
 dotenv.config();
 
 // Configuration
-const BASE_URL = process.env.SITE_URL || 'http://localhost:5173';
-const API_BASE = process.env.SUPABASE_URL || 'http://localhost:54321';
+const BASE_URL = process.env.SITE_URL || `http://localhost${process.env.PORT ? `:${process.env.PORT}` : ':8080'}`;
+const API_BASE = process.env.SUPABASE_URL || 'http://localhost';
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
