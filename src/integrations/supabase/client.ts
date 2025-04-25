@@ -1,9 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from './types';
+import type { Database } from '@/types/supabase';
 
-// Fixed values for Supabase URL and key
-const SUPABASE_URL = "https://api.lucidrem.com";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkdXpmcmpoeGZ4aXlhanZwa3VzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk2NTYyODMsImV4cCI6MjA1NTIzMjI4M30.gSYv1qXg4y3tTP3UjobDPjF9A1UldyOMjdYFVJlh47c";
+// Use environment variables for Supabase URL and key with fallbacks 
+// that match the actual values in .env file
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://api.lucidrem.com";
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkdXpmcmpoeGZ4aXlhanZwa3VzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk2NTYyODMsImV4cCI6MjA1NTIzMjI4M30.gSYv1qXg4y3tTP3UjobDPjF9A1UldyOMjdYFVJlh47c";
+
+// In development mode, use the local proxy URL for Supabase
+const isLocalDev = import.meta.env.DEV && window.location.hostname === 'localhost';
+const baseUrl = isLocalDev ? window.location.origin + '/api' : SUPABASE_URL;
 
 // Helper function to check if the configuration is valid
 export const isValidSupabaseConfig = () => {
@@ -15,10 +20,12 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
   console.error('Supabase configuration is incomplete. This will cause authentication errors.');
 }
 
+console.log('Supabase URL:', baseUrl); // Debug log
+
 // Initialize the Supabase client with explicit options for session persistence
 export const supabase = createClient<Database>(
-  SUPABASE_URL || 'https://example.supabase.co', // Fallback to prevent crashes
-  SUPABASE_PUBLISHABLE_KEY || 'public-anon-key', // Fallback to prevent crashes
+  SUPABASE_URL, // Always use the real URL for auth
+  SUPABASE_PUBLISHABLE_KEY,
   {
     auth: {
       persistSession: true, // Enable session persistence (default is true)
@@ -30,6 +37,15 @@ export const supabase = createClient<Database>(
     // Global configuration for improved reliability
     global: {
       fetch: (url, options) => {
+        // In development, rewrite the URL to use the local proxy
+        let finalUrl = url;
+        if (isLocalDev && typeof url === 'string') {
+          // Proxy REST API calls but not auth calls
+          if (url.includes('/rest/v1/')) {
+            finalUrl = url.replace(SUPABASE_URL, baseUrl);
+          }
+        }
+        
         // Add retry logic for network failures
         const maxRetries = 3;
         let retryCount = 0;
@@ -69,7 +85,7 @@ export const supabase = createClient<Database>(
           }
         };
         
-        return retryFetch(url, options);
+        return retryFetch(finalUrl, options);
       },
       headers: {
         'X-Client-Info': 'slumber-synthesizer/1.0.0'

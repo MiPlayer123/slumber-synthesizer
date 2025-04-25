@@ -24,12 +24,12 @@ serve(async (req) => {
       );
     }
 
-    const { dreamId, description } = await req.json();
+    const { dreamId, description, userId } = await req.json();
     
-    if (!dreamId || !description) {
+    if (!dreamId || !description || !userId) {
       // Using standard error response for missing params, consistent with both branches
       return new Response(
-        JSON.stringify({ error: 'Dream ID and description are required' }),
+        JSON.stringify({ error: 'Dream ID, description, and user ID are required' }),
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -37,7 +37,7 @@ serve(async (req) => {
       );
     }
     
-    console.log('Processing dream:', dreamId);
+    console.log('Processing dream:', dreamId, 'for user:', userId);
     console.log('Initial description:', description);
 
     // Use OpenAI to enhance the description
@@ -173,68 +173,102 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Convert base64 to Uint8Array
-    const imageBytes = base64Decode(base64ImageData); // Use the extracted base64ImageData
+    // Ensure the base64 data doesn't contain any metadata or prefixes
+    // Sometimes base64 data comes with "data:image/png;base64," prefix which needs to be removed
+    const cleanBase64 = base64ImageData.replace(/^data:image\/\w+;base64,/, '');
+    console.log('Cleaned base64 string for processing');
+    
+    // Convert clean base64 to Uint8Array
+    const imageBytes = base64Decode(cleanBase64);
+    
+    // Verify we have valid binary data
+    if (!imageBytes || imageBytes.length === 0) {
+      console.error('Invalid image data: Empty or null binary data');
+      return new Response(
+        JSON.stringify({ error: 'Failed to process image data: Invalid binary data' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+    
+    console.log(`Image data decoded successfully: ${imageBytes.length} bytes`);
     const fileName = `${dreamId}_${Date.now()}.png`;
 
-    // Upload image to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase
-      .storage
-      .from('dream-images')
-      .upload(fileName, imageBytes, {
-        contentType: 'image/png',
-        upsert: false
-      });
+    // Create a Blob with the correct MIME type for the image
+    const fileBlob = new Blob([imageBytes], { type: 'image/png' });
+    
+    // Log the type of data being uploaded
+    console.log('Data type being uploaded:', Object.prototype.toString.call(fileBlob));
 
-    if (uploadError) {
-      console.error('Storage upload error:', uploadError);
-      // Using standard error response for Supabase errors, consistent with both branches
+    try {
+      // Upload using Blob - no need to pass contentType as it's taken from Blob.type
+      const { data: uploadData, error: uploadError } = await supabase
+        .storage
+        .from('dream-images')
+        .upload(fileName, fileBlob);
+
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        // Using standard error response for Supabase errors
+        return new Response(
+          JSON.stringify({ error: `Storage upload error: ${uploadError.message}` }),
+          { 
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+      
+      // Get public URL for the uploaded image
+      const { data: { publicUrl } } = supabase
+        .storage
+        .from('dream-images')
+        .getPublicUrl(fileName);
+
+      // Update the dream with the generated image URL
+      const { error: updateError } = await supabase
+        .from('dreams')
+        .update({ 
+          image_url: publicUrl,
+          enhanced_description: enhancedDescription
+        })
+        .eq('id', dreamId);
+
+      if (updateError) {
+        console.error('Error updating dream:', updateError);
+        // Using standard error response for Supabase errors
+        return new Response(
+          JSON.stringify({ error: `Database update error: ${updateError.message}` }),
+          { 
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+
+      // Success response
       return new Response(
-        JSON.stringify({ error: `Storage upload error: ${uploadError.message}` }),
+        JSON.stringify({ 
+          success: true, 
+          status: 'generated',
+          imageUrl: publicUrl,
+          enhancedDescription 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+      
+    } catch (uploadCatchError) {
+      console.error('Caught error during upload process:', uploadCatchError);
+      return new Response(
+        JSON.stringify({ error: `Error during upload: ${uploadCatchError.message || 'Unknown error'}` }),
         { 
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
-
-    // Get public URL for the uploaded image
-    const { data: { publicUrl } } = supabase
-      .storage
-      .from('dream-images')
-      .getPublicUrl(fileName);
-
-    // Update the dream with the generated image URL
-    const { error: updateError } = await supabase
-      .from('dreams')
-      .update({ 
-        image_url: publicUrl,
-        enhanced_description: enhancedDescription
-      })
-      .eq('id', dreamId);
-
-    if (updateError) {
-      console.error('Error updating dream:', updateError);
-      // Using standard error response for Supabase errors, consistent with both branches
-      return new Response(
-        JSON.stringify({ error: `Database update error: ${updateError.message}` }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    // Success response (only reached if no errors occurred)
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        status: 'generated', // Indicate success
-        imageUrl: publicUrl,
-        enhancedDescription 
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    );
   } catch (error) {
     console.error('Error generating dream image:', error);
     

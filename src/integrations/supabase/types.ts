@@ -62,6 +62,7 @@ export type Database = {
           symbols: string[]
           themes: string[]
           updated_at: string
+          user_id: string
         }
         Insert: {
           created_at?: string
@@ -73,6 +74,7 @@ export type Database = {
           symbols: string[]
           themes: string[]
           updated_at?: string
+          user_id: string
         }
         Update: {
           created_at?: string
@@ -84,6 +86,7 @@ export type Database = {
           symbols?: string[]
           themes?: string[]
           updated_at?: string
+          user_id?: string
         }
         Relationships: [
           {
@@ -258,6 +261,47 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      customer_subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          stripe_customer_id: string | null
+          subscription_id: string | null
+          subscription_status: string | null
+          customer_portal_url: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          stripe_customer_id?: string | null
+          subscription_id?: string | null
+          subscription_status?: string | null
+          customer_portal_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          stripe_customer_id?: string | null
+          subscription_id?: string | null
+          subscription_status?: string | null
+          customer_portal_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: {
