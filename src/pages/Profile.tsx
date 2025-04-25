@@ -19,11 +19,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useSubscription } from "@/hooks/use-subscription";
 
 export const Profile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { hasReachedLimit } = useSubscription();
   
   const [loading, setLoading] = useState(true);
   const [dreamLoading, setDreamLoading] = useState(true);
@@ -276,6 +278,16 @@ export const Profile = () => {
   };
 
   const handleAnalyzeDream = (dreamId: string) => {
+    // ALWAYS check if user has reached analysis limit
+    if (hasReachedLimit('analysis')) {
+      toast({
+        variant: "destructive",
+        title: "Free Limit Reached",
+        description: "You've reached your free dream analysis limit this week. Upgrade to premium for unlimited analyses.",
+      });
+      return;
+    }
+    
     navigate(`/dream/${dreamId}?analyze=true`);
   };
 

@@ -13,6 +13,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
+import { useSubscription } from "@/hooks/use-subscription";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface DreamCardProps {
   dream: Dream;
@@ -33,11 +40,14 @@ export const DreamCard = ({
   isPersonalView = false,
   isGeneratingImage = false
 }: DreamCardProps) => {
+  const { hasReachedLimit } = useSubscription();
   const analysis = analyses?.find(a => a.dream_id === dream.id);
   const needsAnalysis = isPersonalView && !analysis && onAnalyze;
   const hasImage = !!dream.image_url;
   // Generate image is loading when isGeneratingImage is true and no image exists yet
   const isImageLoading = isGeneratingImage && !hasImage;
+  // Check if user has reached analysis limit
+  const hasReachedAnalysisLimit = hasReachedLimit('analysis');
 
   return (
     <Card className="animate-fade-in">
@@ -182,15 +192,36 @@ export const DreamCard = ({
             {isPersonalView && (
               <div className="flex justify-end gap-2 mt-8">
                 {needsAnalysis && (
-                  <Button 
-                    onClick={() => onAnalyze(dream.id)} 
-                    variant="secondary" 
-                    className="rounded-full"
-                    size="sm"
-                  >
-                    <Wand2 className="mr-1 h-4 w-4" />
-                    Analyze Dream
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <Button 
+                            onClick={() => {
+                              // Double-check limit as a safety measure
+                              if (hasReachedAnalysisLimit) {
+                                // Show tooltip or toast about limit reached
+                                return;
+                              }
+                              onAnalyze(dream.id);
+                            }} 
+                            variant="secondary" 
+                            className="rounded-full"
+                            size="sm"
+                            disabled={hasReachedAnalysisLimit}
+                          >
+                            <Wand2 className="mr-1 h-4 w-4" />
+                            Analyze Dream
+                          </Button>
+                        </div>
+                      </TooltipTrigger>
+                      {hasReachedAnalysisLimit && (
+                        <TooltipContent className="bg-gray-700 text-gray-100 border-gray-600">
+                          <p>You've reached your free analysis limit this week</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
                 
                 {/* Replace Edit and Delete buttons with a dropdown menu */}

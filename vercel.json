@@ -1,5 +1,17 @@
 {
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "redirects": [
+    { 
+      "source": "/checkout-complete&success=true", 
+      "destination": "/checkout-complete?success=true",
+      "permanent": false
+    },
+    { 
+      "source": "/checkout-complete&canceled=true", 
+      "destination": "/checkout-complete?canceled=true",
+      "permanent": false
+    }
   ]
 }
