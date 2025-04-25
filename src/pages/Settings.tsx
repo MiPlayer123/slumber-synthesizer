@@ -102,9 +102,28 @@ const Settings = () => {
     // Select subscription tab if the URL has a tab parameter
     const searchParams = new URLSearchParams(window.location.search);
     const tabParam = searchParams.get('tab');
+    const fromCheckout = sessionStorage.getItem('from_checkout');
     
     if (tabParam && tabParam !== 'notifications') {
       setActiveTab(tabParam);
+      
+      // Only clean the URL if coming from checkout, to preserve normal tab navigation
+      if (fromCheckout === 'true') {
+        // Clear the checkout flag after using it
+        sessionStorage.removeItem('from_checkout');
+      }
+    } else if (fromCheckout === 'true') {
+      // If coming from checkout but no tab parameter, select subscription tab
+      setActiveTab('subscription');
+      // Clear the flag after using it
+      sessionStorage.removeItem('from_checkout');
+      
+      // Clean the URL to allow easier tab navigation
+      // This removes the query parameters while keeping the correct page
+      if (window.history && window.history.replaceState) {
+        const cleanURL = window.location.pathname; // Just the path without query params
+        window.history.replaceState({}, '', cleanURL);
+      }
     }
     
     // Only refresh on initial component mount, not on tab changes or returns to the page
@@ -444,10 +463,20 @@ const Settings = () => {
     }
   };
 
-  // Prevent switching to the notifications tab
+  // Update URL when changing tabs to enable browser history and direct links
   const handleTabChange = (value: string) => {
-    if (value !== 'notifications') {
+    // Skip state updates if already on this tab to prevent unnecessary rerenders
+    if (activeTab === value) return;
+    
+    // Handle regular tabs
+    if (value !== "notifications") {
       setActiveTab(value);
+      
+      // Update the URL to reflect the current tab without causing a page reload
+      if (window.history && window.history.replaceState) {
+        const newUrl = `${window.location.pathname}?tab=${value}`;
+        window.history.replaceState({}, '', newUrl);
+      }
     } else {
       // Optionally show a toast to inform the user
       toast({
@@ -546,7 +575,8 @@ const Settings = () => {
             },
             body: JSON.stringify({
               userId: user.id,
-              stripeCustomerId: subData.stripe_customer_id
+              stripeCustomerId: subData.stripe_customer_id,
+              subscriptionId: subData.subscription_id // Add subscription_id as fallback
             })
           });
           
@@ -1166,8 +1196,7 @@ const Settings = () => {
                           </div>
                           <div className="h-2 bg-muted rounded-full overflow-hidden">
                             <div 
-                              className={`h-full bg-primary rounded-full transition-all`}
-                              style={{ width: `${((remainingUsage?.imageGenerations || 0) / 3) * 100}%` }}
+                              className={`h-full bg-primary rounded-full transition-all progress-bar-${Math.round(((remainingUsage?.imageGenerations || 0) / 3) * 100)}`}
                             ></div>
                           </div>
                         </div>
@@ -1184,8 +1213,7 @@ const Settings = () => {
                           </div>
                           <div className="h-2 bg-muted rounded-full overflow-hidden">
                             <div 
-                              className={`h-full bg-primary rounded-full transition-all`}
-                              style={{ width: `${((remainingUsage?.dreamAnalyses || 0) / 3) * 100}%` }}
+                              className={`h-full bg-primary rounded-full transition-all progress-bar-${Math.round(((remainingUsage?.dreamAnalyses || 0) / 3) * 100)}`}
                             ></div>
                           </div>
                         </div>

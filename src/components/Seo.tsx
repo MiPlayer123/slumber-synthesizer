@@ -27,6 +27,9 @@ export const Seo = ({
       <meta name="description" content={description} />
       {noIndex && <meta name="robots" content="noindex" />}
       <link rel="canonical" href={fullUrl} />
+      
+      {/* Content Security Policy */}
+      <meta httpEquiv="Content-Security-Policy" content="style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:;" />
 
       {/* Open Graph / Facebook */}
       <meta property="og:type" content="website" />

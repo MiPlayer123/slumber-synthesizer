@@ -14,6 +14,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { ProfileHoverCard } from '@/components/ui/profile-hover-card';
 import { useDreamCommentCount } from '@/hooks/use-dream-comments';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useSubscription } from '@/hooks/use-subscription';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,10 +40,42 @@ export default function DreamDetail() {
   const location = useLocation();
   const commentsRef = useRef<HTMLDivElement>(null);
   const fromProfile = location.state?.fromProfile === true;
+  const { hasReachedLimit } = useSubscription();
   
   // Get comment count
   const commentData = dreamId ? useDreamCommentCount(dreamId) : { commentCount: 0, isLoading: false };
   const commentCount = commentData.commentCount || 0;
+  
+  // Check for analyze parameter and apply free limit check
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const shouldAnalyze = searchParams.get('analyze') === 'true';
+    
+    if (shouldAnalyze && dreamId && user) {
+      // ALWAYS check if user has reached analysis limit, even if they try to bypass UI restrictions
+      if (hasReachedLimit('analysis')) {
+        toast({
+          variant: "destructive",
+          title: "Free Limit Reached",
+          description: "You've reached your free dream analysis limit this week. Upgrade to premium for unlimited analyses.",
+        });
+        
+        // Remove the analyze parameter from the URL without navigating
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+        return;
+      }
+      
+      // If limit not reached, navigate to journal page with state for analysis
+      navigate('/journal', { 
+        state: { 
+          fromDreamDetail: true,
+          analyzeDreamId: dreamId 
+        },
+        replace: true // Replace instead of push to avoid back button issues
+      });
+    }
+  }, [location.search, dreamId, hasReachedLimit, toast, navigate, user]);
   
   useEffect(() => {
     async function fetchDream() {

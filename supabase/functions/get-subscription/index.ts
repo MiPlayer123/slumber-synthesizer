@@ -139,7 +139,10 @@ serve(async (req) => {
     const { error: updateError } = await supabase
       .from("customer_subscriptions")
       .update({
-        subscription_status: statusToStore,
+        status: statusToStore,
+        subscription_status: statusToStore, // Include both for compatibility
+        subscription_id: subscription.id,
+        customer_portal_url: customerData.customer_portal_url, // Preserve existing portal URL
         cancel_at_period_end: cancelAtPeriodEnd,
         canceled_at: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
         current_period_end: currentPeriodEnd,

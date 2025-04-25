@@ -89,17 +89,8 @@ serve(async (req) => {
       customerId = customer.id;
       console.log(`Created new Stripe customer with ID: ${customerId}`);
 
-      // Create initial subscription record with stripe_customer_id
-      const { error: insertError } = await supabase.from("customer_subscriptions").insert({
-        user_id: userId,
-        stripe_customer_id: customerId,
-      });
-      
-      if (insertError) {
-        console.error(`Error creating initial subscription record: ${JSON.stringify(insertError)}`);
-      } else {
-        console.log(`Created initial subscription record for user ${userId} with Stripe customer ID ${customerId}`);
-      }
+      // IMPORTANT: We no longer create a database record here.
+      // The webhook will create the subscription record only after successful payment
     } else {
       console.log(`Found existing Stripe customer ID ${customerId} for user ${userId}`);
     }
@@ -110,13 +101,17 @@ serve(async (req) => {
       customer: customerId,
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${returnUrl || SITE_URL + "/checkout-complete"}?success=true&auto_close=true`,
+      success_url: `${returnUrl || SITE_URL + "/checkout-complete"}?success=true&auto_close=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url : `${returnUrl || SITE_URL + "/checkout-complete"}?canceled=true`,
       subscription_data: { metadata: { user_id: userId } },
+      // We store the user_id and the stripe_customer_id in the session metadata to use later
+      metadata: { user_id: userId, stripe_customer_id: customerId }
     });
     
     console.log(`Created checkout session: ${session.id}, url: ${session.url}`);
     console.log(`Note: subscription_id will be assigned by Stripe after checkout completion`);
+
+    // We don't update any subscription record here - we'll wait for the webhook
 
     return new Response(JSON.stringify({ url: session.url }), {
       status: 200, headers: { ...customCorsHeaders, "Content-Type": "application/json" },
