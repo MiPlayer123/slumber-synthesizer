@@ -24,5 +24,3 @@ dist-ssr
 *.sw?
 .env
 supabase/.env
-.vercel
-.env*.local

@@ -14,7 +14,7 @@ import { useDreamLikes } from "@/hooks/use-dream-likes";
 import { useDreamCommentCount } from "@/hooks/use-dream-comments";
 import { LikeButton } from "@/components/dreams/LikeButton";
 import { CommentButton } from "@/components/dreams/CommentButton";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { DreamLikeButton } from '@/components/dreams/DreamLikeButton';
@@ -646,6 +646,10 @@ export const UserProfile = () => {
             boxShadow: '0 0 0 1px rgba(0,0,0,0.1), 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)'
           }}
         >
+          {/* Add accessible title and description for screen readers */}
+          <DialogTitle className="sr-only">Dream Details</DialogTitle>
+          <DialogDescription className="sr-only">View dream details and comments</DialogDescription>
+          
           {selectedDream && (
             <div className="flex flex-col md:flex-row h-[90vh] md:h-auto overflow-hidden">
               <div className="md:w-3/5 bg-black flex items-center justify-center"
