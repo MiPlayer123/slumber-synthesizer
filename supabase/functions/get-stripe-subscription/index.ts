@@ -23,8 +23,15 @@ const stripe = new Stripe(STRIPE_SECRET_KEY, {
 
 // Debug logger
 const logDebug = (message: string, data?: any) => {
-  console.log(`[GET-STRIPE-SUBSCRIPTION] ${message}`, data ? JSON.stringify(data) : '');
+  // Only log the message without the potentially sensitive data
+  console.log(`[GET-STRIPE-SUBSCRIPTION] ${message}`);
 };
+
+// Info logger
+function logInfo(message: string, data?: any) {
+  // Don't log potentially sensitive data, just log the message
+  console.log(`[GET-STRIPE-SUBSCRIPTION] ${message}`);
+}
 
 // POST /get-stripe-subscription  { sessionId }
 // ----------------------------------------------------------------

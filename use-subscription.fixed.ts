@@ -47,8 +47,8 @@ export const useSubscription = () => {
   const { toast } = useToast();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [remainingUsage, setRemainingUsage] = useState<UsageData>({
-    imageGenerations: 3,
-    dreamAnalyses: 3,
+    imageGenerations: 5,
+    dreamAnalyses: 7,
   });
   const [isLoading, setIsLoading] = useState(true);
   
@@ -305,7 +305,7 @@ export const useSubscription = () => {
             if (apiError) {
               throw new Error(`API error: ${apiError.message}`);
             }
-            
+
             if (apiData?.subscription) {
               setSubscription(apiData.subscription);
               
@@ -483,8 +483,8 @@ export const useSubscription = () => {
       console.error("Error in safelyFetchUsageData:", error);
       // Use default free tier values in case of ANY error
       setRemainingUsage({
-        imageGenerations: 3,
-        dreamAnalyses: 3,
+        imageGenerations: 5,
+        dreamAnalyses: 7,
       });
     }
   };
@@ -526,8 +526,8 @@ export const useSubscription = () => {
       const startDateStr = startOfWeek.toISOString();
 
       // Default values - free tier limits
-      const freeImageLimit = 3;
-      const freeAnalysisLimit = 3;
+      const freeImageLimit = 5;
+      const freeAnalysisLimit = 7;
       
       // Fallback values - assume maximum usage in case of any errors
       let imageCount = 0;
@@ -642,8 +642,8 @@ export const useSubscription = () => {
       console.error('Error fetching usage data:', error);
       // Use default free tier values in case of error
       setRemainingUsage({
-        imageGenerations: 3,
-        dreamAnalyses: 3,
+        imageGenerations: 5,
+        dreamAnalyses: 7,
       });
     }
   };

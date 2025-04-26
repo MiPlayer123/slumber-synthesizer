@@ -95,7 +95,7 @@ export const CheckoutComplete = () => {
       checkExistingSubscription().then(hasActiveSubscription => {
         if (!hasActiveSubscription) {
           if (sessionId) {
-            console.log("Session ID found, verifying with Stripe:", sessionId);
+            console.log("Session ID found, verifying with Stripe");
             verifyPaymentWithStripe(sessionId);
           } else {
             console.warn("No session_id in URL, attempting fallback verification");
@@ -156,7 +156,7 @@ export const CheckoutComplete = () => {
         return;
       }
       
-      console.log("Calling get-stripe-subscription endpoint with session:", sessionId);
+      console.log("Calling get-stripe-subscription endpoint");
       
       // Call the get-stripe-subscription API to verify payment
       try {
@@ -175,10 +175,10 @@ export const CheckoutComplete = () => {
           return;
         }
         
-        console.log("Payment verification response:", verifyData);
+        console.log("Payment verified with Stripe");
         
         if (verifyData.success && verifyData.subscription_id) {
-          console.log("Payment verified with Stripe:", verifyData);
+          console.log("Payment verified with Stripe");
           
           // Check for payment_failed status
           if (verifyData.payment_failed) {
@@ -334,7 +334,7 @@ export const CheckoutComplete = () => {
       
       // If we got a subscription ID and status is active, we can trust it
       if (fetchData.subscriptionId && fetchData.verified) {
-        console.log("Found active subscription via Stripe API:", fetchData);
+        console.log("Found active subscription via Stripe API");
         
         // Check for payment_failed status
         if (fetchData.payment_failed) {
@@ -351,7 +351,7 @@ export const CheckoutComplete = () => {
         // Now call updateSubscriptionStatus which uses upsert logic
         await updateSubscriptionStatus(fetchData.subscriptionId);
       } else {
-        console.log("No active subscription found via Stripe API:", fetchData);
+        console.log("No active subscription found via Stripe API");
         setLoading(false);
         // Set flag in session storage to indicate coming from checkout
         sessionStorage.setItem('from_checkout', 'true');

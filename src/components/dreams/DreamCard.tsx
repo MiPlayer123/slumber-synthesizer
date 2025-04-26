@@ -42,18 +42,48 @@ export const DreamCard = ({
   isPersonalView = false,
   isGeneratingImage = false
 }: DreamCardProps) => {
-  const { hasReachedLimit, subscription, remainingUsage } = useSubscription();
+  const { hasReachedLimit, subscription, remainingUsage, refreshUsage, isUsageLoading } = useSubscription();
   const analysis = analyses?.find(a => a.dream_id === dream.id);
   const needsAnalysis = isPersonalView && !analysis && onAnalyze;
   const hasImage = !!dream.image_url;
   // Generate image is loading when isGeneratingImage is true and no image exists yet
   const isImageLoading = isGeneratingImage && !hasImage;
-  // Check if user has reached analysis limit
-  const hasReachedAnalysisLimit = hasReachedLimit('analysis');
-  // Check if user has reached image generation limit
-  const hasReachedImageLimit = hasReachedLimit('image');
-  // Need image generation when no image exists and not currently generating
-  const needsImage = isPersonalView && !hasImage && !isImageLoading && onGenerateImage;
+  
+  // Calculate disabled state for analysis button:
+  // • still loading usage (first time) ⇒ disabled
+  // • premium ⇒ never disabled
+  // • free tier ⇒ disabled if limit reached
+  const isAnalysisDisabled = (() => {
+    if (subscription?.status === "active") {
+      return false;
+    }
+    // First-time loading: disable until we know quota
+    if (remainingUsage === null && isUsageLoading) {
+      return true;
+    }
+    // We've loaded at least once, rely on current quota value
+    return (remainingUsage?.dreamAnalyses ?? 0) <= 0;
+  })();
+  
+  // Handler with additional safety check
+  const handleAnalyze = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    // Skip if disabled
+    if (isAnalysisDisabled) {
+      return;
+    }
+    
+    // As a last-resort guard, re-fetch usage before proceeding for free tier users
+    if (subscription?.status !== "active") {
+      await refreshUsage();
+      // Safely check remainingUsage which could still be null
+      if ((remainingUsage?.dreamAnalyses ?? 0) <= 0) {
+        return;
+      }
+    }
+    
+    onAnalyze?.(dream.id);
+  };
 
   return (
     <Card className="animate-fade-in">
@@ -203,23 +233,16 @@ export const DreamCard = ({
                       <TooltipTrigger asChild>
                         <div>
                           <Button 
-                            onClick={() => {
-                              // Double-check limit as a safety measure
-                              if (hasReachedAnalysisLimit) {
-                                // Show tooltip or toast about limit reached
-                                return;
-                              }
-                              onAnalyze(dream.id);
-                            }} 
-                            variant={hasReachedAnalysisLimit ? "outline" : "secondary"}
+                            onClick={handleAnalyze} 
+                            variant={isAnalysisDisabled ? "outline" : "secondary"}
                             className="rounded-full"
                             size="sm"
-                            disabled={hasReachedAnalysisLimit}
+                            disabled={isAnalysisDisabled}
                           >
-                            {hasReachedAnalysisLimit ? (
+                            {isAnalysisDisabled ? (
                               <>
                                 <Lock className="mr-1 h-4 w-4 text-gray-400" />
-                                <span className="text-gray-400">Analyze Limit Reached</span>
+                                <span className="text-gray-400">Analyze Dream</span>
                               </>
                             ) : (
                               <>
@@ -230,7 +253,7 @@ export const DreamCard = ({
                           </Button>
                         </div>
                       </TooltipTrigger>
-                      {hasReachedAnalysisLimit && (
+                      {isAnalysisDisabled && remainingUsage !== null && remainingUsage.dreamAnalyses <= 0 && (
                         <TooltipContent className="bg-gray-700 text-gray-100 border-gray-600 p-3 max-w-xs">
                           <p>You've reached your free limit of 7 dream analyses this week. Upgrade to premium for unlimited analyses.</p>
                         </TooltipContent>
@@ -239,47 +262,7 @@ export const DreamCard = ({
                   </TooltipProvider>
                 )}
                 
-                {needsImage && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div>
-                          <Button 
-                            onClick={() => {
-                              // Double-check limit as a safety measure
-                              if (hasReachedImageLimit) {
-                                // Show tooltip or toast about limit reached
-                                return;
-                              }
-                              onGenerateImage(dream);
-                            }} 
-                            variant={hasReachedImageLimit ? "outline" : "secondary"}
-                            className="rounded-full"
-                            size="sm"
-                            disabled={hasReachedImageLimit}
-                          >
-                            {hasReachedImageLimit ? (
-                              <>
-                                <Lock className="mr-1 h-4 w-4 text-gray-400" />
-                                <span className="text-gray-400">Image Limit Reached</span>
-                              </>
-                            ) : (
-                              <>
-                                <ImageIcon className="mr-1 h-4 w-4" />
-                                Generate Image
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </TooltipTrigger>
-                      {hasReachedImageLimit && (
-                        <TooltipContent className="bg-gray-700 text-gray-100 border-gray-600 p-3 max-w-xs">
-                          <p>You've reached your free limit of 5 image generations this week. Upgrade to premium for unlimited images.</p>
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
+                {/* Image generation button removed */}
                 
                 {/* Replace Edit and Delete buttons with a dropdown menu */}
                 {(onEdit || onDelete) && (

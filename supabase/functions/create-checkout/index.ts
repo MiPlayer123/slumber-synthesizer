@@ -87,16 +87,16 @@ serve(async (req) => {
         metadata: { user_id: userId },
       });
       customerId = customer.id;
-      console.log(`Created new Stripe customer with ID: ${customerId}`);
+      console.log(`Created new Stripe customer`);
 
       // IMPORTANT: We no longer create a database record here.
       // The webhook will create the subscription record only after successful payment
     } else {
-      console.log(`Found existing Stripe customer ID ${customerId} for user ${userId}`);
+      console.log(`Found existing Stripe customer for user ${userId}`);
     }
 
     /* ---------- create checkout session ---------- */
-    console.log(`Creating checkout session for customer ${customerId} with plan ${planId} (price: ${priceId})`);
+    console.log(`Creating checkout session for plan ${planId} (price: ${priceId})`);
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",

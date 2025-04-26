@@ -52,11 +52,9 @@ export const useSubscription = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [remainingUsage, setRemainingUsage] = useState<UsageData>({
-    imageGenerations: 3,
-    dreamAnalyses: 3,
-  });
+  const [remainingUsage, setRemainingUsage] = useState<UsageData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUsageLoading, setIsUsageLoading] = useState(true);
   // Add tracking for last notification time to prevent duplicates
   const lastNotificationRef = useRef<number>(0);
   const lastStatusLogRef = useRef<string>("");
@@ -196,7 +194,7 @@ export const useSubscription = () => {
                 if (fetchResponse.ok) {
                   const stripeData = await fetchResponse.json();
                   if (stripeData.subscription_id) {
-                    console.log("Retrieved subscription_id from Stripe:", stripeData.subscription_id);
+                    console.log("Retrieved subscription data from Stripe");
                     
                     // Update the subscription_id in the database
                     const { error: updateError } = await supabase
@@ -565,14 +563,23 @@ export const useSubscription = () => {
       // Check if URL includes tab=subscription which is our return URL from Stripe
       const searchParams = new URLSearchParams(window.location.search);
       const tabParam = searchParams.get('tab');
+      const fromStripe = searchParams.get('fromStripe');
       
-      if (tabParam === 'subscription' && user) {
+      // Only refresh if we have both tab=subscription AND fromStripe=true
+      // This prevents refreshing when user is just navigating tabs within the app
+      if (tabParam === 'subscription' && fromStripe === 'true' && user) {
         console.log("Detected return from Stripe portal, refreshing subscription data");
         // Wait a moment to ensure page is fully loaded
         setTimeout(() => {
           refreshFromStripe().catch(err => {
             console.error("Error refreshing subscription after returning from Stripe:", err);
           });
+          
+          // Clean up the URL to remove the fromStripe parameter
+          if (window.history && window.history.replaceState) {
+            const newUrl = `${window.location.pathname}?tab=subscription`;
+            window.history.replaceState({}, '', newUrl);
+          }
         }, 500);
       }
     };
@@ -586,15 +593,18 @@ export const useSubscription = () => {
 
   // Safely fetch usage data, with fallbacks for any errors
   const safelyFetchUsageData = async () => {
+    setIsUsageLoading(true);
     try {
       await fetchUsageData();
     } catch (error) {
       console.error("Error in safelyFetchUsageData:", error);
       // Use default free tier values in case of ANY error
       setRemainingUsage({
-        imageGenerations: 3,
-        dreamAnalyses: 3,
+        imageGenerations: 5,
+        dreamAnalyses: 7,
       });
+    } finally {
+      setIsUsageLoading(false);
     }
   };
 
@@ -605,6 +615,7 @@ export const useSubscription = () => {
         imageGenerations: 0,
         dreamAnalyses: 0
       });
+      setIsUsageLoading(false);
       return;
     }
     
@@ -614,6 +625,7 @@ export const useSubscription = () => {
         imageGenerations: Infinity,
         dreamAnalyses: Infinity
       });
+      setIsUsageLoading(false);
       return;
     }
 
@@ -676,6 +688,8 @@ export const useSubscription = () => {
         imageGenerations: 5,
         dreamAnalyses: 7,
       });
+    } finally {
+      setIsUsageLoading(false);
     }
   };
 
@@ -695,10 +709,15 @@ export const useSubscription = () => {
       }
     }
     
+    // If both remainingUsage is null AND isUsageLoading is true, 
+    // we haven't loaded the first time - assume limit is reached for safety
+    if (remainingUsage === null && isUsageLoading) return true;
+    
+    // If we've loaded at least once, use the latest known value
     if (type === 'image') {
-      return remainingUsage.imageGenerations <= 0;
+      return (remainingUsage?.imageGenerations ?? 0) <= 0;
     } else {
-      return remainingUsage.dreamAnalyses <= 0;
+      return (remainingUsage?.dreamAnalyses ?? 0) <= 0;
     }
   };
 
@@ -738,20 +757,23 @@ export const useSubscription = () => {
     // For free tier users, decrement the local counter
     if (type === 'image') {
       setRemainingUsage(prev => ({
-        ...prev,
-        imageGenerations: Math.max(0, prev.imageGenerations - 1)
+        // If previous state was null, use default values
+        imageGenerations: Math.max(0, (prev?.imageGenerations ?? 5) - 1),
+        dreamAnalyses: prev?.dreamAnalyses ?? 7
       }));
     } else {
       setRemainingUsage(prev => ({
-        ...prev,
-        dreamAnalyses: Math.max(0, prev.dreamAnalyses - 1)
+        // If previous state was null, use default values
+        imageGenerations: prev?.imageGenerations ?? 5,
+        dreamAnalyses: Math.max(0, (prev?.dreamAnalyses ?? 7) - 1)
       }));
     }
   };
 
   // Function to get the correct return URL for Stripe portal
   const getReturnUrl = () => {
-    return makeReturnUrl(STRIPE_RETURN_PATHS.SETTINGS);
+    // Add a fromStripe parameter to identify returns from Stripe portal
+    return makeReturnUrl(STRIPE_RETURN_PATHS.SETTINGS) + '&fromStripe=true';
   };
 
   // Update startCheckout function to use dynamic return URL
@@ -806,6 +828,12 @@ export const useSubscription = () => {
     // First check if we have a recent cached subscription
     const cachedSubscription = getSubscriptionFromCache();
     if (cachedSubscription) {
+      // Compare with current subscription to avoid unnecessary UI updates
+      if (JSON.stringify(cachedSubscription) === JSON.stringify(subscription)) {
+        console.log("Using cached subscription data - no changes detected");
+        return; // No need to update state if data is the same
+      }
+      
       setSubscription(cachedSubscription);
       
       // Set usage limits based on cached subscription
@@ -1039,12 +1067,14 @@ export const useSubscription = () => {
   return {
     subscription,
     isLoading,
+    isUsageLoading,
     remainingUsage,
     hasReachedLimit,
     recordUsage,
     startCheckout,
-    refreshUsage: fetchUsageData,
+    refreshUsage: safelyFetchUsageData,
     refreshSubscription,
     setSubscription,
+    getReturnUrl,
   };
 }; 

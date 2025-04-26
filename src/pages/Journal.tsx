@@ -267,33 +267,15 @@ const Journal = () => {
         description: "Your dream has been successfully recorded.",
       });
       
-      // Immediately mark analysis limit as reached if this would be the last dream
-      // This instantly grays out the "Analyze Dream" button before server update
-      if (subscription?.status !== 'active' && 
-          remainingUsage?.dreamAnalyses <= 1 && 
-          hasReachedLimit !== undefined) {
-        // Force UI to immediately reflect that we can't analyze more dreams
-        recordUsage('analysis');
-      }
-      
       // If file is provided, upload it; otherwise generate AI image
       if (file) {
         uploadMedia.mutate({ dreamId: newDream.id, file });
       } else {
-        // Check if user has reached image generation limit
-        if (hasReachedLimit('image')) {
-          toast({
-            variant: "destructive",
-            title: "Image Generation Limit Reached",
-            description: "You've reached your free image generation limit this week. Upgrade to premium for unlimited images.",
-          });
-        } else {
-          // Preemptively record usage to update UI without waiting for server
-          if (subscription?.status !== 'active') {
-            recordUsage('image');
-          }
-          generateImage.mutate(newDream);
+        // Check if user has reached image generation limit for free tier
+        if (subscription?.status !== 'active' && hasReachedLimit('image')) {
+          throw new Error('You\'ve reached your free image generation limit of 5 this week. Upgrade to premium for unlimited images.');
         }
+        generateImage.mutate(newDream);
       }
     },
     onError: (error) => {

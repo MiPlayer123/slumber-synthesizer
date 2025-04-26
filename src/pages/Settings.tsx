@@ -55,12 +55,13 @@ const Settings = () => {
   const { theme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState("account");
   const { 
-    subscription, 
+    subscription,
     isLoading: isLoadingSubscription, 
     remainingUsage, 
     startCheckout, 
     refreshSubscription,
-    setSubscription
+    setSubscription,
+    getReturnUrl
   } = useSubscription();
   const navigate = useNavigate();
   
@@ -87,6 +88,7 @@ const Settings = () => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isLoadingPassword, setIsLoadingPassword] = useState(false);
   const [isLoadingDataExport, setIsLoadingDataExport] = useState(false);
+  const [hasInitiallyRefreshed, setHasInitiallyRefreshed] = useState(false);
 
   // Calculate progress percentage for subscription period
   const calculateProgressPercent = (endDate: string) => {
@@ -129,9 +131,16 @@ const Settings = () => {
     
     // Only refresh on initial component mount, not on tab changes or returns to the page
     // Use a setTimeout to defer subscription refresh until after UI is loaded
-    if (!isLoadingSubscription && !sessionStorage.getItem('initial_load_complete')) {
-      // Set flag that we've done the initial load
+    if (!isLoadingSubscription && !sessionStorage.getItem('initial_load_complete') && !hasInitiallyRefreshed) {
+      // Set flags that we've done the initial load
       sessionStorage.setItem('initial_load_complete', 'true');
+      setHasInitiallyRefreshed(true);
+      
+      // Skip the background refresh if the user is already on the subscription tab
+      // This prevents the unwanted refresh when a user directly navigates to the subscription tab
+      if (tabParam === 'subscription') {
+        return;
+      }
       
       // Defer subscription refresh to allow UI to load first
       const timer = setTimeout(() => {
@@ -145,7 +154,7 @@ const Settings = () => {
       
       return () => clearTimeout(timer);
     }
-  }, [refreshSubscription, user]);
+  }, [refreshSubscription, user, hasInitiallyRefreshed]);
 
   // Remove the session storage when component unmounts to ensure it's fresh on next Settings visit
   useEffect(() => {
@@ -381,12 +390,12 @@ const Settings = () => {
       }
       
       // ALWAYS create a new portal session
-      console.log("Creating new portal session with customer ID:", subData.stripe_customer_id);
+      console.log("Creating new portal session");
       const { data, error: portalError } = await supabase.functions.invoke('create-portal', {
         body: {
           userId: user.id,
           customerId: subData.stripe_customer_id,
-          returnUrl: makeReturnUrl(STRIPE_RETURN_PATHS.SETTINGS)
+          returnUrl: getReturnUrl()
         }
       });
       
@@ -479,6 +488,12 @@ const Settings = () => {
         const newUrl = `${window.location.pathname}?tab=${value}`;
         window.history.replaceState({}, '', newUrl);
       }
+      
+      // Set the hasInitiallyRefreshed flag to true to prevent auto-refresh when switching to subscription tab
+      if (value === 'subscription' && !hasInitiallyRefreshed) {
+        setHasInitiallyRefreshed(true);
+        sessionStorage.setItem('initial_load_complete', 'true');
+      }
     } else {
       // Optionally show a toast to inform the user
       toast({
@@ -548,12 +563,12 @@ const Settings = () => {
       }
       
       // Always create a new portal session
-      console.log("Creating new portal session for cancellation with customer ID:", subData.stripe_customer_id);
+      console.log("Creating new portal session for cancellation");
       const { data, error: portalError } = await supabase.functions.invoke('create-portal', {
         body: {
           userId: user.id,
           customerId: subData.stripe_customer_id,
-          returnUrl: makeReturnUrl(STRIPE_RETURN_PATHS.SETTINGS)
+          returnUrl: getReturnUrl()
         }
       });
       
@@ -657,12 +672,12 @@ const Settings = () => {
       }
       
       // Always create a new portal session for renewal
-      console.log("Creating new portal session for renewal with customer ID:", subData.stripe_customer_id);
+      console.log("Creating new portal session for renewal");
       const { data, error: portalError } = await supabase.functions.invoke('create-portal', {
         body: {
           userId: user.id,
           customerId: subData.stripe_customer_id,
-          returnUrl: makeReturnUrl(STRIPE_RETURN_PATHS.SETTINGS)
+          returnUrl: getReturnUrl()
         }
       });
       
@@ -1160,12 +1175,12 @@ const Settings = () => {
                               <span className="text-sm font-medium">Image Generations</span>
                             </div>
                             <span className="text-sm font-semibold">
-                              {remainingUsage?.imageGenerations || 0} / 3 remaining this week
+                              {remainingUsage?.imageGenerations ?? 0} / 5 remaining this week
                             </span>
                           </div>
                           <div className="h-2 bg-muted rounded-full overflow-hidden">
                             <div 
-                              className={`h-full bg-primary rounded-full transition-all progress-bar-${Math.round(((remainingUsage?.imageGenerations || 0) / 3) * 100)}`}
+                              className={`h-full bg-primary rounded-full transition-all progress-bar-${Math.round(((remainingUsage?.imageGenerations ?? 0) / 5) * 100)}`}
                             ></div>
                           </div>
                         </div>
@@ -1177,12 +1192,12 @@ const Settings = () => {
                               <span className="text-sm font-medium">Dream Analyses</span>
                             </div>
                             <span className="text-sm font-semibold">
-                              {remainingUsage?.dreamAnalyses || 0} / 3 remaining this week
+                              {remainingUsage?.dreamAnalyses ?? 0} / 7 remaining this week
                             </span>
                           </div>
                           <div className="h-2 bg-muted rounded-full overflow-hidden">
                             <div 
-                              className={`h-full bg-primary rounded-full transition-all progress-bar-${Math.round(((remainingUsage?.dreamAnalyses || 0) / 3) * 100)}`}
+                              className={`h-full bg-primary rounded-full transition-all progress-bar-${Math.round(((remainingUsage?.dreamAnalyses ?? 0) / 7) * 100)}`}
                             ></div>
                           </div>
                         </div>
