@@ -7,8 +7,8 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://api.lucidrem.
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 
 // In development mode, use the local proxy URL for Supabase
-const isLocalDev = import.meta.env.DEV && window.location.hostname === 'localhost';
-const baseUrl = isLocalDev ? window.location.origin + '/api' : SUPABASE_URL;
+const isLocalDev = import.meta.env.DEV && typeof window !== 'undefined' && window.location.hostname === 'localhost';
+const baseUrl = isLocalDev ? (typeof window !== 'undefined' ? window.location.origin + '/api' : '/api') : SUPABASE_URL;
 
 // Helper function to check if the configuration is valid
 export const isValidSupabaseConfig = () => {
