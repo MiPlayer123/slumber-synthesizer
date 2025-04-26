@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/types/supabase";
+import { makeReturnUrl, STRIPE_RETURN_PATHS } from "@/utils/constants";
 
 // Types for the subscription system
 export type SubscriptionStatus = "active" | "canceled" | "trialing" | "past_due" | "unpaid" | null;
@@ -41,6 +42,11 @@ interface DreamAnalysis {
 
 // Local storage key for subscription status
 const SUBSCRIPTION_STATUS_KEY = "subscription_status";
+
+// Cache key for subscription data
+const SUBSCRIPTION_CACHE_KEY = "subscription_cache";
+// Cache TTL in milliseconds (5 minutes)
+const CACHE_TTL = 5 * 60 * 1000;
 
 export const useSubscription = () => {
   const { user } = useAuth();
@@ -104,6 +110,36 @@ export const useSubscription = () => {
         description: "Your premium subscription is active. You have unlimited dream analyses and image generations!",
       });
       lastNotificationRef.current = now;
+    }
+  };
+
+  // Create helper functions for caching subscription data
+  const getSubscriptionFromCache = () => {
+    try {
+      const cachedData = localStorage.getItem(SUBSCRIPTION_CACHE_KEY);
+      if (cachedData) {
+        const { data, timestamp } = JSON.parse(cachedData);
+        // Check if cache is still valid
+        if (Date.now() - timestamp < CACHE_TTL) {
+          return data;
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error("Error reading subscription cache:", error);
+      return null;
+    }
+  };
+
+  const saveSubscriptionToCache = (data: any) => {
+    try {
+      const cacheData = {
+        data,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(SUBSCRIPTION_CACHE_KEY, JSON.stringify(cacheData));
+    } catch (error) {
+      console.error("Error saving subscription to cache:", error);
     }
   };
 
@@ -564,29 +600,21 @@ export const useSubscription = () => {
 
   // Fetch usage data from the database - only needed for free tier
   const fetchUsageData = async () => {
-    if (!user) return;
-    
-    // Skip if user has active subscription - they should always have unlimited access
-    if (subscription?.status === "active") {
+    if (!user) {
       setRemainingUsage({
-        imageGenerations: Infinity,
-        dreamAnalyses: Infinity,
+        imageGenerations: 0,
+        dreamAnalyses: 0
       });
       return;
     }
     
-    // For canceling subscriptions, check if they're still within their paid period
-    if (subscription?.status === "canceling" && subscription?.currentPeriodEnd) {
-      const endDate = new Date(subscription.currentPeriodEnd);
-      const now = new Date();
-      if (now < endDate) {
-        // Still have unlimited access until end date
-        setRemainingUsage({
-          imageGenerations: Infinity,
-          dreamAnalyses: Infinity,
-        });
-        return;
-      }
+    // If user has an active subscription, they have unlimited usage
+    if (subscription?.status === "active") {
+      setRemainingUsage({
+        imageGenerations: Infinity,
+        dreamAnalyses: Infinity
+      });
+      return;
     }
 
     try {
@@ -598,112 +626,42 @@ export const useSubscription = () => {
       startOfWeek.setUTCHours(0, 0, 0, 0);
       const startDateStr = startOfWeek.toISOString();
 
-      // Default values - free tier limits
-      const freeImageLimit = 3;
-      const freeAnalysisLimit = 3;
+      // Set free tier limits
+      const freeImageLimit = 5;
+      const freeAnalysisLimit = 7;
       
       // Fallback values - assume maximum usage in case of any errors
       let imageCount = 0;
       let analysisCount = 0;
       
-      // Avoid all RPC calls in development mode to prevent 404 errors
-      const isDevelopment = import.meta.env.DEV;
-      
-      if (!isDevelopment) {
-        try {
-          // Count dream images using SQL function
-          const { count: imageCountResult, error: imageError } = await supabase.rpc(
-            'count_user_images_since',
-            { 
-              user_id_input: user.id,
-              since_date: startDateStr
-            }
-          );
-          
-          if (!imageError && imageCountResult !== null) {
-            imageCount = imageCountResult;
-          }
-          
-          // Count dream analyses using SQL function - only call in production
-          const { count: analysisCountResult, error: analysisError } = await supabase.rpc(
-            'count_user_analyses_since',
-            { 
-              user_id_input: user.id,
-              since_date: startDateStr
-            }
-          );
-          
-          if (!analysisError && analysisCountResult !== null) {
-            analysisCount = analysisCountResult;
-          }
-        } catch (error) {
-          console.error("Error counting using RPC functions:", error);
-        }
-      } else {
-        console.log("Skipping RPC functions in development mode");
-        // Use fallback method for development
+      try {
+        // Count image generations from usage_logs
+        const { data: imageData, error: imageError } = await supabase
+          .from("usage_logs")
+          .select("count")
+          .eq("user_id", user.id)
+          .eq("type", "image")
+          .gte("created_at", startDateStr);
         
-        // Count images manually by querying dreams table
-        try {
-          const { data: images, error: imagesError } = await supabase
-            .from('dreams')
-            .select('id')
-            .eq('user_id', user.id)
-            .gte('created_at', startDateStr)
-            .not('image_url', 'is', null);
-            
-          if (!imagesError && images) {
-            imageCount = images.length;
-          }
-          
-          // Count analyses manually by querying dream_analyses table
-          try {
-            // First try with direct query using user_id
-            const { data: analyses, error: analysesError } = await supabase
-              .from('dream_analyses')
-              .select('id')
-              .eq('user_id', user.id)
-              .gte('created_at', startDateStr);
-            
-            if (!analysesError && analyses) {
-              analysisCount = analyses.length;
-            } else if (analysesError && analysesError.code === '42703' && 
-                      analysesError.message.includes('user_id')) {
-              // If user_id column doesn't exist, use a more compatible approach
-              console.log("Falling back to alternative query for analyses count due to missing user_id");
-              
-              // First get all the user's dreams
-              const { data: userDreams, error: userDreamsError } = await supabase
-                .from('dreams')
-                .select('id')
-                .eq('user_id', user.id);
-                
-              if (!userDreamsError && userDreams && userDreams.length > 0) {
-                // Get dream IDs
-                const dreamIds = userDreams.map(dream => dream.id);
-                
-                // Then count analyses for those dreams
-                const { data: dreamAnalyses, error: dreamAnalysesError } = await supabase
-                  .from('dream_analyses')
-                  .select('id')
-                  .in('dream_id', dreamIds)
-                  .gte('created_at', startDateStr);
-                  
-                if (!dreamAnalysesError && dreamAnalyses) {
-                  analysisCount = dreamAnalyses.length;
-                } else if (dreamAnalysesError) {
-                  console.error("Error querying analyses by dream_id:", dreamAnalysesError);
-                }
-              } else if (userDreamsError) {
-                console.error("Error querying user dreams:", userDreamsError);
-              }
-            }
-          } catch (error) {
-            console.error("Error counting dream analyses:", error);
-          }
-        } catch (error) {
-          console.error("Error counting using direct queries:", error);
+        if (!imageError && imageData) {
+          // Sum up all counts
+          imageCount = imageData.reduce((sum, record) => sum + record.count, 0);
         }
+        
+        // Count analyses from usage_logs
+        const { data: analysisData, error: analysisError } = await supabase
+          .from("usage_logs")
+          .select("count")
+          .eq("user_id", user.id)
+          .eq("type", "analysis")
+          .gte("created_at", startDateStr);
+        
+        if (!analysisError && analysisData) {
+          // Sum up all counts
+          analysisCount = analysisData.reduce((sum, record) => sum + record.count, 0);
+        }
+      } catch (error) {
+        console.error("Error counting from usage_logs:", error);
       }
 
       // Update the remaining usage for free tier
@@ -715,8 +673,8 @@ export const useSubscription = () => {
       console.error('Error fetching usage data:', error);
       // Use default free tier values in case of error
       setRemainingUsage({
-        imageGenerations: 3,
-        dreamAnalyses: 3,
+        imageGenerations: 5,
+        dreamAnalyses: 7,
       });
     }
   };
@@ -760,6 +718,23 @@ export const useSubscription = () => {
       }
     }
     
+    try {
+      // Insert usage record into usage_logs table
+      const { error } = await supabase
+        .from("usage_logs")
+        .insert({
+          user_id: user.id,
+          type: type,
+          count: 1
+        });
+      
+      if (error) {
+        console.error("Error recording usage:", error);
+      }
+    } catch (err) {
+      console.error("Failed to record usage:", err);
+    }
+    
     // For free tier users, decrement the local counter
     if (type === 'image') {
       setRemainingUsage(prev => ({
@@ -776,8 +751,7 @@ export const useSubscription = () => {
 
   // Function to get the correct return URL for Stripe portal
   const getReturnUrl = () => {
-    // Always use the current origin to ensure we return to the right domain and port
-    return `${window.location.origin}/settings?tab=subscription`;
+    return makeReturnUrl(STRIPE_RETURN_PATHS.SETTINGS);
   };
 
   // Update startCheckout function to use dynamic return URL
@@ -802,7 +776,7 @@ export const useSubscription = () => {
         body: {
           userId: user.id, 
           planId,
-          returnUrl: returnUrl || `${window.location.origin}/checkout-complete`
+          returnUrl: returnUrl || makeReturnUrl(STRIPE_RETURN_PATHS.CHECKOUT_COMPLETE)
         }
       });
 
@@ -829,6 +803,25 @@ export const useSubscription = () => {
 
   // Function to manually refresh subscription status
   const refreshSubscription = async () => {
+    // First check if we have a recent cached subscription
+    const cachedSubscription = getSubscriptionFromCache();
+    if (cachedSubscription) {
+      setSubscription(cachedSubscription);
+      
+      // Set usage limits based on cached subscription
+      if (cachedSubscription.status === "active") {
+        setRemainingUsage({
+          imageGenerations: Infinity,
+          dreamAnalyses: Infinity,
+        });
+      } else {
+        // For non-active subscriptions, still fetch usage data
+        await safelyFetchUsageData();
+      }
+      
+      return;
+    }
+    
     setIsLoading(true);
     try {
       // Clear existing subscription data and fetch fresh data
@@ -899,7 +892,7 @@ export const useSubscription = () => {
                     displayStatus = isCanceling ? "canceling" : "active";
                   }
                   
-                  setSubscription({
+                  const subscriptionObj = {
                     id: subscriptionData.subscription_id || "",
                     status: isActive ? "active" : stripeData.status,
                     displayStatus,
@@ -908,7 +901,12 @@ export const useSubscription = () => {
                     customerPortalUrl: subscriptionData.customer_portal_url || null,
                     cancelAtPeriodEnd: isCanceling || stripeData.cancel_at_period_end || false,
                     canceledAt: stripeData.canceled_at ? new Date(stripeData.canceled_at * 1000).toISOString() : null,
-                  });
+                  };
+                  
+                  setSubscription(subscriptionObj);
+                  
+                  // Cache the subscription data for faster loading
+                  saveSubscriptionToCache(subscriptionObj);
                   
                   // Save status
                   saveStatusToStorage(displayStatus);
@@ -936,7 +934,7 @@ export const useSubscription = () => {
           }
           
           // Fallback if Stripe check fails: Set subscription to active
-          setSubscription({
+          const subscriptionObj = {
             id: subscriptionData.subscription_id || "",
             status: "active",
             displayStatus: "active",
@@ -945,7 +943,12 @@ export const useSubscription = () => {
             customerPortalUrl: subscriptionData.customer_portal_url || null,
             cancelAtPeriodEnd: false,
             canceledAt: null,
-          });
+          };
+          
+          setSubscription(subscriptionObj);
+          
+          // Cache the subscription data for faster loading
+          saveSubscriptionToCache(subscriptionObj);
           
           // Always set unlimited for active subscribers
           setRemainingUsage({

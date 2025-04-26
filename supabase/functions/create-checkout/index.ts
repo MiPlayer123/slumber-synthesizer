@@ -13,7 +13,7 @@ const required = (key: string) => {
 const SUPABASE_URL            = required("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE   = required("SUPABASE_SERVICE_ROLE_KEY");
 const STRIPE_SECRET_KEY       = required("STRIPE_SECRET_KEY");
-const SITE_URL                = Deno.env.get("SITE_URL") || "http://localhost";
+const SITE_URL                = Deno.env.get("SITE_URL");
 const STRIPE_MONTHLY_PRICE_ID = Deno.env.get("STRIPE_MONTHLY_PRICE_ID");
 const STRIPE_SIX_PRICE_ID     = Deno.env.get("STRIPE_SIXMONTH_PRICE_ID");
 

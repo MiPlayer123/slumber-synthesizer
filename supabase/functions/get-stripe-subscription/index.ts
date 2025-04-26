@@ -90,7 +90,7 @@ serve(async (req) => {
         // Create portal URL for subscription management
         const portalSession = await stripe.billingPortal.sessions.create({
           customer: stripeCustomerId,
-          return_url: `${Deno.env.get("SITE_URL") || 'http://localhost'}/settings?tab=subscription`,
+          return_url: `${Deno.env.get("SITE_URL")}/settings?tab=subscription`,
         });
         
         // Build the row for database update
@@ -309,7 +309,7 @@ serve(async (req) => {
       // Create portal URL for subscription management
       const portalSession = await stripe.billingPortal.sessions.create({
         customer: customerId,
-        return_url: `${Deno.env.get("SITE_URL") || 'http://localhost'}/settings?tab=subscription`,
+        return_url: `${Deno.env.get("SITE_URL")}/settings?tab=subscription`,
       });
       
       // Build the row for database insert/update

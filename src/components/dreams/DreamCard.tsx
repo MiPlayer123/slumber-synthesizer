@@ -1,5 +1,5 @@
 import { Dream, DreamAnalysis } from "@/lib/types";
-import { Sparkles, Wand2, MoreVertical, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Sparkles, Wand2, MoreVertical, Pencil, Trash2, Loader2, Lock, ImageIcon } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -27,6 +27,7 @@ interface DreamCardProps {
   onAnalyze?: (dreamId: string) => void;
   onEdit?: (dreamId: string) => void;
   onDelete?: (dreamId: string) => void;
+  onGenerateImage?: (dream: Dream) => void;
   isPersonalView?: boolean;
   isGeneratingImage?: boolean;
 }
@@ -37,10 +38,11 @@ export const DreamCard = ({
   onAnalyze, 
   onEdit,
   onDelete,
+  onGenerateImage,
   isPersonalView = false,
   isGeneratingImage = false
 }: DreamCardProps) => {
-  const { hasReachedLimit } = useSubscription();
+  const { hasReachedLimit, subscription, remainingUsage } = useSubscription();
   const analysis = analyses?.find(a => a.dream_id === dream.id);
   const needsAnalysis = isPersonalView && !analysis && onAnalyze;
   const hasImage = !!dream.image_url;
@@ -48,6 +50,10 @@ export const DreamCard = ({
   const isImageLoading = isGeneratingImage && !hasImage;
   // Check if user has reached analysis limit
   const hasReachedAnalysisLimit = hasReachedLimit('analysis');
+  // Check if user has reached image generation limit
+  const hasReachedImageLimit = hasReachedLimit('image');
+  // Need image generation when no image exists and not currently generating
+  const needsImage = isPersonalView && !hasImage && !isImageLoading && onGenerateImage;
 
   return (
     <Card className="animate-fade-in">
@@ -205,19 +211,70 @@ export const DreamCard = ({
                               }
                               onAnalyze(dream.id);
                             }} 
-                            variant="secondary" 
+                            variant={hasReachedAnalysisLimit ? "outline" : "secondary"}
                             className="rounded-full"
                             size="sm"
                             disabled={hasReachedAnalysisLimit}
                           >
-                            <Wand2 className="mr-1 h-4 w-4" />
-                            Analyze Dream
+                            {hasReachedAnalysisLimit ? (
+                              <>
+                                <Lock className="mr-1 h-4 w-4 text-gray-400" />
+                                <span className="text-gray-400">Analyze Limit Reached</span>
+                              </>
+                            ) : (
+                              <>
+                                <Wand2 className="mr-1 h-4 w-4" />
+                                Analyze Dream
+                              </>
+                            )}
                           </Button>
                         </div>
                       </TooltipTrigger>
                       {hasReachedAnalysisLimit && (
-                        <TooltipContent className="bg-gray-700 text-gray-100 border-gray-600">
-                          <p>You've reached your free analysis limit this week</p>
+                        <TooltipContent className="bg-gray-700 text-gray-100 border-gray-600 p-3 max-w-xs">
+                          <p>You've reached your free limit of 7 dream analyses this week. Upgrade to premium for unlimited analyses.</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+                
+                {needsImage && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <Button 
+                            onClick={() => {
+                              // Double-check limit as a safety measure
+                              if (hasReachedImageLimit) {
+                                // Show tooltip or toast about limit reached
+                                return;
+                              }
+                              onGenerateImage(dream);
+                            }} 
+                            variant={hasReachedImageLimit ? "outline" : "secondary"}
+                            className="rounded-full"
+                            size="sm"
+                            disabled={hasReachedImageLimit}
+                          >
+                            {hasReachedImageLimit ? (
+                              <>
+                                <Lock className="mr-1 h-4 w-4 text-gray-400" />
+                                <span className="text-gray-400">Image Limit Reached</span>
+                              </>
+                            ) : (
+                              <>
+                                <ImageIcon className="mr-1 h-4 w-4" />
+                                Generate Image
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </TooltipTrigger>
+                      {hasReachedImageLimit && (
+                        <TooltipContent className="bg-gray-700 text-gray-100 border-gray-600 p-3 max-w-xs">
+                          <p>You've reached your free limit of 5 image generations this week. Upgrade to premium for unlimited images.</p>
                         </TooltipContent>
                       )}
                     </Tooltip>

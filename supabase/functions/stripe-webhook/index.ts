@@ -114,7 +114,7 @@ serve(async (req) => {
         // Create a customer portal URL for managing the subscription
         const portalSession = await stripe.billingPortal.sessions.create({
           customer: customerId as string,
-          return_url: `${Deno.env.get("SITE_URL") || 'http://localhost'}/settings?tab=subscription`,
+          return_url: `${Deno.env.get("SITE_URL")}/settings?tab=subscription`,
         });
         logDebug("Created portal session", portalSession);
         

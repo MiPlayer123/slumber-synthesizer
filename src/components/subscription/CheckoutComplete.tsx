@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ export const CheckoutComplete = () => {
   const [status, setStatus] = useState<"success" | "canceled" | "unknown">("unknown");
   const [subscriptionActivated, setSubscriptionActivated] = useState(false);
   const [verificationAttempted, setVerificationAttempted] = useState(false);
+  const didInitialRefresh = useRef(false);
 
   // Clear any previously stored checkout state on component mount
   // This forces fresh verification every time the user visits this page
@@ -27,17 +28,16 @@ export const CheckoutComplete = () => {
     // Remove any previously stored checkout state
     sessionStorage.removeItem(CHECKOUT_PROCESSED_KEY);
     
-    // Also clear any potentially outdated subscription data from memory
-    refreshSubscription().catch(err => {
-      console.error("Failed to refresh subscription data on mount:", err);
-    });
-    
-    // Any time this component unmounts, make sure to refresh subscription data
-    return () => {
+    // Only do initial refresh once per component lifetime
+    if (!didInitialRefresh.current) {
+      didInitialRefresh.current = true;
+      // Also clear any potentially outdated subscription data from memory
       refreshSubscription().catch(err => {
-        console.error("Failed to refresh subscription data on unmount:", err);
+        console.error("Failed to refresh subscription data on mount:", err);
       });
-    };
+    }
+    
+    // No need to refresh on unmount since we'll refresh when viewing the settings page
   }, [refreshSubscription]);
 
   // Immediate redirect if user has just navigated here without a success parameter
@@ -56,37 +56,8 @@ export const CheckoutComplete = () => {
       // Immediately set loading to false to prevent showing loading UI
       setLoading(false);
       
-      // Set flag in session storage to indicate coming from checkout
-      sessionStorage.setItem('from_checkout', 'true');
-      // Navigate to settings with tab parameter
-      window.history.pushState({}, '', '/settings?tab=subscription');
-      // Force a dispatch of popstate event to trigger route change without reload
-      window.dispatchEvent(new PopStateEvent('popstate', { state: {} }));
-    }
-  }, []);
-
-  useEffect(() => {
-    // We no longer need this check since we're forcing fresh verification every time
-    // by clearing sessionStorage on mount
-    
-    const searchParams = new URLSearchParams(window.location.search);
-    const isSuccess = searchParams.get("success") === "true";
-    const isCanceled = searchParams.get("canceled") === "true";
-    const shouldAutoClose = searchParams.get("auto_close") === "true";
-    const sessionId = searchParams.get("session_id");
-    
-    // Log once, not repeatedly
-    console.log("Checkout complete params:", { isSuccess, isCanceled, shouldAutoClose, sessionId });
-
-    // For canceled or unknown status, or failed payment, redirect to subscription tab immediately
-    if (isCanceled) {
-      console.log("Checkout was canceled, redirecting to subscription tab");
-      
-      // Immediately set loading to false to prevent showing loading UI
-      setLoading(false);
-      
-      // Update status to reflect cancellation
-      setStatus("canceled");
+      // No need to refresh subscription on invalid navigation
+      // This prevents unnecessary API calls
       
       // Set flag in session storage to indicate coming from checkout
       sessionStorage.setItem('from_checkout', 'true');
@@ -95,72 +66,55 @@ export const CheckoutComplete = () => {
       // Force a dispatch of popstate event to trigger route change without reload
       window.dispatchEvent(new PopStateEvent('popstate', { state: {} }));
       return;
-    }
-
-    // If there's success=true but no session_id, this is suspicious - it might
-    // be someone manually navigating or changing the URL - verify more carefully
-    if (isSuccess && !sessionId) {
-      console.log("Success flag with no session ID, will verify extra carefully");
-    }
-
-    // First check if the user already has an active subscription
-    const checkExistingSubscription = async () => {
-      if (!user) return;
+    } else if (isCanceled) {
+      // For canceled checkout, redirect immediately without trying to verify
+      console.log("Checkout was canceled, redirecting to subscription tab");
       
-      try {
-        const { data, error } = await supabase
-          .from("customer_subscriptions")
-          .select("subscription_id, subscription_status, current_period_end")
-          .eq("user_id", user.id)
-          .maybeSingle();
-          
-        // Only consider as active if it has a valid subscription_id, status is active,
-        // and the current_period_end is in the future
-        if (!error && data && 
-            data.subscription_id && 
-            data.subscription_status === 'active' &&
-            data.current_period_end && 
-            new Date(data.current_period_end) > new Date()) {
-          console.log("Found existing active subscription:", data);
-          setLoading(false);
-          setStatus("success");
-          setSubscriptionActivated(true);
-          return true;
-        }
-        return false;
-      } catch (err) {
-        console.error("Error checking existing subscription:", err);
-        return false;
-      }
-    };
-
-    if (isSuccess) {
-      setStatus("success");
+      // Immediately set loading to false to prevent showing loading UI
+      setLoading(false);
+      setStatus("canceled");
       
-      // We need to verify the payment with Stripe before activating
-      if (user && !verificationAttempted) {
-        checkExistingSubscription().then(hasActiveSubscription => {
-          if (!hasActiveSubscription) {
-            setVerificationAttempted(true);
-            if (sessionId) {
-              console.log("Session ID found, verifying with Stripe:", sessionId);
-              verifyPaymentWithStripe(sessionId);
-            } else {
-              console.warn("No session_id in URL, attempting fallback verification");
-              attemptVerificationViaStripeAPI();
-            }
-          }
-        });
-      }
-    } else {
-      // For unknown status, redirect to subscription tab 
-      console.log("Checkout status unknown, redirecting to subscription tab");
       // Set flag in session storage to indicate coming from checkout
       sessionStorage.setItem('from_checkout', 'true');
-      // Navigate to settings with tab parameter
-      window.history.pushState({}, '', '/settings?tab=subscription');
-      // Force a dispatch of popstate event to trigger route change without reload
-      window.dispatchEvent(new PopStateEvent('popstate', { state: {} }));
+      
+      // Navigate to settings with tab parameter after a very short delay
+      // This gives time for the component to update state
+      setTimeout(() => {
+        window.history.pushState({}, '', '/settings?tab=subscription');
+        window.dispatchEvent(new PopStateEvent('popstate', { state: {} }));
+      }, 100);
+      return;
+    }
+    
+    // Single verification attempt for success=true path
+    if (isSuccess && !verificationAttempted && user) {
+      setStatus("success");
+      setVerificationAttempted(true);
+      
+      // We need to verify the payment with Stripe before activating
+      checkExistingSubscription().then(hasActiveSubscription => {
+        if (!hasActiveSubscription) {
+          if (sessionId) {
+            console.log("Session ID found, verifying with Stripe:", sessionId);
+            verifyPaymentWithStripe(sessionId);
+          } else {
+            console.warn("No session_id in URL, attempting fallback verification");
+            attemptVerificationViaStripeAPI();
+          }
+        } else {
+          // Already has active subscription, redirect to subscription tab
+          setLoading(false);
+          setSubscriptionActivated(true);
+          
+          // After a brief delay to show success UI, redirect
+          setTimeout(() => {
+            // Set flag in session storage to indicate coming from checkout
+            sessionStorage.setItem('from_checkout', 'true');
+            window.history.pushState({}, '', '/settings?tab=subscription');
+            window.dispatchEvent(new PopStateEvent('popstate', { state: {} }));
+          }, 1500);
+        }
+      });
     }
   }, [user, verificationAttempted]);
 
@@ -586,6 +540,37 @@ export const CheckoutComplete = () => {
       window.history.pushState({}, '', '/settings?tab=subscription');
       // Force a dispatch of popstate event to trigger route change without reload
       window.dispatchEvent(new PopStateEvent('popstate', { state: {} }));
+    }
+  };
+
+  // First check if the user already has an active subscription
+  const checkExistingSubscription = async () => {
+    if (!user) return false;
+    
+    try {
+      const { data, error } = await supabase
+        .from("customer_subscriptions")
+        .select("subscription_id, status, current_period_end")
+        .eq("user_id", user.id)
+        .maybeSingle();
+        
+      // Only consider as active if it has a valid subscription_id, status is active,
+      // and the current_period_end is in the future
+      if (!error && data && 
+          data.subscription_id && 
+          data.status === 'active' &&
+          data.current_period_end && 
+          new Date(data.current_period_end) > new Date()) {
+        console.log("Found existing active subscription:", data);
+        setLoading(false);
+        setStatus("success");
+        setSubscriptionActivated(true);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error("Error checking existing subscription:", err);
+      return false;
     }
   };
 
