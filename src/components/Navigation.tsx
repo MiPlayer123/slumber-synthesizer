@@ -181,13 +181,13 @@ export const Navigation = () => {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/settings">
+                    <Link to="/settings" onClick={() => handleNavigation('/settings')} className="flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent">
                       <Settings className="mr-2 h-4 w-4" />
                       <span>Settings</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/settings?tab=subscription">
+                    <Link to="/settings?tab=subscription" onClick={() => handleNavigation('/settings?tab=subscription')} className="flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent">
                       <CreditCard className="mr-2 h-4 w-4" />
                       <span>Subscription</span>
                     </Link>
@@ -220,6 +220,51 @@ export const Navigation = () => {
         <div className="flex md:hidden items-center space-x-3">
           {user && (
             <>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link to="/journal" onClick={() => handleNavigation('/journal')}>
+                      <Button variant="ghost" size="icon">
+                        <BookMarked className="h-5 w-5" />
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Journal</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link to="/statistics" onClick={() => handleNavigation('/statistics')}>
+                      <Button variant="ghost" size="icon">
+                        <BarChart className="h-5 w-5" />
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Statistics</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link to="/community" onClick={() => handleNavigation('/community')}>
+                      <Button variant="ghost" size="icon">
+                        <Users className="h-5 w-5" />
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Dream Community</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -267,30 +312,6 @@ export const Navigation = () => {
                     
                     <div className="space-y-1">
                       <Link 
-                        to="/journal" 
-                        onClick={() => handleNavigation('/journal')}
-                        className={`flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent ${location.pathname === '/journal' ? 'bg-accent' : ''}`}
-                      >
-                        <BookMarked className="mr-2 h-4 w-4" />
-                        <span>Journal</span>
-                      </Link>
-                      <Link 
-                        to="/statistics" 
-                        onClick={() => handleNavigation('/statistics')}
-                        className={`flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent ${location.pathname === '/statistics' ? 'bg-accent' : ''}`}
-                      >
-                        <BarChart className="mr-2 h-4 w-4" />
-                        <span>Statistics</span>
-                      </Link>
-                      <Link 
-                        to="/dream-wall" 
-                        onClick={() => handleNavigation('/dream-wall')}
-                        className={`flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent ${location.pathname === '/dream-wall' ? 'bg-accent' : ''}`}
-                      >
-                        <Grid className="mr-2 h-4 w-4" />
-                        <span>Dream Wall</span>
-                      </Link>
-                      <Link 
                         to="/profile" 
                         onClick={() => handleNavigation('/profile')}
                         className={`flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent ${location.pathname === '/profile' ? 'bg-accent' : ''}`}
@@ -301,7 +322,7 @@ export const Navigation = () => {
                       <Link 
                         to="/settings" 
                         onClick={() => handleNavigation('/settings')}
-                        className={`flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent ${location.pathname === '/settings' ? 'bg-accent' : ''}`}
+                        className="flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent"
                       >
                         <Settings className="mr-2 h-4 w-4" />
                         <span>Settings</span>
@@ -309,7 +330,7 @@ export const Navigation = () => {
                       <Link 
                         to="/settings?tab=subscription" 
                         onClick={() => handleNavigation('/settings?tab=subscription')}
-                        className={`flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent ${location.pathname === '/settings' && location.search.includes('tab=subscription') ? 'bg-accent' : ''}`}
+                        className="flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent"
                       >
                         <CreditCard className="mr-2 h-4 w-4" />
                         <span>Subscription</span>
