@@ -13,7 +13,7 @@ const required = (key: string) => {
 const SUPABASE_URL            = required("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE   = required("SUPABASE_SERVICE_ROLE_KEY");
 const STRIPE_SECRET_KEY       = required("STRIPE_SECRET_KEY");
-const SITE_URL                = Deno.env.get("SITE_URL") || "http://localhost";
+const SITE_URL                = Deno.env.get("SITE_URL");
 const STRIPE_MONTHLY_PRICE_ID = Deno.env.get("STRIPE_MONTHLY_PRICE_ID");
 const STRIPE_SIX_PRICE_ID     = Deno.env.get("STRIPE_SIXMONTH_PRICE_ID");
 
@@ -87,16 +87,16 @@ serve(async (req) => {
         metadata: { user_id: userId },
       });
       customerId = customer.id;
-      console.log(`Created new Stripe customer with ID: ${customerId}`);
+      console.log(`Created new Stripe customer`);
 
       // IMPORTANT: We no longer create a database record here.
       // The webhook will create the subscription record only after successful payment
     } else {
-      console.log(`Found existing Stripe customer ID ${customerId} for user ${userId}`);
+      console.log(`Found existing Stripe customer for user ${userId}`);
     }
 
     /* ---------- create checkout session ---------- */
-    console.log(`Creating checkout session for customer ${customerId} with plan ${planId} (price: ${priceId})`);
+    console.log(`Creating checkout session for plan ${planId} (price: ${priceId})`);
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",

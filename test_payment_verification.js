@@ -18,20 +18,20 @@ const crypto = require('crypto');
 const dotenv = require('dotenv');
 const { execSync } = require('child_process');
 
+// Load environment variables
 dotenv.config();
 
 // Configuration
 const BASE_URL = process.env.SITE_URL || `http://localhost${process.env.PORT ? `:${process.env.PORT}` : ':8080'}`;
 const API_BASE = process.env.SUPABASE_URL || 'http://localhost';
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
-const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 
 // Check for required env vars
-if (!SERVICE_ROLE_KEY || !STRIPE_SECRET_KEY) {
+if (!SERVICE_ROLE_KEY || !process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
   console.error('Missing required environment variables. Please set:');
   console.error('- SUPABASE_SERVICE_ROLE_KEY');
   console.error('- STRIPE_SECRET_KEY');
+  console.error('- STRIPE_WEBHOOK_SECRET');
   process.exit(1);
 }
 
@@ -109,7 +109,7 @@ async function simulateWebhookEvent(eventType, data) {
   const payloadString = JSON.stringify(payload);
   const timestamp = Math.floor(Date.now() / 1000);
   const signature = crypto
-    .createHmac('sha256', STRIPE_WEBHOOK_SECRET)
+    .createHmac('sha256', process.env.STRIPE_WEBHOOK_SECRET)
     .update(`${timestamp}.${payloadString}`)
     .digest('hex');
   

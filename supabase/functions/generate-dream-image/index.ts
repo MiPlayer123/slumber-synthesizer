@@ -76,11 +76,21 @@ serve(async (req) => {
     const enhancedDescription = openAiData.choices[0].message.content;
     console.log('Enhanced description:', enhancedDescription);
 
-    // Generate image using Imagen 3 API (from main branch)
-    const imageResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=' + Deno.env.get('GEMINI_API_KEY'), {
+    // Generate image using Imagen 3 API with proper API key handling
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    if (!geminiApiKey) {
+      console.error('Gemini API key is not configured');
+      return createErrorResponse({ 
+        error: 'Configuration error: Gemini API key not found',
+        status: 500
+      });
+    }
+    
+    const imageResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-goog-api-key': geminiApiKey
       },
       body: JSON.stringify({
         instances: [

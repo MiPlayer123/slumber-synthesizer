@@ -267,33 +267,15 @@ const Journal = () => {
         description: "Your dream has been successfully recorded.",
       });
       
-      // Immediately mark analysis limit as reached if this would be the last dream
-      // This instantly grays out the "Analyze Dream" button before server update
-      if (subscription?.status !== 'active' && 
-          remainingUsage?.dreamAnalyses <= 1 && 
-          hasReachedLimit !== undefined) {
-        // Force UI to immediately reflect that we can't analyze more dreams
-        recordUsage('analysis');
-      }
-      
       // If file is provided, upload it; otherwise generate AI image
       if (file) {
         uploadMedia.mutate({ dreamId: newDream.id, file });
       } else {
-        // Check if user has reached image generation limit
-        if (hasReachedLimit('image')) {
-          toast({
-            variant: "destructive",
-            title: "Image Generation Limit Reached",
-            description: "You've reached your free image generation limit this week. Upgrade to premium for unlimited images.",
-          });
-        } else {
-          // Preemptively record usage to update UI without waiting for server
-          if (subscription?.status !== 'active') {
-            recordUsage('image');
-          }
-          generateImage.mutate(newDream);
+        // Check if user has reached image generation limit for free tier
+        if (subscription?.status !== 'active' && hasReachedLimit('image')) {
+          throw new Error('You\'ve reached your free image generation limit of 5 this week. Upgrade to premium for unlimited images.');
         }
+        generateImage.mutate(newDream);
       }
     },
     onError: (error) => {
@@ -392,6 +374,16 @@ const Journal = () => {
     mutationFn: async (dream: Dream) => {
       console.log('Generating image for dream:', dream.id);
       
+      // Check if user is authenticated
+      if (!user?.id) {
+        throw new Error('User must be logged in to generate an image');
+      }
+      
+      // Check if user has reached image generation limit for free tier
+      if (subscription?.status !== 'active' && hasReachedLimit('image')) {
+        throw new Error('You\'ve reached your free image generation limit of 5 this week. Upgrade to premium for unlimited images.');
+      }
+      
       // Add the dream ID to the generating set
       setGeneratingImageForDreams(prev => {
         const newSet = new Set(prev);
@@ -402,11 +394,6 @@ const Journal = () => {
       try {
         // Get current session for auth
         const { data: sessionData } = await supabase.auth.getSession();
-        
-        // Check if user is authenticated
-        if (!user?.id) {
-          throw new Error('User must be logged in to generate an image');
-        }
         
         // Record usage for free tier users
         if (subscription?.status !== 'active') {
@@ -629,6 +616,16 @@ const Journal = () => {
     mutationFn: async (dreamId: string) => {
       console.log('Analyzing dream:', dreamId);
       
+      // Check if user is authenticated
+      if (!user?.id) {
+        throw new Error('User must be logged in to analyze a dream');
+      }
+      
+      // Check if user has reached analysis limit for free tier
+      if (subscription?.status !== 'active' && hasReachedLimit('analysis')) {
+        throw new Error('You\'ve reached your free dream analysis limit of 7 this week. Upgrade to premium for unlimited analyses.');
+      }
+      
       const dream = dreams?.find(d => d.id === dreamId);
       if (!dream) throw new Error('Dream not found');
       
@@ -637,11 +634,6 @@ const Journal = () => {
         
         // Get current session for auth
         const { data: sessionData } = await supabase.auth.getSession();
-        
-        // Check if user is authenticated
-        if (!user?.id) {
-          throw new Error('User must be logged in to analyze a dream');
-        }
         
         // Record usage for free tier users
         if (subscription?.status !== 'active') {
@@ -769,6 +761,21 @@ const Journal = () => {
     analyzeDream.mutate(dreamId);
   };
 
+  const handleGenerateImage = (dream: Dream) => {
+    // ALWAYS check if user has reached image generation limit
+    if (hasReachedLimit('image')) {
+      toast({
+        variant: "destructive",
+        title: "Free Limit Reached",
+        description: "You've reached your free image generation limit of 5 this week. Upgrade to premium for unlimited images.",
+      });
+      return;
+    }
+    
+    track('dream_image_generation_started', { dream_id: dream.id });
+    generateImage.mutate(dream);
+  };
+
   const handleEditDream = (dreamId: string) => {
     track('dream_edit_started', { dream_id: dreamId });
     setEditingDreamId(dreamId);
@@ -880,18 +887,18 @@ const Journal = () => {
       )}
 
       <DreamsList
-        dreams={dreams}
-        analyses={analyses}
+        dreams={dreams || []} 
+        analyses={analyses || []}
         onAnalyze={handleAnalyzeDream}
         onEdit={handleEditDream}
         onDelete={handleDeleteDream}
+        onGenerateImage={handleGenerateImage}
         isLoading={isLoadingDreams}
         generatingImageForDreams={generatingImageForDreams}
-        // Add infinite scroll props
-        infiniteScroll={true}
+        isFetchingNextPage={isFetchingNextPage}
         hasNextPage={hasNextPage}
         fetchNextPage={fetchNextPage}
-        isFetchingNextPage={isFetchingNextPage}
+        infiniteScroll={true}
       />
 
       <AnalyzingDialog

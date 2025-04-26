@@ -11,6 +11,7 @@ interface DreamsListProps {
   onAnalyze?: (dreamId: string) => void;
   onEdit?: (dreamId: string) => void;
   onDelete?: (dreamId: string) => void;
+  onGenerateImage?: (dream: Dream) => void;
   isLoading: boolean;
   generatingImageForDreams?: Set<string>;
   showLikeButtons?: boolean;
@@ -26,6 +27,7 @@ export const DreamsList = ({
   onAnalyze,
   onEdit,
   onDelete,
+  onGenerateImage,
   isLoading,
   generatingImageForDreams = new Set(),
   showLikeButtons = false,
@@ -76,6 +78,7 @@ export const DreamsList = ({
             onAnalyze={onAnalyze}
             onEdit={onEdit}
             onDelete={onDelete}
+            onGenerateImage={onGenerateImage}
             isPersonalView={true}
             isGeneratingImage={generatingImageForDreams.has(dream.id)}
           />

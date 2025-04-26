@@ -93,6 +93,37 @@ src/
 - `npm run lint` - Run ESLint
 - `npm run typecheck` - Run TypeScript type checking
 
+## Environment Variables and Security
+
+### Managing Sensitive API Keys
+
+This project uses environment variables to securely manage sensitive information such as API keys and tokens. Here's how to properly set up and manage your environment variables:
+
+1. Copy the `.env.example` file to a new file named `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Fill in your actual API keys and credentials in the `.env` file. This file should **never** be committed to the repository.
+
+3. Run the environment sync script to ensure all parts of the application have access to the required variables:
+   ```bash
+   ./scripts/sync_env.sh
+   ```
+
+### Security Best Practices
+
+- **Never commit your `.env` file** to version control
+- **Never hardcode sensitive information** in your source code
+- Use session storage instead of localStorage for temporary client-side storage of sensitive data
+- When deploying, set environment variables through your hosting platform's secure environment configuration
+- Regularly rotate API keys and secrets
+
+If you're developing new features that require additional environment variables:
+1. Add them to your `.env` file
+2. Add them to `.env.example` with placeholder values
+3. Update the `sync_env.sh` script if they need to be available to Supabase Edge Functions
+
 ## Contributing
 
 1. Fork the repository

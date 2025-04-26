@@ -7,6 +7,12 @@ const logDebug = (message: string, data?: any) => {
   console.log(`[STRIPE WEBHOOK] ${message}`, data ? JSON.stringify(data) : '');
 };
 
+// Utility function to log with consistent formatting
+const logInfo = (message: string, data?: any) => {
+  // Don't log potentially sensitive data
+  console.log(`[STRIPE WEBHOOK] ${message}`);
+};
+
 // Initialize clients with environment variables
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
   apiVersion: "2022-11-15",
@@ -56,16 +62,16 @@ serve(async (req) => {
     const body = await req.text();
     
     // Verify the webhook signature
-    logDebug("Verifying webhook signature");
+    logInfo("Verifying webhook signature");
     const event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     
-    logDebug(`Event received: ${event.type}`, event.data.object);
+    logInfo(`Event received: ${event.type}`);
     
     // Process specific event types
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object;
-        logDebug("Processing checkout session completion", session);
+        logInfo("Processing checkout session completion");
         
         const customerId = session.customer as string;
         // Extract the subscription ID from the session
@@ -102,7 +108,7 @@ serve(async (req) => {
         
         // Get the Stripe subscription to check its status
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        logDebug(`Retrieved Stripe subscription details: ID=${subscriptionId}, status=${subscription.status}`);
+        logInfo(`Retrieved Stripe subscription details with status=${subscription.status}`);
         
         // Find the customer record in our database
         const { data: customerData, error: customerError } = await supabase
@@ -114,9 +120,9 @@ serve(async (req) => {
         // Create a customer portal URL for managing the subscription
         const portalSession = await stripe.billingPortal.sessions.create({
           customer: customerId as string,
-          return_url: `${Deno.env.get("SITE_URL") || 'http://localhost'}/settings?tab=subscription`,
+          return_url: `${Deno.env.get("SITE_URL")}/settings?tab=subscription`,
         });
-        logDebug("Created portal session", portalSession);
+        logInfo("Created portal session");
         
         // If no customer record exists, create one
         if (customerError || !customerData) {
@@ -153,11 +159,10 @@ serve(async (req) => {
           break;
         }
         
-        // Log the current subscription_id in the database
-        logDebug(`Current subscription_id in database: ${customerData.subscription_id || 'NULL'}`);
+        logInfo("Found existing subscription record in database");
         
         // Update the customer_subscriptions table
-        logDebug(`About to update database with subscription_id=${subscriptionId} for customer_id=${customerId}`);
+        logInfo("Updating subscription record in database");
         
         const { error: updateError } = await supabase
           .from("customer_subscriptions")

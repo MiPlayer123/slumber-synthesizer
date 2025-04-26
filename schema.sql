@@ -153,6 +153,17 @@ CREATE TABLE public.friendship (
     CONSTRAINT friendship_status_check CHECK (status IN ('pending', 'accepted', 'blocked'))
 );
 
+-- Usage logs table for tracking free tier usage
+CREATE TABLE public.usage_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    type TEXT NOT NULL,
+    count INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+    CONSTRAINT usage_logs_type_check CHECK (type IN ('image', 'analysis'))
+);
+
 -- Views
 CREATE VIEW public.combined_dreams_view AS
 SELECT 

@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/types/supabase";
+import { makeReturnUrl, STRIPE_RETURN_PATHS } from "@/utils/constants";
 
 // Types for the subscription system
 export type SubscriptionStatus = "active" | "canceled" | "trialing" | "past_due" | "unpaid" | null;
@@ -42,15 +43,18 @@ interface DreamAnalysis {
 // Local storage key for subscription status
 const SUBSCRIPTION_STATUS_KEY = "subscription_status";
 
+// Cache key for subscription data
+const SUBSCRIPTION_CACHE_KEY = "subscription_cache";
+// Cache TTL in milliseconds (5 minutes)
+const CACHE_TTL = 5 * 60 * 1000;
+
 export const useSubscription = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [remainingUsage, setRemainingUsage] = useState<UsageData>({
-    imageGenerations: 3,
-    dreamAnalyses: 3,
-  });
+  const [remainingUsage, setRemainingUsage] = useState<UsageData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUsageLoading, setIsUsageLoading] = useState(true);
   // Add tracking for last notification time to prevent duplicates
   const lastNotificationRef = useRef<number>(0);
   const lastStatusLogRef = useRef<string>("");
@@ -107,6 +111,36 @@ export const useSubscription = () => {
     }
   };
 
+  // Create helper functions for caching subscription data
+  const getSubscriptionFromCache = () => {
+    try {
+      const cachedData = localStorage.getItem(SUBSCRIPTION_CACHE_KEY);
+      if (cachedData) {
+        const { data, timestamp } = JSON.parse(cachedData);
+        // Check if cache is still valid
+        if (Date.now() - timestamp < CACHE_TTL) {
+          return data;
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error("Error reading subscription cache:", error);
+      return null;
+    }
+  };
+
+  const saveSubscriptionToCache = (data: any) => {
+    try {
+      const cacheData = {
+        data,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(SUBSCRIPTION_CACHE_KEY, JSON.stringify(cacheData));
+    } catch (error) {
+      console.error("Error saving subscription to cache:", error);
+    }
+  };
+
   // Fetch subscription data
   useEffect(() => {
     if (!user) {
@@ -160,7 +194,7 @@ export const useSubscription = () => {
                 if (fetchResponse.ok) {
                   const stripeData = await fetchResponse.json();
                   if (stripeData.subscription_id) {
-                    console.log("Retrieved subscription_id from Stripe:", stripeData.subscription_id);
+                    console.log("Retrieved subscription data from Stripe");
                     
                     // Update the subscription_id in the database
                     const { error: updateError } = await supabase
@@ -529,14 +563,23 @@ export const useSubscription = () => {
       // Check if URL includes tab=subscription which is our return URL from Stripe
       const searchParams = new URLSearchParams(window.location.search);
       const tabParam = searchParams.get('tab');
+      const fromStripe = searchParams.get('fromStripe');
       
-      if (tabParam === 'subscription' && user) {
+      // Only refresh if we have both tab=subscription AND fromStripe=true
+      // This prevents refreshing when user is just navigating tabs within the app
+      if (tabParam === 'subscription' && fromStripe === 'true' && user) {
         console.log("Detected return from Stripe portal, refreshing subscription data");
         // Wait a moment to ensure page is fully loaded
         setTimeout(() => {
           refreshFromStripe().catch(err => {
             console.error("Error refreshing subscription after returning from Stripe:", err);
           });
+          
+          // Clean up the URL to remove the fromStripe parameter
+          if (window.history && window.history.replaceState) {
+            const newUrl = `${window.location.pathname}?tab=subscription`;
+            window.history.replaceState({}, '', newUrl);
+          }
         }, 500);
       }
     };
@@ -550,43 +593,40 @@ export const useSubscription = () => {
 
   // Safely fetch usage data, with fallbacks for any errors
   const safelyFetchUsageData = async () => {
+    setIsUsageLoading(true);
     try {
       await fetchUsageData();
     } catch (error) {
       console.error("Error in safelyFetchUsageData:", error);
       // Use default free tier values in case of ANY error
       setRemainingUsage({
-        imageGenerations: 3,
-        dreamAnalyses: 3,
+        imageGenerations: 5,
+        dreamAnalyses: 7,
       });
+    } finally {
+      setIsUsageLoading(false);
     }
   };
 
   // Fetch usage data from the database - only needed for free tier
   const fetchUsageData = async () => {
-    if (!user) return;
-    
-    // Skip if user has active subscription - they should always have unlimited access
-    if (subscription?.status === "active") {
+    if (!user) {
       setRemainingUsage({
-        imageGenerations: Infinity,
-        dreamAnalyses: Infinity,
+        imageGenerations: 0,
+        dreamAnalyses: 0
       });
+      setIsUsageLoading(false);
       return;
     }
     
-    // For canceling subscriptions, check if they're still within their paid period
-    if (subscription?.status === "canceling" && subscription?.currentPeriodEnd) {
-      const endDate = new Date(subscription.currentPeriodEnd);
-      const now = new Date();
-      if (now < endDate) {
-        // Still have unlimited access until end date
-        setRemainingUsage({
-          imageGenerations: Infinity,
-          dreamAnalyses: Infinity,
-        });
-        return;
-      }
+    // If user has an active subscription, they have unlimited usage
+    if (subscription?.status === "active") {
+      setRemainingUsage({
+        imageGenerations: Infinity,
+        dreamAnalyses: Infinity
+      });
+      setIsUsageLoading(false);
+      return;
     }
 
     try {
@@ -598,112 +638,42 @@ export const useSubscription = () => {
       startOfWeek.setUTCHours(0, 0, 0, 0);
       const startDateStr = startOfWeek.toISOString();
 
-      // Default values - free tier limits
-      const freeImageLimit = 3;
-      const freeAnalysisLimit = 3;
+      // Set free tier limits
+      const freeImageLimit = 5;
+      const freeAnalysisLimit = 7;
       
       // Fallback values - assume maximum usage in case of any errors
       let imageCount = 0;
       let analysisCount = 0;
       
-      // Avoid all RPC calls in development mode to prevent 404 errors
-      const isDevelopment = import.meta.env.DEV;
-      
-      if (!isDevelopment) {
-        try {
-          // Count dream images using SQL function
-          const { count: imageCountResult, error: imageError } = await supabase.rpc(
-            'count_user_images_since',
-            { 
-              user_id_input: user.id,
-              since_date: startDateStr
-            }
-          );
-          
-          if (!imageError && imageCountResult !== null) {
-            imageCount = imageCountResult;
-          }
-          
-          // Count dream analyses using SQL function - only call in production
-          const { count: analysisCountResult, error: analysisError } = await supabase.rpc(
-            'count_user_analyses_since',
-            { 
-              user_id_input: user.id,
-              since_date: startDateStr
-            }
-          );
-          
-          if (!analysisError && analysisCountResult !== null) {
-            analysisCount = analysisCountResult;
-          }
-        } catch (error) {
-          console.error("Error counting using RPC functions:", error);
-        }
-      } else {
-        console.log("Skipping RPC functions in development mode");
-        // Use fallback method for development
+      try {
+        // Count image generations from usage_logs
+        const { data: imageData, error: imageError } = await supabase
+          .from("usage_logs")
+          .select("count")
+          .eq("user_id", user.id)
+          .eq("type", "image")
+          .gte("created_at", startDateStr);
         
-        // Count images manually by querying dreams table
-        try {
-          const { data: images, error: imagesError } = await supabase
-            .from('dreams')
-            .select('id')
-            .eq('user_id', user.id)
-            .gte('created_at', startDateStr)
-            .not('image_url', 'is', null);
-            
-          if (!imagesError && images) {
-            imageCount = images.length;
-          }
-          
-          // Count analyses manually by querying dream_analyses table
-          try {
-            // First try with direct query using user_id
-            const { data: analyses, error: analysesError } = await supabase
-              .from('dream_analyses')
-              .select('id')
-              .eq('user_id', user.id)
-              .gte('created_at', startDateStr);
-            
-            if (!analysesError && analyses) {
-              analysisCount = analyses.length;
-            } else if (analysesError && analysesError.code === '42703' && 
-                      analysesError.message.includes('user_id')) {
-              // If user_id column doesn't exist, use a more compatible approach
-              console.log("Falling back to alternative query for analyses count due to missing user_id");
-              
-              // First get all the user's dreams
-              const { data: userDreams, error: userDreamsError } = await supabase
-                .from('dreams')
-                .select('id')
-                .eq('user_id', user.id);
-                
-              if (!userDreamsError && userDreams && userDreams.length > 0) {
-                // Get dream IDs
-                const dreamIds = userDreams.map(dream => dream.id);
-                
-                // Then count analyses for those dreams
-                const { data: dreamAnalyses, error: dreamAnalysesError } = await supabase
-                  .from('dream_analyses')
-                  .select('id')
-                  .in('dream_id', dreamIds)
-                  .gte('created_at', startDateStr);
-                  
-                if (!dreamAnalysesError && dreamAnalyses) {
-                  analysisCount = dreamAnalyses.length;
-                } else if (dreamAnalysesError) {
-                  console.error("Error querying analyses by dream_id:", dreamAnalysesError);
-                }
-              } else if (userDreamsError) {
-                console.error("Error querying user dreams:", userDreamsError);
-              }
-            }
-          } catch (error) {
-            console.error("Error counting dream analyses:", error);
-          }
-        } catch (error) {
-          console.error("Error counting using direct queries:", error);
+        if (!imageError && imageData) {
+          // Sum up all counts
+          imageCount = imageData.reduce((sum, record) => sum + record.count, 0);
         }
+        
+        // Count analyses from usage_logs
+        const { data: analysisData, error: analysisError } = await supabase
+          .from("usage_logs")
+          .select("count")
+          .eq("user_id", user.id)
+          .eq("type", "analysis")
+          .gte("created_at", startDateStr);
+        
+        if (!analysisError && analysisData) {
+          // Sum up all counts
+          analysisCount = analysisData.reduce((sum, record) => sum + record.count, 0);
+        }
+      } catch (error) {
+        console.error("Error counting from usage_logs:", error);
       }
 
       // Update the remaining usage for free tier
@@ -715,9 +685,11 @@ export const useSubscription = () => {
       console.error('Error fetching usage data:', error);
       // Use default free tier values in case of error
       setRemainingUsage({
-        imageGenerations: 3,
-        dreamAnalyses: 3,
+        imageGenerations: 5,
+        dreamAnalyses: 7,
       });
+    } finally {
+      setIsUsageLoading(false);
     }
   };
 
@@ -737,10 +709,15 @@ export const useSubscription = () => {
       }
     }
     
+    // If both remainingUsage is null AND isUsageLoading is true, 
+    // we haven't loaded the first time - assume limit is reached for safety
+    if (remainingUsage === null && isUsageLoading) return true;
+    
+    // If we've loaded at least once, use the latest known value
     if (type === 'image') {
-      return remainingUsage.imageGenerations <= 0;
+      return (remainingUsage?.imageGenerations ?? 0) <= 0;
     } else {
-      return remainingUsage.dreamAnalyses <= 0;
+      return (remainingUsage?.dreamAnalyses ?? 0) <= 0;
     }
   };
 
@@ -760,24 +737,43 @@ export const useSubscription = () => {
       }
     }
     
+    try {
+      // Insert usage record into usage_logs table
+      const { error } = await supabase
+        .from("usage_logs")
+        .insert({
+          user_id: user.id,
+          type: type,
+          count: 1
+        });
+      
+      if (error) {
+        console.error("Error recording usage:", error);
+      }
+    } catch (err) {
+      console.error("Failed to record usage:", err);
+    }
+    
     // For free tier users, decrement the local counter
     if (type === 'image') {
       setRemainingUsage(prev => ({
-        ...prev,
-        imageGenerations: Math.max(0, prev.imageGenerations - 1)
+        // If previous state was null, use default values
+        imageGenerations: Math.max(0, (prev?.imageGenerations ?? 5) - 1),
+        dreamAnalyses: prev?.dreamAnalyses ?? 7
       }));
     } else {
       setRemainingUsage(prev => ({
-        ...prev,
-        dreamAnalyses: Math.max(0, prev.dreamAnalyses - 1)
+        // If previous state was null, use default values
+        imageGenerations: prev?.imageGenerations ?? 5,
+        dreamAnalyses: Math.max(0, (prev?.dreamAnalyses ?? 7) - 1)
       }));
     }
   };
 
   // Function to get the correct return URL for Stripe portal
   const getReturnUrl = () => {
-    // Always use the current origin to ensure we return to the right domain and port
-    return `${window.location.origin}/settings?tab=subscription`;
+    // Add a fromStripe parameter to identify returns from Stripe portal
+    return makeReturnUrl(STRIPE_RETURN_PATHS.SETTINGS) + '&fromStripe=true';
   };
 
   // Update startCheckout function to use dynamic return URL
@@ -802,7 +798,7 @@ export const useSubscription = () => {
         body: {
           userId: user.id, 
           planId,
-          returnUrl: returnUrl || `${window.location.origin}/checkout-complete`
+          returnUrl: returnUrl || makeReturnUrl(STRIPE_RETURN_PATHS.CHECKOUT_COMPLETE)
         }
       });
 
@@ -829,6 +825,31 @@ export const useSubscription = () => {
 
   // Function to manually refresh subscription status
   const refreshSubscription = async () => {
+    // First check if we have a recent cached subscription
+    const cachedSubscription = getSubscriptionFromCache();
+    if (cachedSubscription) {
+      // Compare with current subscription to avoid unnecessary UI updates
+      if (JSON.stringify(cachedSubscription) === JSON.stringify(subscription)) {
+        console.log("Using cached subscription data - no changes detected");
+        return; // No need to update state if data is the same
+      }
+      
+      setSubscription(cachedSubscription);
+      
+      // Set usage limits based on cached subscription
+      if (cachedSubscription.status === "active") {
+        setRemainingUsage({
+          imageGenerations: Infinity,
+          dreamAnalyses: Infinity,
+        });
+      } else {
+        // For non-active subscriptions, still fetch usage data
+        await safelyFetchUsageData();
+      }
+      
+      return;
+    }
+    
     setIsLoading(true);
     try {
       // Clear existing subscription data and fetch fresh data
@@ -899,7 +920,7 @@ export const useSubscription = () => {
                     displayStatus = isCanceling ? "canceling" : "active";
                   }
                   
-                  setSubscription({
+                  const subscriptionObj = {
                     id: subscriptionData.subscription_id || "",
                     status: isActive ? "active" : stripeData.status,
                     displayStatus,
@@ -908,7 +929,12 @@ export const useSubscription = () => {
                     customerPortalUrl: subscriptionData.customer_portal_url || null,
                     cancelAtPeriodEnd: isCanceling || stripeData.cancel_at_period_end || false,
                     canceledAt: stripeData.canceled_at ? new Date(stripeData.canceled_at * 1000).toISOString() : null,
-                  });
+                  };
+                  
+                  setSubscription(subscriptionObj);
+                  
+                  // Cache the subscription data for faster loading
+                  saveSubscriptionToCache(subscriptionObj);
                   
                   // Save status
                   saveStatusToStorage(displayStatus);
@@ -936,7 +962,7 @@ export const useSubscription = () => {
           }
           
           // Fallback if Stripe check fails: Set subscription to active
-          setSubscription({
+          const subscriptionObj = {
             id: subscriptionData.subscription_id || "",
             status: "active",
             displayStatus: "active",
@@ -945,7 +971,12 @@ export const useSubscription = () => {
             customerPortalUrl: subscriptionData.customer_portal_url || null,
             cancelAtPeriodEnd: false,
             canceledAt: null,
-          });
+          };
+          
+          setSubscription(subscriptionObj);
+          
+          // Cache the subscription data for faster loading
+          saveSubscriptionToCache(subscriptionObj);
           
           // Always set unlimited for active subscribers
           setRemainingUsage({
@@ -1036,12 +1067,14 @@ export const useSubscription = () => {
   return {
     subscription,
     isLoading,
+    isUsageLoading,
     remainingUsage,
     hasReachedLimit,
     recordUsage,
     startCheckout,
-    refreshUsage: fetchUsageData,
+    refreshUsage: safelyFetchUsageData,
     refreshSubscription,
     setSubscription,
+    getReturnUrl,
   };
 }; 
