@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/use-subscription";
+import { makeReturnUrl, STRIPE_RETURN_PATHS } from "@/utils/constants";
 
 const Settings = () => {
   const { user, resetPassword } = useAuth();
@@ -54,12 +55,13 @@ const Settings = () => {
   const { theme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState("account");
   const { 
-    subscription, 
+    subscription,
     isLoading: isLoadingSubscription, 
     remainingUsage, 
     startCheckout, 
     refreshSubscription,
-    setSubscription
+    setSubscription,
+    getReturnUrl
   } = useSubscription();
   const navigate = useNavigate();
   
@@ -86,6 +88,7 @@ const Settings = () => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isLoadingPassword, setIsLoadingPassword] = useState(false);
   const [isLoadingDataExport, setIsLoadingDataExport] = useState(false);
+  const [hasInitiallyRefreshed, setHasInitiallyRefreshed] = useState(false);
 
   // Calculate progress percentage for subscription period
   const calculateProgressPercent = (endDate: string) => {
@@ -127,18 +130,31 @@ const Settings = () => {
     }
     
     // Only refresh on initial component mount, not on tab changes or returns to the page
-    if (!isLoadingSubscription && !sessionStorage.getItem('initial_load_complete')) {
-      // Set flag that we've done the initial load
+    // Use a setTimeout to defer subscription refresh until after UI is loaded
+    if (!isLoadingSubscription && !sessionStorage.getItem('initial_load_complete') && !hasInitiallyRefreshed) {
+      // Set flags that we've done the initial load
       sessionStorage.setItem('initial_load_complete', 'true');
+      setHasInitiallyRefreshed(true);
       
-      // Silently fetch subscription data in background without showing loading spinner
-      if (user) {
-        refreshSubscription().catch(err => {
-          console.error("Error refreshing subscription data:", err);
-        });
+      // Skip the background refresh if the user is already on the subscription tab
+      // This prevents the unwanted refresh when a user directly navigates to the subscription tab
+      if (tabParam === 'subscription') {
+        return;
       }
+      
+      // Defer subscription refresh to allow UI to load first
+      const timer = setTimeout(() => {
+        // Silently fetch subscription data in background without showing loading spinner
+        if (user) {
+          refreshSubscription().catch(err => {
+            console.error("Error refreshing subscription data:", err);
+          });
+        }
+      }, 1000); // Wait 1 second before refreshing to prioritize UI loading
+      
+      return () => clearTimeout(timer);
     }
-  }, [refreshSubscription, user]);
+  }, [refreshSubscription, user, hasInitiallyRefreshed]);
 
   // Remove the session storage when component unmounts to ensure it's fresh on next Settings visit
   useEffect(() => {
@@ -347,119 +363,93 @@ const Settings = () => {
 
   // Handle subscription management
   const handleManageSubscription = async () => {
-    if (subscription?.customerPortalUrl) {
-      window.location.href = subscription.customerPortalUrl;
-    } else {
-      // Set up for processing
-      setIsRefreshingSubscription(true);
+    setIsRefreshingSubscription(true);
+    
+    try {
+      // Get the current session for auth
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
       
-      try {
-        // Get the current session for auth
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData?.session?.access_token;
-        
-        if (!accessToken) {
-          throw new Error("Authentication required. Please sign in again.");
+      if (!accessToken) {
+        throw new Error("Authentication required. Please sign in again.");
+      }
+      
+      // First check if we have a subscription_id in the database
+      const { data: subData, error: subError } = await supabase
+        .from("customer_subscriptions")
+        .select("subscription_id, stripe_customer_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      
+      if (subError) {
+        throw new Error("Could not retrieve subscription information");
+      }
+      
+      if (!subData?.subscription_id && !subData?.stripe_customer_id) {
+        throw new Error("No active subscription found to manage");
+      }
+      
+      // ALWAYS create a new portal session
+      console.log("Creating new portal session");
+      const { data, error: portalError } = await supabase.functions.invoke('create-portal', {
+        body: {
+          userId: user.id,
+          customerId: subData.stripe_customer_id,
+          returnUrl: getReturnUrl()
         }
+      });
+      
+      if (portalError) {
+        console.error("Create portal API error:", portalError);
         
-        // First check if we have a subscription_id in the database
-        const { data: subData, error: subError } = await supabase
-          .from("customer_subscriptions")
-          .select("subscription_id, stripe_customer_id")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        
-        if (subError) {
-          throw new Error("Could not retrieve subscription information");
-        }
-        
-        if (!subData?.subscription_id && !subData?.stripe_customer_id) {
-          throw new Error("No active subscription found to manage");
-        }
-        
-        // Call the API to create a management portal URL
-        console.log("Calling create-portal API with customer ID:", subData.stripe_customer_id);
-        const { data, error: portalError } = await supabase.functions.invoke('create-portal', {
-          body: {
-            userId: user.id,
-            customerId: subData.stripe_customer_id,
-            returnUrl: window.location.origin + '/settings?tab=subscription'
-          }
-        });
-        
-        if (portalError) {
-          console.error("Create portal API error:", portalError);
-          
-          // Check for specific Stripe configuration error
-          if (portalError.message.includes("No configuration provided") || portalError.message.includes("portal settings")) {
-            toast({
-              variant: "destructive",
-              title: "Stripe Portal Not Configured",
-              description: "The Stripe Customer Portal hasn't been set up yet. Please contact support.",
-            });
-            
-            // Open support form after a short delay
-            setTimeout(() => {
-              window.location.href = "https://forms.gle/aMFrfqbqiMMBSEKr9";
-            }, 1500);
-            
-            return;
-          }
-          
-          // As a fallback for other errors, try to use customer support link
-          const supportUrl = "https://billing.stripe.com/p/login/test_3cs8xSc4bcCt9aw9AA";
+        // Check for specific Stripe configuration error
+        if (portalError.message.includes("No configuration provided") || portalError.message.includes("portal settings")) {
           toast({
-            title: "Using Alternate Portal",
-            description: "We'll redirect you to the Stripe billing portal directly.",
+            variant: "destructive",
+            title: "Stripe Portal Not Configured",
+            description: "The Stripe Customer Portal hasn't been set up yet. Please contact support.",
           });
           
+          // Open support form after a short delay
           setTimeout(() => {
-            window.location.href = supportUrl;
-          }, 1000);
+            window.location.href = "https://forms.gle/aMFrfqbqiMMBSEKr9";
+          }, 1500);
           
           return;
         }
         
-        if (data?.url) {
-          // Store the portal URL for future use
-          const { error: updateError } = await supabase
-            .from("customer_subscriptions")
-            .update({
-              customer_portal_url: data.url,
-              updated_at: new Date().toISOString()
-            })
-            .eq("user_id", user.id);
-          
-          if (updateError) {
-            console.error("Error updating portal URL:", updateError);
-          }
-          
-          // Redirect to the management portal in the same tab
-          window.location.href = data.url;
-        } else {
-          throw new Error("No management portal URL returned");
-        }
-      } catch (error) {
-        console.error("Error managing subscription:", error);
-        
-        // Fallback to support form
-        const supportFormUrl = "https://forms.gle/aMFrfqbqiMMBSEKr9";
-        
-        toast({
-          variant: "destructive",
-          title: "Portal Unavailable",
-          description: error instanceof Error 
-            ? error.message 
-            : "Customer portal link is not available. We'll redirect you to contact support.",
-        });
-        
-        // Short delay before redirecting
-        setTimeout(() => {
-          window.location.href = supportFormUrl;
-        }, 1500);
-      } finally {
-        setIsRefreshingSubscription(false);
+        // As a fallback for other errors, try to use customer support link
+        const supportUrl = "https://billing.stripe.com/p/login/test_3cs8xSc4bcCt9aw9AA";
+        window.location.href = supportUrl;
+        return;
       }
+      
+      if (data?.url) {
+        // Redirect to the new portal URL
+        window.location.href = data.url;
+      } else {
+        throw new Error("No management portal URL returned");
+      }
+    } catch (error) {
+      console.error("Error managing subscription:", error);
+      
+      // Fallback to support form
+      const supportFormUrl = "https://forms.gle/aMFrfqbqiMMBSEKr9";
+      
+      toast({
+        variant: "destructive",
+        title: "Portal Unavailable",
+        description: error instanceof Error 
+          ? error.message 
+          : "Customer portal link is not available. We'll redirect you to contact support.",
+      });
+      
+      // Short delay before redirecting
+      setTimeout(() => {
+        window.location.href = supportFormUrl;
+      }, 1500);
+    } finally {
+      setIsRefreshingSubscription(false);
     }
   };
 
@@ -498,6 +488,12 @@ const Settings = () => {
         const newUrl = `${window.location.pathname}?tab=${value}`;
         window.history.replaceState({}, '', newUrl);
       }
+      
+      // Set the hasInitiallyRefreshed flag to true to prevent auto-refresh when switching to subscription tab
+      if (value === 'subscription' && !hasInitiallyRefreshed) {
+        setHasInitiallyRefreshed(true);
+        sessionStorage.setItem('initial_load_complete', 'true');
+      }
     } else {
       // Optionally show a toast to inform the user
       toast({
@@ -509,12 +505,12 @@ const Settings = () => {
 
   // Cancel subscription
   const cancelSubscription = async () => {
-    if (subscription?.customerPortalUrl) {
+    setIsRefreshingSubscription(true);
+    
+    try {
       // First update the database to set cancel_at_period_end = true but keep status as "active"
       // This ensures we show the right status even before the webhook updates it
       try {
-        setIsRefreshingSubscription(true);
-        // Try with the cancel_at_period_end column
         const { error: updateError } = await supabase
           .from("customer_subscriptions")
           .update({
@@ -536,160 +532,104 @@ const Settings = () => {
         } else {
           console.log("Successfully updated subscription with cancel_at_period_end=true");
           
-          // Show notification to user
-          toast({
-            title: "Subscription Canceling",
-            description: "Your subscription will remain active until the end of the billing period.",
-            variant: "default"
-          });
-          
           // Refresh subscription data to update the UI
           await refreshSubscription();
         }
       } catch (dbError) {
         console.error("Error updating database before redirect:", dbError);
-      } finally {
-        setIsRefreshingSubscription(false);
       }
       
-      // Redirect to portal after updating database
-      window.location.href = subscription.customerPortalUrl;
-    } else {
-      // Set up for processing
-      setIsRefreshingSubscription(true);
+      // Get the current session for auth
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
       
-      try {
-        // Get the current session for auth
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData?.session?.access_token;
-        
-        if (!accessToken) {
-          throw new Error("Authentication required. Please sign in again.");
+      if (!accessToken) {
+        throw new Error("Authentication required. Please sign in again.");
+      }
+      
+      // First check if we have a subscription_id in the database
+      const { data: subData, error: subError } = await supabase
+        .from("customer_subscriptions")
+        .select("subscription_id, stripe_customer_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      
+      if (subError) {
+        throw new Error("Could not retrieve subscription information");
+      }
+      
+      if (!subData?.stripe_customer_id) {
+        throw new Error("No active subscription found to cancel");
+      }
+      
+      // Always create a new portal session
+      console.log("Creating new portal session for cancellation");
+      const { data, error: portalError } = await supabase.functions.invoke('create-portal', {
+        body: {
+          userId: user.id,
+          customerId: subData.stripe_customer_id,
+          returnUrl: getReturnUrl()
         }
+      });
+      
+      if (portalError) {
+        console.error("Create portal API error:", portalError);
         
-        // First check if we have a subscription_id in the database
-        const { data: subData, error: subError } = await supabase
-          .from("customer_subscriptions")
-          .select("subscription_id, stripe_customer_id")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        
-        if (subError) {
-          throw new Error("Could not retrieve subscription information");
-        }
-        
-        if (!subData?.stripe_customer_id) {
-          throw new Error("No active subscription found to cancel");
-        }
-        
-        // If we don't have a subscription_id but have customer_id, retrieve it from Stripe
-        if (!subData.subscription_id && subData.stripe_customer_id) {
-          console.log("Missing subscription ID, fetching from Stripe...");
-          
-          // Call the get-stripe-subscription endpoint to retrieve and store the subscription ID
-          const { data: fetchData, error: fetchError } = await supabase.functions.invoke('get-stripe-subscription', {
-            body: {
-              userId: user.id,
-              stripeCustomerId: subData.stripe_customer_id
-            }
-          });
-          
-          if (fetchError) {
-            console.error("Failed to fetch subscription ID:", fetchError);
-          } else {
-            // Successfully fetched subscription ID, refresh data
-            console.log("Retrieved subscription ID:", fetchData.subscription_id);
-          }
-        }
-        
-        // Call the API to create a management portal URL
-        console.log("Calling create-portal API with customer ID:", subData.stripe_customer_id);
-        const { data, error: portalError } = await supabase.functions.invoke('create-portal', {
-          body: {
-            userId: user.id,
-            customerId: subData.stripe_customer_id,
-            returnUrl: window.location.origin + '/settings?tab=subscription'
-          }
-        });
-        
-        if (portalError) {
-          console.error("Create portal API error:", portalError);
-          
-          // Check for specific Stripe configuration error
-          if (portalError.message.includes("No configuration provided") || portalError.message.includes("portal settings")) {
-            toast({
-              variant: "destructive",
-              title: "Stripe Portal Not Configured",
-              description: "The Stripe Customer Portal hasn't been set up yet. Please contact support.",
-            });
-            
-            // Open support form after a short delay
-            setTimeout(() => {
-              window.location.href = "https://forms.gle/aMFrfqbqiMMBSEKr9";
-            }, 1500);
-            
-            return;
-          }
-          
-          // As a fallback for other errors, try to use customer support link
-          const supportUrl = "https://billing.stripe.com/p/login/test_3cs8xSc4bcCt9aw9AA";
+        // Check for specific Stripe configuration error
+        if (portalError.message.includes("No configuration provided") || portalError.message.includes("portal settings")) {
           toast({
-            title: "Using Alternate Portal",
-            description: "We'll redirect you to the Stripe billing portal directly.",
+            variant: "destructive",
+            title: "Stripe Portal Not Configured",
+            description: "The Stripe Customer Portal hasn't been set up yet. Please contact support.",
           });
           
+          // Open support form after a short delay
           setTimeout(() => {
-            window.location.href = supportUrl;
-          }, 1000);
+            window.location.href = "https://forms.gle/aMFrfqbqiMMBSEKr9";
+          }, 1500);
           
           return;
         }
         
-        if (data?.url) {
-          // Store the portal URL for future use
-          const { error: updateError } = await supabase
-            .from("customer_subscriptions")
-            .update({
-              customer_portal_url: data.url,
-              updated_at: new Date().toISOString()
-            })
-            .eq("user_id", user.id);
-          
-          if (updateError) {
-            console.error("Error updating portal URL:", updateError);
-          }
-          
-          // Redirect to the management portal in the same tab
-          window.location.href = data.url;
-        } else {
-          throw new Error("No management portal URL returned");
-        }
-      } catch (error) {
-        console.error("Error canceling subscription:", error);
-        
-        // Fallback to support form
-        const supportFormUrl = "https://forms.gle/aMFrfqbqiMMBSEKr9";
-        
-        toast({
-          variant: "destructive",
-          title: "Portal Unavailable",
-          description: error instanceof Error 
-            ? error.message 
-            : "Customer portal link is not available. We'll redirect you to contact support.",
-        });
-        
-        // Short delay before redirecting
-        setTimeout(() => {
-          window.location.href = supportFormUrl;
-        }, 1500);
-      } finally {
-        setIsRefreshingSubscription(false);
+        // As a fallback for other errors, try to use customer support link
+        const supportUrl = "https://billing.stripe.com/p/login/test_3cs8xSc4bcCt9aw9AA";
+        window.location.href = supportUrl;
+        return;
       }
+      
+      if (data?.url) {
+        // Redirect to the new portal URL
+        window.location.href = data.url;
+      } else {
+        throw new Error("No management portal URL returned");
+      }
+    } catch (error) {
+      console.error("Error canceling subscription:", error);
+      
+      // Fallback to support form
+      const supportFormUrl = "https://forms.gle/aMFrfqbqiMMBSEKr9";
+      
+      toast({
+        variant: "destructive",
+        title: "Portal Unavailable",
+        description: error instanceof Error 
+          ? error.message 
+          : "Customer portal link is not available. We'll redirect you to contact support.",
+      });
+      
+      // Short delay before redirecting
+      setTimeout(() => {
+        window.location.href = supportFormUrl;
+      }, 1500);
+    } finally {
+      setIsRefreshingSubscription(false);
     }
   };
 
   const renewSubscription = async () => {
-    if (subscription?.customerPortalUrl) {
+    setIsRefreshingSubscription(true);
+    
+    try {
       // First update the database to remove cancellation status
       try {
         // Try with the cancel_at_period_end column
@@ -716,11 +656,52 @@ const Settings = () => {
         console.error("Error updating database before redirect:", dbError);
       }
       
-      // If portal URL is available, open it in the same tab
-      window.location.href = subscription.customerPortalUrl;
-    } else {
-      // Handle same as manage subscription if portal URL isn't available
-      handleManageSubscription();
+      // Get subscription ID and customer ID
+      const { data: subData, error: subError } = await supabase
+        .from("customer_subscriptions")
+        .select("subscription_id, stripe_customer_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      
+      if (subError) {
+        throw new Error("Could not retrieve subscription information");
+      }
+      
+      if (!subData?.stripe_customer_id) {
+        throw new Error("No active subscription found to renew");
+      }
+      
+      // Always create a new portal session for renewal
+      console.log("Creating new portal session for renewal");
+      const { data, error: portalError } = await supabase.functions.invoke('create-portal', {
+        body: {
+          userId: user.id,
+          customerId: subData.stripe_customer_id,
+          returnUrl: getReturnUrl()
+        }
+      });
+      
+      if (portalError) {
+        console.error("Create portal API error:", portalError);
+        throw portalError;
+      }
+      
+      if (data?.url) {
+        // Redirect to the new portal URL
+        window.location.href = data.url;
+      } else {
+        throw new Error("No management portal URL returned");
+      }
+    } catch (error) {
+      console.error("Error renewing subscription:", error);
+      
+      toast({
+        variant: "destructive",
+        title: "Portal Unavailable",
+        description: "Could not access the Stripe portal. Please try again later.",
+      });
+    } finally {
+      setIsRefreshingSubscription(false);
     }
   };
 
@@ -1194,12 +1175,12 @@ const Settings = () => {
                               <span className="text-sm font-medium">Image Generations</span>
                             </div>
                             <span className="text-sm font-semibold">
-                              {remainingUsage?.imageGenerations || 0} / 3 remaining this week
+                              {remainingUsage?.imageGenerations ?? 0} / 5 remaining this week
                             </span>
                           </div>
                           <div className="h-2 bg-muted rounded-full overflow-hidden">
                             <div 
-                              className={`h-full bg-primary rounded-full transition-all progress-bar-${Math.round(((remainingUsage?.imageGenerations || 0) / 3) * 100)}`}
+                              className={`h-full bg-primary rounded-full transition-all progress-bar-${Math.round(((remainingUsage?.imageGenerations ?? 0) / 5) * 100)}`}
                             ></div>
                           </div>
                         </div>
@@ -1211,12 +1192,12 @@ const Settings = () => {
                               <span className="text-sm font-medium">Dream Analyses</span>
                             </div>
                             <span className="text-sm font-semibold">
-                              {remainingUsage?.dreamAnalyses || 0} / 3 remaining this week
+                              {remainingUsage?.dreamAnalyses ?? 0} / 7 remaining this week
                             </span>
                           </div>
                           <div className="h-2 bg-muted rounded-full overflow-hidden">
                             <div 
-                              className={`h-full bg-primary rounded-full transition-all progress-bar-${Math.round(((remainingUsage?.dreamAnalyses || 0) / 3) * 100)}`}
+                              className={`h-full bg-primary rounded-full transition-all progress-bar-${Math.round(((remainingUsage?.dreamAnalyses ?? 0) / 7) * 100)}`}
                             ></div>
                           </div>
                         </div>

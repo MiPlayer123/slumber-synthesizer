@@ -105,7 +105,7 @@ serve(async (req) => {
       }
 
       stripeCustomerId = customerData.stripe_customer_id;
-      console.log("Found customer:", stripeCustomerId, "subscription:", customerData.subscription_id, "status:", customerData.subscription_status);
+      console.log("Found customer data - status:", customerData.subscription_status);
     }
 
     // Validate we have a valid customer ID
@@ -121,8 +121,8 @@ serve(async (req) => {
     }
     
     // Create a portal session for the customer
-    console.log("Creating portal session for customer:", stripeCustomerId);
-    const defaultReturnUrl = `${Deno.env.get("SITE_URL") || 'http://localhost'}/settings?tab=subscription`;
+    console.log("Creating portal session");
+    const defaultReturnUrl = `${Deno.env.get("SITE_URL")}/settings?tab=subscription`;
     
     try {
       const portalSession = await stripe.billingPortal.sessions.create({

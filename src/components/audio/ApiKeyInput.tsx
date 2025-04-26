@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { EyeIcon, EyeOffIcon } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ApiKeyInputProps {
   onApiKeySave: (apiKey: string) => void;
@@ -12,19 +13,22 @@ interface ApiKeyInputProps {
 export function ApiKeyInput({ onApiKeySave, initialApiKey = '' }: ApiKeyInputProps) {
   const [apiKey, setApiKey] = useState(initialApiKey);
   const [showApiKey, setShowApiKey] = useState(false);
+  const [isTemporarySession, setIsTemporarySession] = useState(true);
   
-  // Load saved API key from localStorage on mount
+  // Load API key from session storage on mount (temporary, not persisted)
   useEffect(() => {
-    const savedApiKey = localStorage.getItem('openai_api_key');
-    if (savedApiKey) {
-      setApiKey(savedApiKey);
-      onApiKeySave(savedApiKey);
+    const sessionApiKey = sessionStorage.getItem('temp_openai_api_key');
+    if (sessionApiKey) {
+      setApiKey(sessionApiKey);
+      onApiKeySave(sessionApiKey);
     }
   }, [onApiKeySave]);
   
   const handleSaveApiKey = () => {
     if (apiKey) {
-      localStorage.setItem('openai_api_key', apiKey);
+      // Only store in session storage (cleared when browser is closed)
+      // Never use localStorage for sensitive information
+      sessionStorage.setItem('temp_openai_api_key', apiKey);
       onApiKeySave(apiKey);
     }
   };
@@ -68,7 +72,8 @@ export function ApiKeyInput({ onApiKeySave, initialApiKey = '' }: ApiKeyInputPro
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Your API key is stored locally and never sent to our servers. You can get an API key from{' '}
+          Your API key is stored temporarily in this browser session only and will be cleared when you close the browser.
+          You can get an API key from{' '}
           <a
             href="https://platform.openai.com/api-keys"
             target="_blank"

@@ -4,7 +4,7 @@ import type { Database } from '@/types/supabase';
 // Use environment variables for Supabase URL and key with fallbacks 
 // that match the actual values in .env file
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://api.lucidrem.com";
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkdXpmcmpoeGZ4aXlhanZwa3VzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk2NTYyODMsImV4cCI6MjA1NTIzMjI4M30.gSYv1qXg4y3tTP3UjobDPjF9A1UldyOMjdYFVJlh47c";
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 
 // In development mode, use the local proxy URL for Supabase
 const isLocalDev = import.meta.env.DEV && window.location.hostname === 'localhost';
