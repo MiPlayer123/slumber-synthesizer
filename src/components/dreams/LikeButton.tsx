@@ -11,13 +11,13 @@ interface LikeButtonProps {
   showCount?: boolean;
 }
 
-export function LikeButton({ 
-  isLiked, 
-  likesCount, 
-  onClick, 
+export function LikeButton({
+  isLiked,
+  likesCount,
+  onClick,
   isLoading = false,
   className,
-  showCount = true
+  showCount = true,
 }: LikeButtonProps) {
   return (
     <Button
@@ -29,8 +29,10 @@ export function LikeButton({
     >
       <Heart
         className={cn(
-          "h-5 w-5 mr-1.5 transition-colors duration-200", 
-          isLiked ? "fill-destructive text-destructive" : "text-foreground fill-transparent"
+          "h-5 w-5 mr-1.5 transition-colors duration-200",
+          isLiked
+            ? "fill-destructive text-destructive"
+            : "text-foreground fill-transparent",
         )}
       />
       {showCount && (

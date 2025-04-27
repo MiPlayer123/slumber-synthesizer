@@ -1,42 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { EyeIcon, EyeOffIcon } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ApiKeyInputProps {
   onApiKeySave: (apiKey: string) => void;
   initialApiKey?: string;
 }
 
-export function ApiKeyInput({ onApiKeySave, initialApiKey = '' }: ApiKeyInputProps) {
+export function ApiKeyInput({
+  onApiKeySave,
+  initialApiKey = "",
+}: ApiKeyInputProps) {
   const [apiKey, setApiKey] = useState(initialApiKey);
   const [showApiKey, setShowApiKey] = useState(false);
   const [isTemporarySession, setIsTemporarySession] = useState(true);
-  
+
   // Load API key from session storage on mount (temporary, not persisted)
   useEffect(() => {
-    const sessionApiKey = sessionStorage.getItem('temp_openai_api_key');
+    const sessionApiKey = sessionStorage.getItem("temp_openai_api_key");
     if (sessionApiKey) {
       setApiKey(sessionApiKey);
       onApiKeySave(sessionApiKey);
     }
   }, [onApiKeySave]);
-  
+
   const handleSaveApiKey = () => {
     if (apiKey) {
       // Only store in session storage (cleared when browser is closed)
       // Never use localStorage for sensitive information
-      sessionStorage.setItem('temp_openai_api_key', apiKey);
+      sessionStorage.setItem("temp_openai_api_key", apiKey);
       onApiKeySave(apiKey);
     }
   };
-  
+
   const toggleShowApiKey = () => {
     setShowApiKey(!showApiKey);
   };
-  
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -45,7 +48,7 @@ export function ApiKeyInput({ onApiKeySave, initialApiKey = '' }: ApiKeyInputPro
           <div className="relative flex-grow">
             <Input
               id="api-key"
-              type={showApiKey ? 'text' : 'password'}
+              type={showApiKey ? "text" : "password"}
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder="Enter your OpenAI API key"
@@ -63,8 +66,8 @@ export function ApiKeyInput({ onApiKeySave, initialApiKey = '' }: ApiKeyInputPro
               )}
             </button>
           </div>
-          <Button 
-            onClick={handleSaveApiKey} 
+          <Button
+            onClick={handleSaveApiKey}
             className="ml-2"
             disabled={!apiKey}
           >
@@ -72,8 +75,9 @@ export function ApiKeyInput({ onApiKeySave, initialApiKey = '' }: ApiKeyInputPro
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Your API key is stored temporarily in this browser session only and will be cleared when you close the browser.
-          You can get an API key from{' '}
+          Your API key is stored temporarily in this browser session only and
+          will be cleared when you close the browser. You can get an API key
+          from{" "}
           <a
             href="https://platform.openai.com/api-keys"
             target="_blank"
@@ -87,4 +91,4 @@ export function ApiKeyInput({ onApiKeySave, initialApiKey = '' }: ApiKeyInputPro
       </div>
     </div>
   );
-} 
+}

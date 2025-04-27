@@ -14,18 +14,23 @@
   .feature-card {
     @apply p-6 rounded-xl bg-gradient-to-b from-purple-800/10 to-indigo-900/10 backdrop-blur-sm border border-purple-500/10 transition duration-300 hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/5;
   }
-  
+
   /* Star background animation */
   .star {
     @apply absolute rounded-full bg-white;
     animation: twinkle 4s infinite;
   }
-  
+
   @keyframes twinkle {
-    0%, 100% { opacity: 0.1; }
-    50% { opacity: 0.7; }
+    0%,
+    100% {
+      opacity: 0.1;
+    }
+    50% {
+      opacity: 0.7;
+    }
   }
-  
+
   /* Add smooth scrolling */
   html {
     scroll-behavior: smooth;

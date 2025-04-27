@@ -26,11 +26,29 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 
 type CreateDreamFormProps = {
-  onSubmit: (dream: Omit<Dream, 'id' | 'user_id' | 'created_at' | 'updated_at'>, file?: File) => void;
+  onSubmit: (
+    dream: Omit<Dream, "id" | "user_id" | "created_at" | "updated_at">,
+    file?: File,
+  ) => void;
 };
 
-const dreamCategories: DreamCategory[] = ['normal', 'nightmare', 'lucid', 'recurring', 'prophetic'];
-const dreamEmotions: DreamEmotion[] = ['neutral', 'joy', 'fear', 'confusion', 'anxiety', 'peace', 'excitement', 'sadness'];
+const dreamCategories: DreamCategory[] = [
+  "normal",
+  "nightmare",
+  "lucid",
+  "recurring",
+  "prophetic",
+];
+const dreamEmotions: DreamEmotion[] = [
+  "neutral",
+  "joy",
+  "fear",
+  "confusion",
+  "anxiety",
+  "peace",
+  "excitement",
+  "sadness",
+];
 
 export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
   const { toast } = useToast();
@@ -42,19 +60,19 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
     emotion: "neutral" as DreamEmotion,
     is_public: true,
   });
-  
+
   const [inputMethod, setInputMethod] = useState<"text" | "voice">("text");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Don't proceed if there's no description or title
     if (!newDream.description.trim()) {
       toast({
         title: "Description Required",
         description: "Please tell us about your dream before saving.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -63,33 +81,33 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
       toast({
         title: "Title Required",
         description: "Please provide a title for your dream.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       // Submit the dream with the user-provided title
       onSubmit(newDream, selectedFile || undefined);
     } catch (error) {
-      console.error('Error during dream submission:', error);
+      console.error("Error during dream submission:", error);
       toast({
         title: "Submission Error",
         description: "There was a problem saving your dream. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
-  
+
   const handleTranscription = (text: string) => {
     // Append the transcribed text to the existing description
-    setNewDream(prev => ({
+    setNewDream((prev) => ({
       ...prev,
-      description: (prev.description ? prev.description + "\n\n" : "") + text
+      description: (prev.description ? prev.description + "\n\n" : "") + text,
     }));
   };
 
@@ -114,13 +132,18 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
             <Input
               id="title"
               value={newDream.title}
-              onChange={(e) => setNewDream({ ...newDream, title: e.target.value })}
+              onChange={(e) =>
+                setNewDream({ ...newDream, title: e.target.value })
+              }
               required
               placeholder="Enter a title for your dream"
             />
           </div>
 
-          <Tabs value={inputMethod} onValueChange={(value) => setInputMethod(value as "text" | "voice")}>
+          <Tabs
+            value={inputMethod}
+            onValueChange={(value) => setInputMethod(value as "text" | "voice")}
+          >
             <div className="space-y-2">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-2">
                 <Label htmlFor="description">What was your dream about?</Label>
@@ -132,30 +155,34 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
                   </TabsTrigger>
                 </TabsList>
               </div>
-              
+
               <TabsContent value="text" className="mt-0 pt-0">
                 <Textarea
                   id="description"
                   value={newDream.description}
-                  onChange={(e) => setNewDream({ ...newDream, description: e.target.value })}
+                  onChange={(e) =>
+                    setNewDream({ ...newDream, description: e.target.value })
+                  }
                   required
                   rows={8}
                   className="dream-textarea"
                   placeholder="Describe your dream in as much detail as you can remember..."
                 />
               </TabsContent>
-              
+
               <TabsContent value="voice" className="mt-0 pt-0">
                 <div className="mb-4">
-                  <VoiceRecorder 
+                  <VoiceRecorder
                     onTranscriptionComplete={handleTranscription}
                   />
                 </div>
-                
+
                 <Textarea
                   id="description-voice"
                   value={newDream.description}
-                  onChange={(e) => setNewDream({ ...newDream, description: e.target.value })}
+                  onChange={(e) =>
+                    setNewDream({ ...newDream, description: e.target.value })
+                  }
                   required
                   rows={8}
                   className="dream-textarea"
@@ -222,14 +249,15 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
 
           <div className="space-y-2">
             <Label htmlFor="media">Upload Image (Optional)</Label>
-            <Input 
-              id="media" 
-              type="file" 
-              accept="image/*,video/*" 
-              onChange={handleFileChange} 
+            <Input
+              id="media"
+              type="file"
+              accept="image/*,video/*"
+              onChange={handleFileChange}
             />
             <p className="text-sm text-muted-foreground">
-              Upload your own image or video, or let AI generate an image based on your dream.
+              Upload your own image or video, or let AI generate an image based
+              on your dream.
             </p>
           </div>
 
@@ -240,7 +268,7 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
                 Saving...
               </>
             ) : (
-              'Save Dream'
+              "Save Dream"
             )}
           </Button>
         </form>

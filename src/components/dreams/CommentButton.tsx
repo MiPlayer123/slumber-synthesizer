@@ -17,7 +17,7 @@ export const CommentButton = ({
   onClick,
   size = "default",
   showCount = true,
-  className
+  className,
 }: CommentButtonProps) => {
   return (
     <Button
@@ -27,23 +27,18 @@ export const CommentButton = ({
       className={cn(
         "flex items-center gap-1",
         size === "sm" && "px-2 h-8",
-        className
+        className,
       )}
       disabled={isLoading}
     >
-      <MessageSquare className={cn(
-        size === "default" ? "h-5 w-5" : "h-4 w-4"
-      )} />
+      <MessageSquare
+        className={cn(size === "default" ? "h-5 w-5" : "h-4 w-4")}
+      />
       {showCount && commentCount > 0 && (
-        <span className={cn(
-          "text-sm",
-          className
-        )}>
-          {commentCount}
-        </span>
+        <span className={cn("text-sm", className)}>{commentCount}</span>
       )}
     </Button>
   );
 };
 
-export default CommentButton; 
+export default CommentButton;

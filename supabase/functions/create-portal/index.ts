@@ -15,7 +15,8 @@ console.log("Stripe key length:", stripeSecretKey ? stripeSecretKey.length : 0);
 if (!supabaseUrl || !supabaseServiceKey || !stripeSecretKey) {
   console.error("Missing required environment variables!");
   if (!supabaseUrl) console.error("SUPABASE_URL is missing");
-  if (!supabaseServiceKey) console.error("SUPABASE_SERVICE_ROLE_KEY is missing");
+  if (!supabaseServiceKey)
+    console.error("SUPABASE_SERVICE_ROLE_KEY is missing");
   if (!stripeSecretKey) console.error("STRIPE_SECRET_KEY is missing");
 }
 
@@ -30,7 +31,8 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 const customCorsHeaders = {
   ...corsHeaders,
   "Access-Control-Allow-Origin": "*", // Allow all origins
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, X-Client-Info, Authorization",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, X-Client-Info, Authorization",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Max-Age": "86400",
 };
@@ -43,7 +45,7 @@ serve(async (req) => {
 
   try {
     console.log("Request received:", req.url);
-    
+
     // Parse request body
     let requestData;
     try {
@@ -51,25 +53,19 @@ serve(async (req) => {
       console.log("Request data:", JSON.stringify(requestData));
     } catch (parseError) {
       console.error("Error parsing request body:", parseError);
-      return new Response(
-        JSON.stringify({ error: "Invalid request body" }),
-        {
-          status: 400,
-          headers: { ...customCorsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "Invalid request body" }), {
+        status: 400,
+        headers: { ...customCorsHeaders, "Content-Type": "application/json" },
+      });
     }
-    
+
     const { userId, customerId, returnUrl } = requestData;
 
     if (!userId) {
-      return new Response(
-        JSON.stringify({ error: "User ID is required" }),
-        {
-          status: 400,
-          headers: { ...customCorsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "User ID is required" }), {
+        status: 400,
+        headers: { ...customCorsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // If we don't have a customer ID, try to look it up along with subscription ID
@@ -88,97 +84,107 @@ serve(async (req) => {
           JSON.stringify({ error: "Database error: " + customerError.message }),
           {
             status: 500,
-            headers: { ...customCorsHeaders, "Content-Type": "application/json" },
-          }
+            headers: {
+              ...customCorsHeaders,
+              "Content-Type": "application/json",
+            },
+          },
         );
       }
 
       if (!customerData?.stripe_customer_id) {
         console.error("Customer not found for user:", userId);
-        return new Response(
-          JSON.stringify({ error: "Customer not found" }),
-          {
-            status: 404,
-            headers: { ...customCorsHeaders, "Content-Type": "application/json" },
-          }
-        );
+        return new Response(JSON.stringify({ error: "Customer not found" }), {
+          status: 404,
+          headers: { ...customCorsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       stripeCustomerId = customerData.stripe_customer_id;
-      console.log("Found customer data - status:", customerData.subscription_status);
+      console.log(
+        "Found customer data - status:",
+        customerData.subscription_status,
+      );
     }
 
     // Validate we have a valid customer ID
-    if (!stripeCustomerId || !stripeCustomerId.startsWith('cus_')) {
+    if (!stripeCustomerId || !stripeCustomerId.startsWith("cus_")) {
       console.error("Invalid customer ID format:", stripeCustomerId);
       return new Response(
         JSON.stringify({ error: "Invalid customer ID format" }),
         {
           status: 400,
           headers: { ...customCorsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
-    
+
     // Create a portal session for the customer
     console.log("Creating portal session");
     const defaultReturnUrl = `${Deno.env.get("SITE_URL")}/settings?tab=subscription`;
-    
+
     try {
       const portalSession = await stripe.billingPortal.sessions.create({
         customer: stripeCustomerId,
         return_url: returnUrl || defaultReturnUrl,
       });
-      
-      console.log("Portal session created successfully, URL length:", portalSession.url.length);
-      
-      return new Response(
-        JSON.stringify({ url: portalSession.url }),
-        {
-          status: 200,
-          headers: { ...customCorsHeaders, "Content-Type": "application/json" },
-        }
+
+      console.log(
+        "Portal session created successfully, URL length:",
+        portalSession.url.length,
       );
+
+      return new Response(JSON.stringify({ url: portalSession.url }), {
+        status: 200,
+        headers: { ...customCorsHeaders, "Content-Type": "application/json" },
+      });
     } catch (stripeError) {
       console.error("Stripe API error:", stripeError);
-      
+
       // Check if we need to retrieve the customer from Stripe
-      if (stripeError.message && stripeError.message.includes("No such customer")) {
+      if (
+        stripeError.message &&
+        stripeError.message.includes("No such customer")
+      ) {
         return new Response(
-          JSON.stringify({ 
-            error: "Customer not found in Stripe. The customer ID may be invalid.",
-            details: stripeError.message
+          JSON.stringify({
+            error:
+              "Customer not found in Stripe. The customer ID may be invalid.",
+            details: stripeError.message,
           }),
           {
             status: 404,
-            headers: { ...customCorsHeaders, "Content-Type": "application/json" },
-          }
+            headers: {
+              ...customCorsHeaders,
+              "Content-Type": "application/json",
+            },
+          },
         );
       }
-      
+
       return new Response(
-        JSON.stringify({ 
-          error: "Stripe API error", 
-          details: stripeError.message 
+        JSON.stringify({
+          error: "Stripe API error",
+          details: stripeError.message,
         }),
         {
           status: 500,
           headers: { ...customCorsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
   } catch (error) {
     console.error("Uncaught error:", error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: "Unexpected error",
         message: error.message,
-        stack: error.stack
+        stack: error.stack,
       }),
       {
         status: 500,
         headers: { ...customCorsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   }
-}); 
+});

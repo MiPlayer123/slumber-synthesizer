@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Service to generate dream titles from descriptions using OpenAI
@@ -11,15 +11,15 @@ export const titleGenerationService = {
    */
   generateTitle: async (description: string): Promise<string> => {
     if (!description) {
-      return 'My Dream';
+      return "My Dream";
     }
 
     try {
       // Create a structured request for title generation
       const request = {
         prompt: description.substring(0, 500),
-        type: 'title',
-        maxWords: 6
+        type: "title",
+        maxWords: 6,
       };
 
       // Get current session for auth
@@ -27,16 +27,18 @@ export const titleGenerationService = {
 
       // Call the analyze-dream Edge Function
       // We use the existing Edge Function since it already has OpenAI access
-      const { data, error } = await supabase.functions.invoke('analyze-dream', {
+      const { data, error } = await supabase.functions.invoke("analyze-dream", {
         body: request,
         // Add authentication headers to ensure the function can be called
-        headers: sessionData?.session ? {
-          Authorization: `Bearer ${sessionData.session.access_token}`
-        } : undefined
+        headers: sessionData?.session
+          ? {
+              Authorization: `Bearer ${sessionData.session.access_token}`,
+            }
+          : undefined,
       });
 
       if (error) {
-        console.error('Error generating title:', error);
+        console.error("Error generating title:", error);
         return createFallbackTitle(description);
       }
 
@@ -44,10 +46,10 @@ export const titleGenerationService = {
       const generatedTitle = data?.title || createFallbackTitle(description);
       return generatedTitle;
     } catch (error) {
-      console.error('Failed to generate title:', error);
+      console.error("Failed to generate title:", error);
       return createFallbackTitle(description);
     }
-  }
+  },
 };
 
 /**
@@ -57,18 +59,18 @@ export const titleGenerationService = {
  */
 function createFallbackTitle(description: string): string {
   if (!description) {
-    return 'My Dream';
+    return "My Dream";
   }
 
   // Take the first few words of the description
-  const words = description.split(' ');
+  const words = description.split(" ");
   const titleWords = words.slice(0, 4);
-  const title = titleWords.join(' ');
+  const title = titleWords.join(" ");
 
   // If the title is too short, just use a generic one
   if (title.length < 10) {
-    return 'My Dream';
+    return "My Dream";
   }
 
-  return title + (title.endsWith('.') ? '' : '...');
+  return title + (title.endsWith(".") ? "" : "...");
 }

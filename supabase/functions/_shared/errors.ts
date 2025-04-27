@@ -1,15 +1,15 @@
-import { corsHeaders } from './cors.ts';
+import { corsHeaders } from "./cors.ts";
 
 // Error types that can be returned from the functions
 export enum ErrorType {
-  INVALID_REQUEST = 'INVALID_REQUEST',
-  AUTHORIZATION = 'AUTHORIZATION',
-  CONTENT_MODERATION = 'CONTENT_MODERATION',
-  SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
-  RATE_LIMIT = 'RATE_LIMIT',
-  DATABASE_ERROR = 'DATABASE_ERROR',
-  PARSING_ERROR = 'PARSING_ERROR',
-  UNKNOWN = 'UNKNOWN'
+  INVALID_REQUEST = "INVALID_REQUEST",
+  AUTHORIZATION = "AUTHORIZATION",
+  CONTENT_MODERATION = "CONTENT_MODERATION",
+  SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE",
+  RATE_LIMIT = "RATE_LIMIT",
+  DATABASE_ERROR = "DATABASE_ERROR",
+  PARSING_ERROR = "PARSING_ERROR",
+  UNKNOWN = "UNKNOWN",
 }
 
 // Interface for standardized error responses
@@ -26,118 +26,125 @@ export interface ErrorResponse {
  * @param source Optional source of the error (e.g., 'OpenAI', 'Gemini')
  * @returns Standardized error response with type and suggested actions
  */
-export function handleAIError(error: unknown, source: string = 'AI Service'): ErrorResponse {
+export function handleAIError(
+  error: unknown,
+  source: string = "AI Service",
+): ErrorResponse {
   // Convert error to string for processing
-  const errorStr = typeof error === 'object' 
-    ? JSON.stringify(error)
-    : String(error);
-  
+  const errorStr =
+    typeof error === "object" ? JSON.stringify(error) : String(error);
+
   const errorLower = errorStr.toLowerCase();
-  
+
   // Enhanced content moderation detection - covers more cases
   if (
-    errorLower.includes('content policy') || 
-    errorLower.includes('moderation') || 
-    errorLower.includes('inappropriate') ||
-    errorLower.includes('violat') ||
-    errorLower.includes('harmful') ||
-    errorLower.includes('offensive') ||
-    errorLower.includes('nsfw') ||
-    errorLower.includes('content filter') ||
-    errorLower.includes('sensitive words') ||
-    errorLower.includes('responsible ai') ||
-    errorLower.includes('could not be submitted') ||
-    errorLower.includes('policy violation')
+    errorLower.includes("content policy") ||
+    errorLower.includes("moderation") ||
+    errorLower.includes("inappropriate") ||
+    errorLower.includes("violat") ||
+    errorLower.includes("harmful") ||
+    errorLower.includes("offensive") ||
+    errorLower.includes("nsfw") ||
+    errorLower.includes("content filter") ||
+    errorLower.includes("sensitive words") ||
+    errorLower.includes("responsible ai") ||
+    errorLower.includes("could not be submitted") ||
+    errorLower.includes("policy violation")
   ) {
     return {
       error: `Your request contains content that ${source} cannot process`,
       errorType: ErrorType.CONTENT_MODERATION,
-      details: 'The content may violate usage policies or contain inappropriate material',
-      suggestedAction: 'Please modify your request to remove any potentially sensitive or inappropriate content'
+      details:
+        "The content may violate usage policies or contain inappropriate material",
+      suggestedAction:
+        "Please modify your request to remove any potentially sensitive or inappropriate content",
     };
   }
-  
+
   // Enhanced parsing error detection for malformed or unexpected response formats
   if (
-    errorLower.includes('parse') ||
-    errorLower.includes('parsing') ||
-    errorLower.includes('invalid format') ||
-    errorLower.includes('failed to parse') ||
-    errorLower.includes('syntax error')
+    errorLower.includes("parse") ||
+    errorLower.includes("parsing") ||
+    errorLower.includes("invalid format") ||
+    errorLower.includes("failed to parse") ||
+    errorLower.includes("syntax error")
   ) {
     return {
       error: `Failed to process ${source} response`,
       errorType: ErrorType.PARSING_ERROR,
-      details: 'The response was received but could not be properly processed',
-      suggestedAction: 'Try again with a more straightforward request or contact support'
+      details: "The response was received but could not be properly processed",
+      suggestedAction:
+        "Try again with a more straightforward request or contact support",
     };
   }
-  
+
   // Database errors
   if (
-    errorLower.includes('database') ||
-    errorLower.includes('invalid input syntax') ||
-    errorLower.includes('duplicate key') ||
-    errorLower.includes('violates constraint') ||
-    errorLower.includes('db error')
+    errorLower.includes("database") ||
+    errorLower.includes("invalid input syntax") ||
+    errorLower.includes("duplicate key") ||
+    errorLower.includes("violates constraint") ||
+    errorLower.includes("db error")
   ) {
     return {
-      error: 'Database operation failed',
+      error: "Database operation failed",
       errorType: ErrorType.DATABASE_ERROR,
       details: errorStr,
-      suggestedAction: 'Please check your input data format and try again'
+      suggestedAction: "Please check your input data format and try again",
     };
   }
-  
+
   // Authentication/authorization errors
   if (
-    errorLower.includes('api key') || 
-    errorLower.includes('auth') || 
-    errorLower.includes('unauthorized') ||
-    errorLower.includes('permission')
+    errorLower.includes("api key") ||
+    errorLower.includes("auth") ||
+    errorLower.includes("unauthorized") ||
+    errorLower.includes("permission")
   ) {
     return {
       error: `${source} authentication error`,
       errorType: ErrorType.AUTHORIZATION,
-      details: errorStr.replace(/sk-[a-zA-Z0-9]{1,}/g, '[API_KEY_REDACTED]'), // Redact any API keys
-      suggestedAction: 'Please check your API key and permissions'
+      details: errorStr.replace(/sk-[a-zA-Z0-9]{1,}/g, "[API_KEY_REDACTED]"), // Redact any API keys
+      suggestedAction: "Please check your API key and permissions",
     };
   }
-  
+
   // Rate limiting
   if (
-    errorLower.includes('rate limit') || 
-    errorLower.includes('too many') ||
-    errorLower.includes('quota')
+    errorLower.includes("rate limit") ||
+    errorLower.includes("too many") ||
+    errorLower.includes("quota")
   ) {
     return {
       error: `${source} rate limit exceeded`,
       errorType: ErrorType.RATE_LIMIT,
       details: errorStr,
-      suggestedAction: 'Please try again later or reduce the frequency of requests'
+      suggestedAction:
+        "Please try again later or reduce the frequency of requests",
     };
   }
-  
+
   // Service unavailable
   if (
-    errorLower.includes('unavailable') || 
-    errorLower.includes('down') ||
-    errorLower.includes('maintenance')
+    errorLower.includes("unavailable") ||
+    errorLower.includes("down") ||
+    errorLower.includes("maintenance")
   ) {
     return {
       error: `${source} is currently unavailable`,
       errorType: ErrorType.SERVICE_UNAVAILABLE,
       details: errorStr,
-      suggestedAction: 'Please try again later'
+      suggestedAction: "Please try again later",
     };
   }
-  
+
   // Default unknown error
   return {
     error: `${source} request failed`,
     errorType: ErrorType.UNKNOWN,
     details: errorStr,
-    suggestedAction: 'Please try again or contact support if the issue persists'
+    suggestedAction:
+      "Please try again or contact support if the issue persists",
   };
 }
 
@@ -150,11 +157,14 @@ export function parseOpenAIError(errorText: string): ErrorResponse {
   try {
     // Try to parse JSON error
     const errorData = JSON.parse(errorText);
-    const errorMessage = errorData.error?.message || errorData.error?.code || 'Unknown OpenAI error';
-    return handleAIError(errorMessage, 'OpenAI');
+    const errorMessage =
+      errorData.error?.message ||
+      errorData.error?.code ||
+      "Unknown OpenAI error";
+    return handleAIError(errorMessage, "OpenAI");
   } catch {
     // If not JSON, handle as plain text
-    return handleAIError(errorText, 'OpenAI');
+    return handleAIError(errorText, "OpenAI");
   }
 }
 
@@ -167,46 +177,53 @@ export function parseGeminiError(errorText: string): ErrorResponse {
   try {
     // Try to parse JSON error
     const errorData = JSON.parse(errorText);
-    
+
     // Handle nested error structure that Gemini often uses
-    if (errorData.error && typeof errorData.error === 'object') {
+    if (errorData.error && typeof errorData.error === "object") {
       // Extract nested code and message
       const code = errorData.error.code;
       const message = errorData.error.message;
       const status = errorData.error.status;
-      
+
       // Check for specific content policy violations in the message
-      if (message && (
-          message.includes("prompt could not be submitted") ||
+      if (
+        message &&
+        (message.includes("prompt could not be submitted") ||
           message.includes("sensitive words") ||
           message.includes("violate Google's Responsible AI") ||
           message.includes("content policy") ||
-          message.includes("safety filter")
-        )) {
+          message.includes("safety filter"))
+      ) {
         return {
           error: "Your request contains content that Gemini cannot process",
           errorType: ErrorType.CONTENT_MODERATION,
           details: message,
-          suggestedAction: "Please modify your request to remove any potentially sensitive content or try rephrasing your request"
+          suggestedAction:
+            "Please modify your request to remove any potentially sensitive content or try rephrasing your request",
         };
       }
-      
+
       // Create detailed error message combining all available info
       const detailedMessage = [
         code ? `Code: ${code}` : null,
         message ? `Message: ${message}` : null,
-        status ? `Status: ${status}` : null
-      ].filter(Boolean).join(", ");
-      
-      return handleAIError(detailedMessage, 'Gemini');
+        status ? `Status: ${status}` : null,
+      ]
+        .filter(Boolean)
+        .join(", ");
+
+      return handleAIError(detailedMessage, "Gemini");
     }
-    
+
     // Fallback to standard error format
-    const errorMessage = errorData.error?.message || errorData.error?.status || 'Unknown Gemini error';
-    return handleAIError(errorMessage, 'Gemini');
+    const errorMessage =
+      errorData.error?.message ||
+      errorData.error?.status ||
+      "Unknown Gemini error";
+    return handleAIError(errorMessage, "Gemini");
   } catch {
     // If not JSON, handle as plain text
-    return handleAIError(errorText, 'Gemini');
+    return handleAIError(errorText, "Gemini");
   }
 }
 
@@ -216,7 +233,10 @@ export function parseGeminiError(errorText: string): ErrorResponse {
  * @param status HTTP status code (default: 400)
  * @returns Response object with error information
  */
-export function createErrorResponse(errorResponse: ErrorResponse, status: number = 400): Response {
+export function createErrorResponse(
+  errorResponse: ErrorResponse,
+  status: number = 400,
+): Response {
   // Adjust status code based on error type
   if (errorResponse.errorType === ErrorType.AUTHORIZATION) {
     status = 401;
@@ -227,14 +247,11 @@ export function createErrorResponse(errorResponse: ErrorResponse, status: number
   } else if (errorResponse.errorType === ErrorType.CONTENT_MODERATION) {
     status = 422; // Unprocessable Entity
   }
-  
-  return new Response(
-    JSON.stringify(errorResponse),
-    { 
-      status, 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-    }
-  );
+
+  return new Response(JSON.stringify(errorResponse), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 }
 
 /**
@@ -243,35 +260,41 @@ export function createErrorResponse(errorResponse: ErrorResponse, status: number
  * @returns Standardized error response
  */
 export function handleDatabaseError(error: unknown): ErrorResponse {
-  const errorStr = typeof error === 'object' ? JSON.stringify(error) : String(error);
+  const errorStr =
+    typeof error === "object" ? JSON.stringify(error) : String(error);
   const errorLower = errorStr.toLowerCase();
-  
+
   // Handle type conversion errors
-  if (errorLower.includes('invalid input syntax for type')) {
+  if (errorLower.includes("invalid input syntax for type")) {
     return {
-      error: 'Data type conversion error',
+      error: "Data type conversion error",
       errorType: ErrorType.DATABASE_ERROR,
       details: errorStr,
-      suggestedAction: 'Please ensure your data matches the required format. For numeric fields, use whole numbers where required.'
+      suggestedAction:
+        "Please ensure your data matches the required format. For numeric fields, use whole numbers where required.",
     };
   }
-  
+
   // Handle duplicate key errors
-  if (errorLower.includes('duplicate key') || errorLower.includes('unique constraint')) {
+  if (
+    errorLower.includes("duplicate key") ||
+    errorLower.includes("unique constraint")
+  ) {
     return {
-      error: 'Duplicate record error',
+      error: "Duplicate record error",
       errorType: ErrorType.DATABASE_ERROR,
       details: errorStr,
-      suggestedAction: 'This record already exists in the database. Please update the existing record instead.'
+      suggestedAction:
+        "This record already exists in the database. Please update the existing record instead.",
     };
   }
-  
+
   // Default database error
   return {
-    error: 'Database operation failed',
+    error: "Database operation failed",
     errorType: ErrorType.DATABASE_ERROR,
     details: errorStr,
-    suggestedAction: 'Please check your input data and try again'
+    suggestedAction: "Please check your input data and try again",
   };
 }
 
@@ -282,15 +305,17 @@ export function handleDatabaseError(error: unknown): ErrorResponse {
  */
 export function handleParsingError(rawResponse: string): ErrorResponse {
   // If it's a very large response, truncate it for the error details
-  const truncatedResponse = rawResponse.length > 500 
-    ? rawResponse.substring(0, 500) + '... (truncated)'
-    : rawResponse;
-  
+  const truncatedResponse =
+    rawResponse.length > 500
+      ? rawResponse.substring(0, 500) + "... (truncated)"
+      : rawResponse;
+
   return {
-    error: 'Failed to process AI response',
+    error: "Failed to process AI response",
     errorType: ErrorType.PARSING_ERROR,
     details: `The response was received but couldn't be properly processed: ${truncatedResponse}`,
-    suggestedAction: 'Try again with a more straightforward request. If the issue persists, contact support.'
+    suggestedAction:
+      "Try again with a more straightforward request. If the issue persists, contact support.",
   };
 }
 
@@ -306,7 +331,7 @@ export function sanitizeAIResponse(response: string): string {
   if (jsonBlockMatch && jsonBlockMatch[1]) {
     return jsonBlockMatch[1].trim();
   }
-  
+
   // Try to extract JSON if it's anywhere in the text
   const jsonRegex = /({[\s\S]*})/;
   const jsonMatch = response.match(jsonRegex);
@@ -319,7 +344,7 @@ export function sanitizeAIResponse(response: string): string {
       // Not valid JSON, continue with other methods
     }
   }
-  
+
   // Return original if no JSON pattern found
   return response;
 }
@@ -330,32 +355,38 @@ export function sanitizeAIResponse(response: string): string {
  * @param response The raw AI response text
  * @returns A structured analysis object or null if extraction fails
  */
-export function extractFallbackAnalysis(response: string): Record<string, any> | null {
+export function extractFallbackAnalysis(
+  response: string,
+): Record<string, any> | null {
   try {
     const result: Record<string, any> = {
       rating: 3, // Default rating
       themes: [],
       symbols: [],
       emotions: [],
-      interpretation: ''
+      interpretation: "",
     };
-    
+
     // Try to find rating (number between 1-5, possibly with decimals)
-    const ratingMatch = response.match(/rating[:\s]*([1-5](?:\.\d+)?)/i) || 
-                        response.match(/([1-5](?:\.\d+)?)\s*\/\s*5/i);
+    const ratingMatch =
+      response.match(/rating[:\s]*([1-5](?:\.\d+)?)/i) ||
+      response.match(/([1-5](?:\.\d+)?)\s*\/\s*5/i);
     if (ratingMatch && ratingMatch[1]) {
       const parsedRating = parseFloat(ratingMatch[1]);
       if (!isNaN(parsedRating)) {
         result.rating = Math.round(parsedRating);
       }
     }
-    
+
     // Try to extract arrays using common patterns
-    const arrayFields = ['themes', 'symbols', 'emotions'];
+    const arrayFields = ["themes", "symbols", "emotions"];
     for (const field of arrayFields) {
       // Look for arrays in multiple formats
       // Format: field: ["item1", "item2"...]
-      const jsonArrayMatch = new RegExp(`"?${field}"?\\s*[:=]\\s*(\\[[^\\]]+\\])`, 'i').exec(response);
+      const jsonArrayMatch = new RegExp(
+        `"?${field}"?\\s*[:=]\\s*(\\[[^\\]]+\\])`,
+        "i",
+      ).exec(response);
       if (jsonArrayMatch && jsonArrayMatch[1]) {
         try {
           const parsedArray = JSON.parse(jsonArrayMatch[1]);
@@ -365,62 +396,76 @@ export function extractFallbackAnalysis(response: string): Record<string, any> |
           }
         } catch {}
       }
-      
+
       // Format: field: item1, item2, item3
-      const commaListMatch = new RegExp(`"?${field}"?\\s*[:=]\\s*([^\\[\\]\\n]+?)(?:,|\\n|$)`, 'i').exec(response);
+      const commaListMatch = new RegExp(
+        `"?${field}"?\\s*[:=]\\s*([^\\[\\]\\n]+?)(?:,|\\n|$)`,
+        "i",
+      ).exec(response);
       if (commaListMatch && commaListMatch[1]) {
-        const items = commaListMatch[1].split(',').map(item => 
-          item.trim().replace(/^["']|["']$/g, '') // Remove quotes
-        ).filter(Boolean);
-        
+        const items = commaListMatch[1]
+          .split(",")
+          .map(
+            (item) => item.trim().replace(/^["']|["']$/g, ""), // Remove quotes
+          )
+          .filter(Boolean);
+
         if (items.length > 0) {
           result[field] = items;
           continue;
         }
       }
-      
+
       // Format: - item1\n- item2\n- item3
-      const bulletMatch = response.match(new RegExp(`"?${field}"?[^\\n]*\\n((?:\\s*-[^\\n]+\\n?)+)`, 'i'));
+      const bulletMatch = response.match(
+        new RegExp(`"?${field}"?[^\\n]*\\n((?:\\s*-[^\\n]+\\n?)+)`, "i"),
+      );
       if (bulletMatch && bulletMatch[1]) {
         const items = bulletMatch[1]
-          .split('\n')
-          .map(line => line.replace(/^\s*-\s*/, '').trim())
+          .split("\n")
+          .map((line) => line.replace(/^\s*-\s*/, "").trim())
           .filter(Boolean);
-        
+
         if (items.length > 0) {
           result[field] = items;
         }
       }
     }
-    
+
     // Extract interpretation (the largest text block)
-    const interpretationMatch = response.match(/interpretation[:\s]*([\s\S]+?)(?:(?:\n\s*[a-zA-Z]+:)|$)/i);
+    const interpretationMatch = response.match(
+      /interpretation[:\s]*([\s\S]+?)(?:(?:\n\s*[a-zA-Z]+:)|$)/i,
+    );
     if (interpretationMatch && interpretationMatch[1]) {
       result.interpretation = interpretationMatch[1].trim();
     } else {
       // If no labeled interpretation found, use the largest paragraph as interpretation
       const paragraphs = response.split(/\n\s*\n/);
-      let longestParagraph = '';
+      let longestParagraph = "";
       for (const paragraph of paragraphs) {
         if (paragraph.length > longestParagraph.length) {
           longestParagraph = paragraph;
         }
       }
-      
+
       if (longestParagraph) {
         result.interpretation = longestParagraph.trim();
       }
     }
-    
+
     // Validate we have some useful data
-    if (result.interpretation && 
-        (result.themes.length > 0 || result.symbols.length > 0 || result.emotions.length > 0)) {
+    if (
+      result.interpretation &&
+      (result.themes.length > 0 ||
+        result.symbols.length > 0 ||
+        result.emotions.length > 0)
+    ) {
       return result;
     }
-    
+
     return null;
   } catch (error) {
-    console.error('Error in fallback extraction:', error);
+    console.error("Error in fallback extraction:", error);
     return null;
   }
 }
@@ -442,7 +487,7 @@ export const geminiBlockPatterns = [
   "content policy",
   "safety guidelines",
   "potentially harmful",
-  "potentially sensitive"
+  "potentially sensitive",
 ];
 
 /**
@@ -452,55 +497,67 @@ export const geminiBlockPatterns = [
  */
 export function hasGeminiContentBlock(responseText: string): boolean {
   const lowerText = responseText.toLowerCase();
-  
+
   for (const pattern of geminiBlockPatterns) {
     if (lowerText.includes(pattern.toLowerCase())) {
       return true;
     }
   }
-  
+
   return false;
 }
 
 /**
- * Create a fallback error response for cases where the API returns a "success" 
+ * Create a fallback error response for cases where the API returns a "success"
  * but the content indicates a policy violation or other issue
  * @param model The AI model name (e.g., 'gpt-4', 'gemini-pro')
  * @param responseText The response text to check for issues
  * @returns ErrorResponse if issues detected, null otherwise
  */
-export function detectHiddenResponseIssues(model: string, responseText: string): ErrorResponse | null {
+export function detectHiddenResponseIssues(
+  model: string,
+  responseText: string,
+): ErrorResponse | null {
   // For Gemini, check for content policy blocks
-  if (model.toLowerCase().includes('gemini') && hasGeminiContentBlock(responseText)) {
+  if (
+    model.toLowerCase().includes("gemini") &&
+    hasGeminiContentBlock(responseText)
+  ) {
     return {
       error: "Your request triggered Gemini's content filter",
       errorType: ErrorType.CONTENT_MODERATION,
-      details: "Gemini returned a response that indicates content policy violation",
-      suggestedAction: "Please modify your request to remove any potentially sensitive content or try rephrasing your request"
+      details:
+        "Gemini returned a response that indicates content policy violation",
+      suggestedAction:
+        "Please modify your request to remove any potentially sensitive content or try rephrasing your request",
     };
   }
-  
+
   // For OpenAI/general models, check for generic refusal patterns
-  if (responseText.toLowerCase().includes("i cannot") || 
-      responseText.toLowerCase().includes("i'm not able to") ||
-      responseText.toLowerCase().includes("i apologize") ||
-      responseText.toLowerCase().includes("i'm unable to")) {
-    
+  if (
+    responseText.toLowerCase().includes("i cannot") ||
+    responseText.toLowerCase().includes("i'm not able to") ||
+    responseText.toLowerCase().includes("i apologize") ||
+    responseText.toLowerCase().includes("i'm unable to")
+  ) {
     // Check if it's most likely a content moderation issue
-    if (responseText.toLowerCase().includes("policy") ||
-        responseText.toLowerCase().includes("guideline") ||
-        responseText.toLowerCase().includes("harmful") ||
-        responseText.toLowerCase().includes("inappropriate") ||
-        responseText.toLowerCase().includes("offensive")) {
-      
+    if (
+      responseText.toLowerCase().includes("policy") ||
+      responseText.toLowerCase().includes("guideline") ||
+      responseText.toLowerCase().includes("harmful") ||
+      responseText.toLowerCase().includes("inappropriate") ||
+      responseText.toLowerCase().includes("offensive")
+    ) {
       return {
         error: "The AI model refused to process this content",
         errorType: ErrorType.CONTENT_MODERATION,
-        details: "The model's response indicates a possible content policy violation",
-        suggestedAction: "Please modify your request to remove any potentially sensitive content"
+        details:
+          "The model's response indicates a possible content policy violation",
+        suggestedAction:
+          "Please modify your request to remove any potentially sensitive content",
       };
     }
   }
-  
+
   return null;
-} 
+}

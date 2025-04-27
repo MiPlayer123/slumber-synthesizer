@@ -1,9 +1,15 @@
 import { Dream, DreamAnalysis } from "@/lib/types";
-import { Sparkles, Wand2, MoreVertical, Pencil, Trash2, Loader2, Lock, ImageIcon } from "lucide-react";
 import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+  Sparkles,
+  Wand2,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  Loader2,
+  Lock,
+  ImageIcon,
+} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
 import { useSubscription } from "@/hooks/use-subscription";
-import { 
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -32,23 +38,29 @@ interface DreamCardProps {
   isGeneratingImage?: boolean;
 }
 
-export const DreamCard = ({ 
-  dream, 
-  analyses, 
-  onAnalyze, 
+export const DreamCard = ({
+  dream,
+  analyses,
+  onAnalyze,
   onEdit,
   onDelete,
   onGenerateImage,
   isPersonalView = false,
-  isGeneratingImage = false
+  isGeneratingImage = false,
 }: DreamCardProps) => {
-  const { hasReachedLimit, subscription, remainingUsage, refreshUsage, isUsageLoading } = useSubscription();
-  const analysis = analyses?.find(a => a.dream_id === dream.id);
+  const {
+    hasReachedLimit,
+    subscription,
+    remainingUsage,
+    refreshUsage,
+    isUsageLoading,
+  } = useSubscription();
+  const analysis = analyses?.find((a) => a.dream_id === dream.id);
   const needsAnalysis = isPersonalView && !analysis && onAnalyze;
   const hasImage = !!dream.image_url;
   // Generate image is loading when isGeneratingImage is true and no image exists yet
   const isImageLoading = isGeneratingImage && !hasImage;
-  
+
   // Calculate disabled state for analysis button:
   // • still loading usage (first time) ⇒ disabled
   // • premium ⇒ never disabled
@@ -64,7 +76,7 @@ export const DreamCard = ({
     // We've loaded at least once, rely on current quota value
     return (remainingUsage?.dreamAnalyses ?? 0) <= 0;
   })();
-  
+
   // Handler with additional safety check
   const handleAnalyze = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -72,7 +84,7 @@ export const DreamCard = ({
     if (isAnalysisDisabled) {
       return;
     }
-    
+
     // As a last-resort guard, re-fetch usage before proceeding for free tier users
     if (subscription?.status !== "active") {
       await refreshUsage();
@@ -81,7 +93,7 @@ export const DreamCard = ({
         return;
       }
     }
-    
+
     onAnalyze?.(dream.id);
   };
 
@@ -105,7 +117,9 @@ export const DreamCard = ({
               // When image is generating, show loading state only in image area
               <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted/30 flex flex-col items-center justify-center">
                 <Loader2 className="h-10 w-10 text-primary animate-spin mb-2" />
-                <p className="text-sm text-muted-foreground mb-4">Generating dream image...</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Generating dream image...
+                </p>
                 <Progress className="w-3/4" value={undefined} />
               </div>
             ) : (
@@ -117,7 +131,7 @@ export const DreamCard = ({
                     {dream.description}
                   </p>
                 </div>
-                
+
                 {/* Show themes underneath the description when no image */}
                 {analysis && (
                   <div className="space-y-4">
@@ -125,26 +139,35 @@ export const DreamCard = ({
                       <h4 className="font-medium">Themes & Symbols</h4>
                       <div className="flex">
                         {Array.from({ length: analysis.rating }).map((_, i) => (
-                          <Sparkles key={i} className="h-4 w-4 text-yellow-500" />
+                          <Sparkles
+                            key={i}
+                            className="h-4 w-4 text-yellow-500"
+                          />
                         ))}
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {analysis.themes.map((theme) => (
-                        <Badge key={theme} variant="secondary">✨ {theme}</Badge>
+                        <Badge key={theme} variant="secondary">
+                          ✨ {theme}
+                        </Badge>
                       ))}
                       {analysis.symbols.map((symbol) => (
-                        <Badge key={symbol} variant="outline">🔮 {symbol}</Badge>
+                        <Badge key={symbol} variant="outline">
+                          🔮 {symbol}
+                        </Badge>
                       ))}
                       {analysis.emotions.map((emotion) => (
-                        <Badge key={emotion} variant="default">💭 {emotion}</Badge>
+                        <Badge key={emotion} variant="default">
+                          💭 {emotion}
+                        </Badge>
                       ))}
                     </div>
                   </div>
                 )}
               </>
             )}
-            
+
             {/* Themes section - Only visible on desktop when image exists */}
             {hasImage && analysis && (
               <div className="hidden md:block space-y-4">
@@ -158,19 +181,25 @@ export const DreamCard = ({
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {analysis.themes.map((theme) => (
-                    <Badge key={theme} variant="secondary">✨ {theme}</Badge>
+                    <Badge key={theme} variant="secondary">
+                      ✨ {theme}
+                    </Badge>
                   ))}
                   {analysis.symbols.map((symbol) => (
-                    <Badge key={symbol} variant="outline">🔮 {symbol}</Badge>
+                    <Badge key={symbol} variant="outline">
+                      🔮 {symbol}
+                    </Badge>
                   ))}
                   {analysis.emotions.map((emotion) => (
-                    <Badge key={emotion} variant="default">💭 {emotion}</Badge>
+                    <Badge key={emotion} variant="default">
+                      💭 {emotion}
+                    </Badge>
                   ))}
                 </div>
               </div>
             )}
           </div>
-          
+
           {/* Right column - Dream details and analysis */}
           <div className="space-y-8">
             {hasImage || isImageLoading ? (
@@ -232,9 +261,11 @@ export const DreamCard = ({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div>
-                          <Button 
-                            onClick={handleAnalyze} 
-                            variant={isAnalysisDisabled ? "outline" : "secondary"}
+                          <Button
+                            onClick={handleAnalyze}
+                            variant={
+                              isAnalysisDisabled ? "outline" : "secondary"
+                            }
                             className="rounded-full"
                             size="sm"
                             disabled={isAnalysisDisabled}
@@ -242,7 +273,9 @@ export const DreamCard = ({
                             {isAnalysisDisabled ? (
                               <>
                                 <Lock className="mr-1 h-4 w-4 text-gray-400" />
-                                <span className="text-gray-400">Analyze Dream</span>
+                                <span className="text-gray-400">
+                                  Analyze Dream
+                                </span>
                               </>
                             ) : (
                               <>
@@ -253,22 +286,32 @@ export const DreamCard = ({
                           </Button>
                         </div>
                       </TooltipTrigger>
-                      {isAnalysisDisabled && remainingUsage !== null && remainingUsage.dreamAnalyses <= 0 && (
-                        <TooltipContent className="bg-gray-700 text-gray-100 border-gray-600 p-3 max-w-xs">
-                          <p>You've reached your free limit of 7 dream analyses this week. Upgrade to premium for unlimited analyses.</p>
-                        </TooltipContent>
-                      )}
+                      {isAnalysisDisabled &&
+                        remainingUsage !== null &&
+                        remainingUsage.dreamAnalyses <= 0 && (
+                          <TooltipContent className="bg-gray-700 text-gray-100 border-gray-600 p-3 max-w-xs">
+                            <p>
+                              You've reached your free limit of 7 dream analyses
+                              this week. Upgrade to premium for unlimited
+                              analyses.
+                            </p>
+                          </TooltipContent>
+                        )}
                     </Tooltip>
                   </TooltipProvider>
                 )}
-                
+
                 {/* Image generation button removed */}
-                
+
                 {/* Replace Edit and Delete buttons with a dropdown menu */}
                 {(onEdit || onDelete) && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="icon" className="rounded-full h-8 w-8">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="rounded-full h-8 w-8"
+                      >
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -280,7 +323,7 @@ export const DreamCard = ({
                         </DropdownMenuItem>
                       )}
                       {onDelete && (
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           onClick={() => onDelete(dream.id)}
                           className="text-destructive focus:text-destructive"
                         >
@@ -307,13 +350,19 @@ export const DreamCard = ({
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {analysis.themes.map((theme) => (
-                    <Badge key={theme} variant="secondary">✨ {theme}</Badge>
+                    <Badge key={theme} variant="secondary">
+                      ✨ {theme}
+                    </Badge>
                   ))}
                   {analysis.symbols.map((symbol) => (
-                    <Badge key={symbol} variant="outline">🔮 {symbol}</Badge>
+                    <Badge key={symbol} variant="outline">
+                      🔮 {symbol}
+                    </Badge>
                   ))}
                   {analysis.emotions.map((emotion) => (
-                    <Badge key={emotion} variant="default">💭 {emotion}</Badge>
+                    <Badge key={emotion} variant="default">
+                      💭 {emotion}
+                    </Badge>
                   ))}
                 </div>
               </div>

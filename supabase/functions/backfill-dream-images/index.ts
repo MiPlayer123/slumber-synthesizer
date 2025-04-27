@@ -25,13 +25,13 @@ serve(async () => {
   for (const d of dreams) {
     const payload = {
       dreamId: d.id,
-      description: `${d.title} – ${d.description}`
+      description: `${d.title} – ${d.description}`,
     };
 
     console.log("Invoking generate-dream-image for:", d.id);
     const { data, error } = await supabase.functions.invoke(
       "generate-dream-image",
-      { body: payload, headers: { Authorization: `Bearer ${key}` } }
+      { body: payload, headers: { Authorization: `Bearer ${key}` } },
     );
 
     if (error) {
@@ -41,8 +41,7 @@ serve(async () => {
     }
   }
 
-  return new Response(
-    JSON.stringify({ backfilled: dreams.length }),
-    { headers: { "Content-Type": "application/json" } }
-  );
+  return new Response(JSON.stringify({ backfilled: dreams.length }), {
+    headers: { "Content-Type": "application/json" },
+  });
 });

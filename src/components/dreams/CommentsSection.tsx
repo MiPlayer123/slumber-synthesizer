@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import { useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
-import { ProfileHoverCard } from '@/components/ui/profile-hover-card';
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { ProfileHoverCard } from "@/components/ui/profile-hover-card";
 
 interface Comment {
   id: string;
@@ -30,80 +30,86 @@ export const CommentsSection = ({ dreamId }: CommentsSectionProps) => {
   const { toast } = useToast();
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [newComment, setNewComment] = useState('');
+  const [newComment, setNewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchComments = async () => {
       if (!dreamId) return;
-      
+
       setIsLoading(true);
-      
+
       try {
         const { data, error } = await supabase
-          .from('comments')
-          .select(`
+          .from("comments")
+          .select(
+            `
             *,
             profiles(username, avatar_url)
-          `)
-          .eq('dream_id', dreamId)
-          .order('created_at', { ascending: true });
-          
+          `,
+          )
+          .eq("dream_id", dreamId)
+          .order("created_at", { ascending: true });
+
         if (error) throw error;
-        
+
         setComments(data as Comment[]);
       } catch (error) {
-        console.error('Error fetching comments:', error);
+        console.error("Error fetching comments:", error);
         toast({
-          variant: 'destructive',
-          title: 'Failed to load comments',
-          description: 'Please try again later',
+          variant: "destructive",
+          title: "Failed to load comments",
+          description: "Please try again later",
         });
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     fetchComments();
   }, [dreamId, toast]);
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user || !newComment.trim() || isSubmitting) return;
-    
+
     setIsSubmitting(true);
-    
+
     try {
       const { data, error } = await supabase
-        .from('comments')
+        .from("comments")
         .insert({
           dream_id: dreamId,
           user_id: user.id,
-          content: newComment.trim()
+          content: newComment.trim(),
         })
-        .select(`
+        .select(
+          `
           *,
           profiles(username, avatar_url)
-        `)
+        `,
+        )
         .single();
-        
+
       if (error) throw error;
-      
-      setComments(prev => [...prev, data as Comment]);
-      setNewComment('');
-      
+
+      setComments((prev) => [...prev, data as Comment]);
+      setNewComment("");
+
       // Use React Query's queryClient to invalidate comment count
       const queryClient = useQueryClient();
       if (queryClient) {
-        queryClient.invalidateQueries({ queryKey: ['dream-comments-count', dreamId] });
+        queryClient.invalidateQueries({
+          queryKey: ["dream-comments-count", dreamId],
+        });
       }
     } catch (error) {
-      console.error('Error posting comment:', error);
+      console.error("Error posting comment:", error);
       toast({
-        variant: 'destructive',
-        title: 'Failed to post comment',
-        description: 'Please try again',
+        variant: "destructive",
+        title: "Failed to post comment",
+        description: "Please try again",
       });
     } finally {
       setIsSubmitting(false);
@@ -133,15 +139,15 @@ export const CommentsSection = ({ dreamId }: CommentsSectionProps) => {
           No comments yet. Be the first to comment!
         </p>
       ) : (
-        comments.map(comment => (
+        comments.map((comment) => (
           <div key={comment.id} className="flex items-start space-x-2 group">
             <ProfileHoverCard username={comment.profiles.username}>
               <Link to={`/profile/${comment.profiles.username}`}>
                 <Avatar className="h-7 w-7 flex-shrink-0 transition-opacity hover:opacity-70">
                   {comment.profiles.avatar_url ? (
-                    <AvatarImage 
-                      src={comment.profiles.avatar_url} 
-                      alt={comment.profiles.username} 
+                    <AvatarImage
+                      src={comment.profiles.avatar_url}
+                      alt={comment.profiles.username}
                     />
                   ) : (
                     <AvatarFallback>
@@ -172,14 +178,19 @@ export const CommentsSection = ({ dreamId }: CommentsSectionProps) => {
           </div>
         ))
       )}
-      
+
       {user && (
         <form onSubmit={handleSubmitComment} className="mt-4 flex items-center">
           <Avatar className="h-7 w-7 mr-2">
             {user.user_metadata?.avatar_url ? (
-              <AvatarImage src={user.user_metadata.avatar_url} alt={user.user_metadata?.name || user.email} />
+              <AvatarImage
+                src={user.user_metadata.avatar_url}
+                alt={user.user_metadata?.name || user.email}
+              />
             ) : (
-              <AvatarFallback>{(user.email?.charAt(0) || "U").toUpperCase()}</AvatarFallback>
+              <AvatarFallback>
+                {(user.email?.charAt(0) || "U").toUpperCase()}
+              </AvatarFallback>
             )}
           </Avatar>
           <Input
@@ -188,10 +199,10 @@ export const CommentsSection = ({ dreamId }: CommentsSectionProps) => {
             placeholder="Add a comment..."
             className="flex-grow border-none bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-0"
           />
-          <Button 
-            type="submit" 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            type="submit"
+            variant="ghost"
+            size="sm"
             disabled={!newComment.trim() || isSubmitting}
             className="text-dream-600"
           >

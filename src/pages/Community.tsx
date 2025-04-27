@@ -2,17 +2,19 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Dream, Profile } from "@/lib/types";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useDreamLikes } from "@/hooks/use-dream-likes";
 import { useDreamCommentCount } from "@/hooks/use-dream-comments";
 import { LikeButton } from "@/components/dreams/LikeButton";
-import { MessageSquare, MoreHorizontal, Share, Loader2, MoreVertical, Trash2 } from "lucide-react";
+import {
+  MessageSquare,
+  MoreHorizontal,
+  Share,
+  Loader2,
+  MoreVertical,
+  Trash2,
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { CommentButton } from "@/components/dreams/CommentButton";
@@ -33,20 +35,22 @@ const Community = () => {
   // References for infinite scrolling
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  
+
   // Use the paginated community dreams hook
-  const { 
-    data: dreamPages, 
-    isLoading, 
-    error, 
-    fetchNextPage, 
-    hasNextPage, 
-    isFetchingNextPage 
+  const {
+    data: dreamPages,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
   } = useCommunityDreams(10);
-  
+
   // Extract all dreams from pages
-  const publicDreams = dreamPages ? dreamPages.pages.flatMap(page => page.dreams) : [];
-  
+  const publicDreams = dreamPages
+    ? dreamPages.pages.flatMap((page) => page.dreams)
+    : [];
+
   // Setup intersection observer for infinite scrolling
   useEffect(() => {
     const observerCallback = (entries: IntersectionObserverEntry[]) => {
@@ -55,13 +59,15 @@ const Community = () => {
         fetchNextPage();
       }
     };
-    
-    const observer = new IntersectionObserver(observerCallback, { threshold: 0.1 });
-    
+
+    const observer = new IntersectionObserver(observerCallback, {
+      threshold: 0.1,
+    });
+
     if (loadMoreRef.current) {
       observer.observe(loadMoreRef.current);
     }
-    
+
     return () => {
       if (observer) {
         observer.disconnect();
@@ -71,8 +77,10 @@ const Community = () => {
 
   return (
     <div className="container max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6 text-purple-600">Dream Community</h1>
-      
+      <h1 className="text-3xl font-bold mb-6 text-purple-600">
+        Dream Community
+      </h1>
+
       <div className="space-y-8">
         {isLoading && publicDreams.length === 0 ? (
           <div className="text-center py-8">
@@ -80,8 +88,14 @@ const Community = () => {
           </div>
         ) : error ? (
           <div className="text-center py-8 border rounded-lg">
-            <p className="text-destructive">Failed to load dreams. Please try again.</p>
-            <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
+            <p className="text-destructive">
+              Failed to load dreams. Please try again.
+            </p>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => window.location.reload()}
+            >
               Reload
             </Button>
           </div>
@@ -94,21 +108,24 @@ const Community = () => {
             {publicDreams?.map((dream) => (
               <DreamCard key={dream.id} dream={dream} />
             ))}
-            
+
             {/* Load more indicator - ref is attached here */}
-            <div 
-              ref={loadMoreRef} 
-              className="py-4 text-center"
-            >
+            <div ref={loadMoreRef} className="py-4 text-center">
               {isFetchingNextPage ? (
                 <div className="flex items-center justify-center">
                   <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   <span>Loading more dreams...</span>
                 </div>
               ) : hasNextPage ? (
-                <span className="text-muted-foreground text-sm">Scroll to load more dreams</span>
-              ) : publicDreams.length > 5 && (
-                <span className="text-muted-foreground text-sm">You've reached the end of dreams</span>
+                <span className="text-muted-foreground text-sm">
+                  Scroll to load more dreams
+                </span>
+              ) : (
+                publicDreams.length > 5 && (
+                  <span className="text-muted-foreground text-sm">
+                    You've reached the end of dreams
+                  </span>
+                )
               )}
             </div>
           </>
@@ -119,7 +136,7 @@ const Community = () => {
 };
 
 interface DreamCardProps {
-  dream: Dream & { profiles: Pick<Profile, 'username' | 'avatar_url'> };
+  dream: Dream & { profiles: Pick<Profile, "username" | "avatar_url"> };
 }
 
 function DreamCard({ dream }: DreamCardProps) {
@@ -129,45 +146,57 @@ function DreamCard({ dream }: DreamCardProps) {
   const { toast } = useToast();
   const [comments, setComments] = useState<any[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
-  const [newComment, setNewComment] = useState('');
+  const [newComment, setNewComment] = useState("");
   const [isPostingComment, setIsPostingComment] = useState(false);
   const [isDeletingComment, setIsDeletingComment] = useState(false);
-  
+
   const refreshLikes = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['dream-likes-count', dream.id] });
+    queryClient.invalidateQueries({
+      queryKey: ["dream-likes-count", dream.id],
+    });
   }, [queryClient, dream.id]);
-  
-  const { likesCount, hasLiked, toggleLike, isLoading: isLikeLoading } = useDreamLikes(dream.id, refreshLikes);
-  const { commentCount, isLoading: isCommentCountLoading } = useDreamCommentCount(dream.id);
-  
+
+  const {
+    likesCount,
+    hasLiked,
+    toggleLike,
+    isLoading: isLikeLoading,
+  } = useDreamLikes(dream.id, refreshLikes);
+  const { commentCount, isLoading: isCommentCountLoading } =
+    useDreamCommentCount(dream.id);
+
   // Get the first letter of the username for avatar fallback, with null check
-  const avatarFallback = dream.profiles?.username ? dream.profiles.username.charAt(0).toUpperCase() : 'U';
+  const avatarFallback = dream.profiles?.username
+    ? dream.profiles.username.charAt(0).toUpperCase()
+    : "U";
 
   const fetchComments = useCallback(async () => {
     if (!dream.id) return;
-    
+
     setIsLoadingComments(true);
-    
+
     try {
       const { data, error } = await supabase
-        .from('comments')
-        .select(`
+        .from("comments")
+        .select(
+          `
           *,
           profiles(username, avatar_url)
-        `)
-        .eq('dream_id', dream.id)
-        .order('created_at', { ascending: false })
+        `,
+        )
+        .eq("dream_id", dream.id)
+        .order("created_at", { ascending: false })
         .limit(2); // Only fetch top 2 comments for preview
-        
+
       if (error) throw error;
-      
+
       setComments(data || []);
     } catch (error) {
-      console.error('Error fetching comments:', error);
+      console.error("Error fetching comments:", error);
       toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to load comments',
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load comments",
       });
     } finally {
       setIsLoadingComments(false);
@@ -181,39 +210,39 @@ function DreamCard({ dream }: DreamCardProps) {
 
   const handlePostComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user || !dream.id || !newComment.trim() || isPostingComment) return;
-    
+
     setIsPostingComment(true);
-    
+
     try {
-      const { error } = await supabase
-        .from('comments')
-        .insert({
-          dream_id: dream.id,
-          user_id: user.id,
-          content: newComment.trim(),
-          created_at: new Date().toISOString()
-        });
-        
+      const { error } = await supabase.from("comments").insert({
+        dream_id: dream.id,
+        user_id: user.id,
+        content: newComment.trim(),
+        created_at: new Date().toISOString(),
+      });
+
       if (error) throw error;
-      
-      setNewComment('');
+
+      setNewComment("");
       fetchComments();
-      
+
       // Invalidate comment count query to update UI immediately
-      queryClient.invalidateQueries({ queryKey: ['dream-comments-count', dream.id] });
-      
+      queryClient.invalidateQueries({
+        queryKey: ["dream-comments-count", dream.id],
+      });
+
       toast({
         title: "Comment posted",
-        description: "Your comment has been added to this dream"
+        description: "Your comment has been added to this dream",
       });
     } catch (error) {
-      console.error('Error posting comment:', error);
+      console.error("Error posting comment:", error);
       toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to post comment',
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to post comment",
       });
     } finally {
       setIsPostingComment(false);
@@ -231,42 +260,42 @@ function DreamCard({ dream }: DreamCardProps) {
 
   const handleShareDream = () => {
     const shareUrl = `${window.location.origin}/dream/${dream.id}`;
-    
+
     navigator.clipboard.writeText(shareUrl).then(() => {
       toast({
-        title: 'Link copied',
-        description: 'Dream link copied to clipboard!',
+        title: "Link copied",
+        description: "Dream link copied to clipboard!",
       });
     });
   };
 
   const handleDeleteComment = async (commentId: string) => {
     if (!user || !dream.id) return;
-    
+
     setIsDeletingComment(true);
-    
+
     try {
       const { error } = await supabase
-        .from('comments')
+        .from("comments")
         .delete()
-        .eq('id', commentId)
-        .eq('dream_id', dream.id)
-        .eq('user_id', user.id);
-        
+        .eq("id", commentId)
+        .eq("dream_id", dream.id)
+        .eq("user_id", user.id);
+
       if (error) throw error;
-      
+
       fetchComments();
-      
+
       toast({
         title: "Comment deleted",
-        description: "Your comment has been removed from this dream"
+        description: "Your comment has been removed from this dream",
       });
     } catch (error) {
-      console.error('Error deleting comment:', error);
+      console.error("Error deleting comment:", error);
       toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to delete comment',
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete comment",
       });
     } finally {
       setIsDeletingComment(false);
@@ -274,12 +303,16 @@ function DreamCard({ dream }: DreamCardProps) {
   };
 
   return (
-    <Card key={dream.id} className="overflow-hidden border-none shadow-md dark:shadow-lg dark:shadow-slate-700/50 cursor-pointer" onClick={() => navigate(`/dream/${dream.id}`)}>
+    <Card
+      key={dream.id}
+      className="overflow-hidden border-none shadow-md dark:shadow-lg dark:shadow-slate-700/50 cursor-pointer"
+      onClick={() => navigate(`/dream/${dream.id}`)}
+    >
       {/* Card Header with Author Info */}
       <CardHeader className="flex flex-row items-center justify-between p-4 space-y-0">
         <div className="flex items-center space-x-3 flex-shrink min-w-0 max-w-[60%]">
           <ProfileHoverCard username={dream.profiles.username}>
-            <div 
+            <div
               className="cursor-pointer transition-opacity hover:opacity-70"
               onClick={(e) => {
                 e.stopPropagation();
@@ -288,7 +321,10 @@ function DreamCard({ dream }: DreamCardProps) {
             >
               <Avatar className="flex-shrink-0">
                 {dream.profiles.avatar_url && (
-                  <AvatarImage src={dream.profiles.avatar_url} alt={dream.profiles.username} />
+                  <AvatarImage
+                    src={dream.profiles.avatar_url}
+                    alt={dream.profiles.username}
+                  />
                 )}
                 <AvatarFallback>{avatarFallback}</AvatarFallback>
               </Avatar>
@@ -303,7 +339,9 @@ function DreamCard({ dream }: DreamCardProps) {
                   navigate(`/profile/${dream.profiles.username}`);
                 }}
               >
-                <CardTitle className="text-base truncate">{dream.profiles.username}</CardTitle>
+                <CardTitle className="text-base truncate">
+                  {dream.profiles.username}
+                </CardTitle>
               </div>
             </ProfileHoverCard>
             <p className="text-xs text-muted-foreground truncate">
@@ -311,21 +349,35 @@ function DreamCard({ dream }: DreamCardProps) {
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-2 flex-shrink-0 ml-auto">
           <div className="flex gap-1 justify-end">
-            <Badge variant="outline" className="truncate max-w-[70px]">{dream.category}</Badge>
-            <Badge variant="outline" className="truncate max-w-[70px]">{dream.emotion}</Badge>
+            <Badge variant="outline" className="truncate max-w-[70px]">
+              {dream.category}
+            </Badge>
+            <Badge variant="outline" className="truncate max-w-[70px]">
+              {dream.emotion}
+            </Badge>
           </div>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <MoreHorizontal className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleShareDream(); }}>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleShareDream();
+                }}
+              >
                 <Share className="h-4 w-4 mr-2" />
                 Share
               </DropdownMenuItem>
@@ -333,16 +385,14 @@ function DreamCard({ dream }: DreamCardProps) {
           </DropdownMenu>
         </div>
       </CardHeader>
-      
+
       {/* Dream Content */}
       <CardContent className="p-0">
         {/* Dream Title - Now part of the clickable card */}
         <div className="px-4 pt-1 pb-3">
-          <h3 className="font-bold">
-            {dream.title}
-          </h3>
+          <h3 className="font-bold">{dream.title}</h3>
         </div>
-        
+
         {dream.image_url && (
           <div className="relative w-full aspect-video">
             <img
@@ -352,12 +402,12 @@ function DreamCard({ dream }: DreamCardProps) {
             />
           </div>
         )}
-        
+
         <div className="p-4">
           {/* Action Buttons */}
           <div className="flex items-center mb-3">
             <div onClick={(e) => e.stopPropagation()}>
-              <LikeButton 
+              <LikeButton
                 isLiked={hasLiked}
                 likesCount={likesCount}
                 onClick={handleLikeClick}
@@ -367,28 +417,35 @@ function DreamCard({ dream }: DreamCardProps) {
             <CommentButton
               commentCount={commentCount}
               isLoading={isCommentCountLoading}
-              onClick={(e) => { e.stopPropagation(); handleCommentClick(); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCommentClick();
+              }}
             />
           </div>
-          
+
           {/* Like Count */}
           {likesCount > 0 && (
-            <p className="font-medium text-sm mb-2">{likesCount} {likesCount === 1 ? 'like' : 'likes'}</p>
+            <p className="font-medium text-sm mb-2">
+              {likesCount} {likesCount === 1 ? "like" : "likes"}
+            </p>
           )}
-          
+
           {/* Dream Description */}
           <div className="mb-4">
-            <p className="text-sm text-muted-foreground mt-1">{dream.description}</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {dream.description}
+            </p>
           </div>
-          
+
           {/* Comments Preview Section - Always visible */}
           <div className="mt-2" onClick={(e) => e.stopPropagation()}>
             {commentCount > 0 && (
               <p className="text-sm text-muted-foreground mb-2">
-                {commentCount} {commentCount === 1 ? 'comment' : 'comments'}
+                {commentCount} {commentCount === 1 ? "comment" : "comments"}
               </p>
             )}
-            
+
             <div className="space-y-3">
               {isLoadingComments ? (
                 <div className="space-y-3">
@@ -406,7 +463,13 @@ function DreamCard({ dream }: DreamCardProps) {
                 </div>
               ) : comments.length === 0 ? (
                 commentCount > 0 ? (
-                  <p className="text-sm text-muted-foreground hover:underline cursor-pointer" onClick={(e) => { e.stopPropagation(); navigate(`/dream/${dream.id}#comments`); }}>
+                  <p
+                    className="text-sm text-muted-foreground hover:underline cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/dream/${dream.id}#comments`);
+                    }}
+                  >
                     View all comments
                   </p>
                 ) : null
@@ -416,17 +479,25 @@ function DreamCard({ dream }: DreamCardProps) {
                     {comments.map((comment) => (
                       <div key={comment.id} className="flex gap-3">
                         {comment.profiles?.username && (
-                          <ProfileHoverCard username={comment.profiles.username}>
-                            <div 
+                          <ProfileHoverCard
+                            username={comment.profiles.username}
+                          >
+                            <div
                               className="cursor-pointer transition-opacity hover:opacity-70"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                navigate(`/profile/${comment.profiles.username}`);
+                                navigate(
+                                  `/profile/${comment.profiles.username}`,
+                                );
                               }}
                             >
                               <Avatar className="h-7 w-7 flex-shrink-0">
-                                <AvatarImage src={comment.profiles?.avatar_url || ''} />
-                                <AvatarFallback>{comment.profiles?.username?.charAt(0) || 'U'}</AvatarFallback>
+                                <AvatarImage
+                                  src={comment.profiles?.avatar_url || ""}
+                                />
+                                <AvatarFallback>
+                                  {comment.profiles?.username?.charAt(0) || "U"}
+                                </AvatarFallback>
                               </Avatar>
                             </div>
                           </ProfileHoverCard>
@@ -434,29 +505,38 @@ function DreamCard({ dream }: DreamCardProps) {
                         <div className="flex-1">
                           <div className="inline-flex items-baseline">
                             {comment.profiles?.username && (
-                              <ProfileHoverCard username={comment.profiles.username}>
-                                <span 
+                              <ProfileHoverCard
+                                username={comment.profiles.username}
+                              >
+                                <span
                                   className="font-medium text-sm cursor-pointer transition-colors hover:text-muted-foreground mr-1 leading-normal align-baseline"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    navigate(`/profile/${comment.profiles.username}`);
+                                    navigate(
+                                      `/profile/${comment.profiles.username}`,
+                                    );
                                   }}
                                 >
-                                  {comment.profiles?.username || 'Anonymous'}
+                                  {comment.profiles?.username || "Anonymous"}
                                 </span>
                               </ProfileHoverCard>
                             )}
-                            <span className="text-sm leading-normal align-baseline">{comment.content}</span>
+                            <span className="text-sm leading-normal align-baseline">
+                              {comment.content}
+                            </span>
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                  
+
                   {commentCount > 2 && (
-                    <button 
+                    <button
                       className="text-sm text-muted-foreground mt-1 hover:underline"
-                      onClick={(e) => { e.stopPropagation(); navigate(`/dream/${dream.id}#comments`); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/dream/${dream.id}#comments`);
+                      }}
                     >
                       View all {commentCount} comments
                     </button>
@@ -465,21 +545,28 @@ function DreamCard({ dream }: DreamCardProps) {
               )}
             </div>
           </div>
-          
+
           {/* User comment input - only shown when explicitly adding comments */}
           {user && (
-            <form onSubmit={(e) => { e.stopPropagation(); handlePostComment(e); }} className="flex gap-2 mt-4 pt-3 border-t" onClick={(e) => e.stopPropagation()}>
+            <form
+              onSubmit={(e) => {
+                e.stopPropagation();
+                handlePostComment(e);
+              }}
+              className="flex gap-2 mt-4 pt-3 border-t"
+              onClick={(e) => e.stopPropagation()}
+            >
               <input
                 type="text"
                 placeholder="Add a comment..."
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 className="flex-1 bg-background text-sm rounded-md border border-input px-3 py-2"
-                style={{ fontSize: '16px' }} // Prevents iOS zoom on focus
+                style={{ fontSize: "16px" }} // Prevents iOS zoom on focus
                 onClick={(e) => e.stopPropagation()}
               />
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={!newComment.trim() || isPostingComment}
                 size="sm"
                 onClick={(e) => e.stopPropagation()}

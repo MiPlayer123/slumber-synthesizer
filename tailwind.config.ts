@@ -19,8 +19,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        serif: ['EB Garamond', 'Cormorant Garamond', 'serif'],
-        dream: ['Cormorant Garamond', 'serif'],
+        serif: ["EB Garamond", "Cormorant Garamond", "serif"],
+        dream: ["Cormorant Garamond", "serif"],
       },
       colors: {
         border: "hsl(var(--border))",
