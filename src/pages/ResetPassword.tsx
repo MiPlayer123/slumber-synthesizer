@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -29,8 +29,8 @@ const ResetPassword = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Function to check for valid reset parameters in multiple places
-  const checkResetParameters = (): boolean => {
+  // --- Function Definitions (useCallback) ---
+  const checkResetParameters = useCallback((): boolean => {
     // Check in hash fragment
     const hash = location.hash;
     const hashParams = hash ? new URLSearchParams(hash.substring(1)) : null;
@@ -69,23 +69,9 @@ const ResetPassword = () => {
     }
 
     return false;
-  };
+  }, [location]);
 
-  useEffect(() => {
-    // Reset state when the location changes
-    setIsPasswordResetFlow(checkResetParameters());
-
-    if (!checkResetParameters()) {
-      console.log("Invalid reset link parameters detected", {
-        hash: location.hash,
-        search: location.search,
-      });
-    } else {
-      console.log("Valid reset link detected");
-    }
-  }, [location, user]);
-
-  // Check both hash parameters and query parameters for a valid password reset flow
+  // --- useEffect Hooks ---
   useEffect(() => {
     console.log("Processing URL parameters", {
       search: location.search,

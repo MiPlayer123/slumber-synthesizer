@@ -60,9 +60,6 @@ const Journal = () => {
     analyzeDreamId?: string;
   } | null;
 
-  // Custom hooks for data fetching
-  const { data: analyses } = user ? useDreamAnalyses() : { data: undefined };
-
   // Handle redirected analysis request once on component mount
   useEffect(() => {
     // One-time check for redirected dream analysis request
@@ -141,20 +138,15 @@ const Journal = () => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = user
-    ? usePaginatedDreams(user.id, 10)
-    : {
-        data: undefined,
-        isLoading: false,
-        fetchNextPage: () => Promise.resolve(),
-        hasNextPage: false,
-        isFetchingNextPage: false,
-      };
+  } = usePaginatedDreams(user.id, 10);
 
   // Extract all dreams from pages
   const dreams = dreamsPages
     ? dreamsPages.pages.flatMap((page) => page.dreams)
     : [];
+
+  // Custom hooks for data fetching
+  const { data: analyses } = useDreamAnalyses();
 
   // Get the dream being edited
   const dreamBeingEdited = editingDreamId

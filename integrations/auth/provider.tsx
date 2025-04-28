@@ -1,5 +1,11 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
 import {
   supabase,
   isSessionValid,
@@ -37,79 +43,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
 
-  // Function to ensure user profile exists
-  const ensureUserProfile = async (user: User) => {
-    try {
-      // First check if profile already exists
-      const { data: existingProfile, error: fetchError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle();
+  const ensureUserProfile = useCallback(
+    async (user: User) => {
+      try {
+        // First check if profile already exists
+        const { data: existingProfile, error: fetchError } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .maybeSingle();
 
-      if (fetchError) {
-        console.error("Error checking for existing profile:", fetchError);
-        return;
+        if (fetchError) {
+          console.error("Error checking for existing profile:", fetchError);
+          return;
+        }
+
+        // If profile exists, we're done
+        if (existingProfile) {
+          console.log("User profile already exists");
+          return;
+        }
+
+        // For Google auth, we need to check if we have a username
+        // If not, we don't try to create a profile yet - the Auth component will handle this
+        const metadata = user.user_metadata;
+        const provider = metadata?.provider;
+
+        if (provider === "google" && !metadata?.username) {
+          console.log(
+            "Google auth user without username, skipping profile creation",
+          );
+          return;
+        }
+
+        // Extract user data from metadata
+        const userEmail = user.email || "";
+        const fullName = metadata?.full_name || metadata?.name || "";
+        // For Google users, we'll use the username they provided in the second step
+        // For email users, their username comes from the signup form
+        const username =
+          metadata?.username ||
+          metadata?.preferred_username ||
+          userEmail.split("@")[0];
+
+        if (!username || username.trim() === "") {
+          console.error("Cannot create profile: username is empty");
+          return;
+        }
+
+        // Create profile if it doesn't exist
+        const { error: insertError } = await supabase.from("profiles").insert([
+          {
+            id: user.id,
+            username,
+            full_name: fullName,
+            email: userEmail,
+            avatar_url: metadata?.avatar_url || metadata?.picture || "",
+          },
+        ]);
+
+        if (insertError) {
+          console.error("Error creating user profile:", insertError);
+          toast({
+            variant: "destructive",
+            title: "Profile Creation Error",
+            description: "There was an error creating your profile.",
+          });
+        } else {
+          console.log("Created new user profile");
+        }
+      } catch (err) {
+        console.error("Error in ensureUserProfile:", err);
       }
-
-      // If profile exists, we're done
-      if (existingProfile) {
-        console.log("User profile already exists");
-        return;
-      }
-
-      // For Google auth, we need to check if we have a username
-      // If not, we don't try to create a profile yet - the Auth component will handle this
-      const metadata = user.user_metadata;
-      const provider = metadata?.provider;
-
-      if (provider === "google" && !metadata?.username) {
-        console.log(
-          "Google auth user without username, skipping profile creation",
-        );
-        return;
-      }
-
-      // Extract user data from metadata
-      const userEmail = user.email || "";
-      const fullName = metadata?.full_name || metadata?.name || "";
-      // For Google users, we'll use the username they provided in the second step
-      // For email users, their username comes from the signup form
-      const username =
-        metadata?.username ||
-        metadata?.preferred_username ||
-        userEmail.split("@")[0];
-
-      if (!username || username.trim() === "") {
-        console.error("Cannot create profile: username is empty");
-        return;
-      }
-
-      // Create profile if it doesn't exist
-      const { error: insertError } = await supabase.from("profiles").insert([
-        {
-          id: user.id,
-          username,
-          full_name: fullName,
-          email: userEmail,
-          avatar_url: metadata?.avatar_url || metadata?.picture || "",
-        },
-      ]);
-
-      if (insertError) {
-        console.error("Error creating user profile:", insertError);
-        toast({
-          variant: "destructive",
-          title: "Profile Creation Error",
-          description: "There was an error creating your profile.",
-        });
-      } else {
-        console.log("Created new user profile");
-      }
-    } catch (err) {
-      console.error("Error in ensureUserProfile:", err);
-    }
-  };
+    },
+    [toast],
+  );
 
   useEffect(() => {
     const initializeAuth = async () => {

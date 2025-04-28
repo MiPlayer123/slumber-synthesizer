@@ -99,23 +99,15 @@ const Statistics = () => {
   const { data: analyses, isLoading: analysesLoading } = useQuery({
     queryKey: ["dream-analyses", user.id],
     queryFn: async () => {
-      // If no dreams available, return empty array
-      if (!dreams || dreams.length === 0) {
-        return [] as DreamAnalysis[];
-      }
-
       const { data, error } = await supabase
         .from("dream_analyses")
         .select("*")
-        .in(
-          "dream_id",
-          dreams.map((d) => d.id),
-        );
+        .in("dream_id", dreams?.map((d) => d.id) || []);
 
       if (error) throw error;
       return data as DreamAnalysis[];
     },
-    enabled: !!dreams, // Only need to check if dreams is available
+    enabled: !!dreams && dreams.length > 0,
   });
 
   const isLoading = dreamsLoading || analysesLoading;

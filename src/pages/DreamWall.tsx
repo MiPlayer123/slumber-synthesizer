@@ -147,37 +147,36 @@ export default function DreamWall() {
     return matchesSearch && matchesCategory && matchesEmotion;
   });
 
-  const fetchComments = async (dreamId: string) => {
-    if (!dreamId) return;
-
-    setIsLoadingComments(true);
-
-    try {
-      const { data, error } = await supabase
-        .from("comments")
-        .select(
-          `
+  const fetchComments = useCallback(
+    async (dreamId: string) => {
+      if (!dreamId) return;
+      setIsLoadingComments(true);
+      try {
+        const { data, error } = await supabase
+          .from("comments")
+          .select(
+            `
           *,
           profiles(username, avatar_url)
         `,
-        )
-        .eq("dream_id", dreamId)
-        .order("created_at", { ascending: true });
-
-      if (error) throw error;
-
-      setComments(data || []);
-    } catch (error) {
-      console.error("Error fetching comments:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load comments",
-      });
-    } finally {
-      setIsLoadingComments(false);
-    }
-  };
+          )
+          .eq("dream_id", dreamId)
+          .order("created_at", { ascending: true });
+        if (error) throw error;
+        setComments(data || []);
+      } catch (error) {
+        console.error("Error fetching comments:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load comments",
+        });
+      } finally {
+        setIsLoadingComments(false);
+      }
+    },
+    [toast],
+  );
 
   // Fetch comments when selected dream changes
   useEffect(() => {
