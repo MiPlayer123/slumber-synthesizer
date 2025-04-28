@@ -71,11 +71,9 @@ serve(async (req) => {
       customerData.subscription_id,
     );
 
-    // Determine the plan name based on the price ID or product
+    // Determine the plan name based on the product
     let planName = "";
     if (subscription.items.data.length > 0) {
-      const priceId = subscription.items.data[0].price.id;
-
       // Fetch product details
       const product = await stripe.products.retrieve(
         subscription.items.data[0].price.product as string,

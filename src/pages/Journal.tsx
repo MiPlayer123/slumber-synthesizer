@@ -764,7 +764,7 @@ const Journal = () => {
   });
 
   const handleAnalyzeDream = (dreamId: string) => {
-    // ALWAYS check if user has reached analysis limit
+    // ALWAYS check if user has reached analysis limit, even if they try to bypass UI restrictions
     if (hasReachedLimit("analysis")) {
       toast({
         variant: "destructive",
@@ -775,24 +775,8 @@ const Journal = () => {
       return;
     }
 
-    track("dream_analysis_started", { dream_id: dreamId });
+    setIsAnalyzing(true);
     analyzeDream.mutate(dreamId);
-  };
-
-  const handleGenerateImage = (dream: Dream) => {
-    // ALWAYS check if user has reached image generation limit
-    if (hasReachedLimit("image")) {
-      toast({
-        variant: "destructive",
-        title: "Free Limit Reached",
-        description:
-          "You've reached your free image generation limit of 5 this week. Upgrade to premium for unlimited images.",
-      });
-      return;
-    }
-
-    track("dream_image_generation_started", { dream_id: dream.id });
-    generateImage.mutate(dream);
   };
 
   const handleEditDream = (dreamId: string) => {
@@ -820,36 +804,9 @@ const Journal = () => {
   };
 
   const confirmDelete = () => {
-    try {
-      if (!dreamToDelete) {
-        console.error("No dream selected for deletion");
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "No dream selected for deletion.",
-        });
-        return;
-      }
-
-      console.log("Confirming deletion of dream:", dreamToDelete);
+    if (dreamToDelete) {
       deleteDream.mutate(dreamToDelete);
-    } catch (error) {
-      console.error("Error in confirm delete:", error);
-    } finally {
-      setDeleteDialogOpen(false);
     }
-  };
-
-  const handleCreateClick = () => {
-    // Check if user has a username
-    if (
-      user?.app_metadata?.provider === "google" &&
-      !user.user_metadata?.username
-    ) {
-      setShowUsernameDialog(true);
-      return;
-    }
-    setIsCreating(true);
   };
 
   const handleSubmitUsername = async () => {
@@ -999,7 +956,6 @@ const Journal = () => {
         onAnalyze={handleAnalyzeDream}
         onEdit={handleEditDream}
         onDelete={handleDeleteDream}
-        onGenerateImage={handleGenerateImage}
         isLoading={isLoadingDreams}
         generatingImageForDreams={generatingImageForDreams}
         isFetchingNextPage={isFetchingNextPage}

@@ -2,7 +2,6 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import type { Database } from "@/types/supabase";
 import { makeReturnUrl, STRIPE_RETURN_PATHS } from "@/utils/constants";
 
 // Types for the subscription system
@@ -39,22 +38,6 @@ export interface UsageData {
   dreamAnalyses: number;
 }
 
-// Database types
-type UsageLog = Database["public"]["Tables"]["usage_logs"]["Row"];
-
-interface Dream {
-  id: string;
-  user_id: string;
-  created_at: string;
-  image_url: string | null;
-}
-
-interface DreamAnalysis {
-  id: string;
-  user_id: string;
-  created_at: string;
-}
-
 // Local storage key for subscription status
 const SUBSCRIPTION_STATUS_KEY = "subscription_status";
 
@@ -82,7 +65,7 @@ export const useSubscription = () => {
         `${SUBSCRIPTION_STATUS_KEY}_${user.id}`,
       );
       return storedStatus as SubscriptionStatus;
-    } catch (error) {
+    } catch {
       return null;
     }
   }, [user]);

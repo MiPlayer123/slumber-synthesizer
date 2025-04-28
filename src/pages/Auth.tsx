@@ -24,8 +24,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckCircle, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -49,7 +48,6 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [resetEmail, setResetEmail] = useState("");
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
-  const [showPasswordResetSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -391,19 +389,6 @@ const Auth = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {showPasswordResetSuccess && (
-            <Alert className="mb-4 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-              <AlertTitle className="text-green-600 dark:text-green-400">
-                Password Reset Successful
-              </AlertTitle>
-              <AlertDescription className="text-green-600 dark:text-green-400">
-                Your password has been reset. You can now sign in with your new
-                password.
-              </AlertDescription>
-            </Alert>
-          )}
-
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>

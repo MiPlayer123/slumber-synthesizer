@@ -36,13 +36,7 @@ import {
   CartesianGrid,
 } from "recharts";
 
-import {
-  CalendarIcon,
-  CloudIcon,
-  MoonIcon,
-  StarIcon,
-  BrainIcon,
-} from "lucide-react";
+import { CloudIcon, MoonIcon, StarIcon, BrainIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Dream, DreamAnalysis } from "@/lib/types";

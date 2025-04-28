@@ -32,7 +32,6 @@ interface DreamCardProps {
   onAnalyze?: (dreamId: string) => void;
   onEdit?: (dreamId: string) => void;
   onDelete?: (dreamId: string) => void;
-  onGenerateImage?: (dream: Dream) => void;
   isPersonalView?: boolean;
   isGeneratingImage?: boolean;
 }
@@ -43,17 +42,11 @@ export const DreamCard = ({
   onAnalyze,
   onEdit,
   onDelete,
-  onGenerateImage,
   isPersonalView = false,
   isGeneratingImage = false,
 }: DreamCardProps) => {
-  const {
-    hasReachedLimit,
-    subscription,
-    remainingUsage,
-    refreshSubscription,
-    isUsageLoading,
-  } = useSubscription();
+  const { subscription, remainingUsage, refreshSubscription, isUsageLoading } =
+    useSubscription();
   const analysis = analyses?.find((a) => a.dream_id === dream.id);
   const needsAnalysis = isPersonalView && !analysis && onAnalyze;
   const hasImage = !!dream.image_url;
@@ -299,8 +292,6 @@ export const DreamCard = ({
                     </Tooltip>
                   </TooltipProvider>
                 )}
-
-                {/* Image generation button removed */}
 
                 {/* Replace Edit and Delete buttons with a dropdown menu */}
                 {(onEdit || onDelete) && (

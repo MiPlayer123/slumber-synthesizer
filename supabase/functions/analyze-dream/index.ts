@@ -122,21 +122,17 @@ Ensure the JSON is complete and valid. Do not include any introductory text or e
         }
       }
 
-      // Ensure rating is an integer (handle decimal ratings by rounding)
-      if (typeof analysis.rating === "string") {
-        // Convert string ratings like "3.5" to numbers and round them
-        const parsedRating = parseFloat(analysis.rating);
-        if (isNaN(parsedRating)) {
-          analysis.rating = 3; // Default to middle rating if unparseable
-        } else {
-          analysis.rating = Math.round(parsedRating);
-        }
-      } else if (typeof analysis.rating === "number") {
-        // Round any decimal ratings
-        analysis.rating = Math.round(analysis.rating);
+      // Ensure rating is a number 1-5
+      analysis.rating = Number(analysis.rating);
+      if (
+        isNaN(analysis.rating) ||
+        analysis.rating < 1 ||
+        analysis.rating > 5
+      ) {
+        analysis.rating = 3; // Default to middle rating if invalid
       }
 
-      // Ensure arrays are actually arrays
+      // Make sure all array fields are actually arrays
       ["themes", "symbols", "emotions"].forEach((field) => {
         if (!Array.isArray(analysis[field])) {
           analysis[field] =
@@ -148,10 +144,11 @@ Ensure the JSON is complete and valid. Do not include any introductory text or e
       if (typeof analysis.interpretation !== "string") {
         analysis.interpretation = String(analysis.interpretation || "");
       }
-    } catch (error) {
+    } catch (parsingError) {
       console.error(
         "Failed to parse OpenAI response:",
         openAIData.choices[0].message.content,
+        parsingError,
       );
 
       // Try fallback extraction before giving up

@@ -8,7 +8,7 @@ const logDebug = (message: string, data?: any) => {
 };
 
 // Utility function to log with consistent formatting
-const logInfo = (message: string, data?: any) => {
+const logInfo = (message: string) => {
   // Don't log potentially sensitive data
   console.log(`[STRIPE WEBHOOK] ${message}`);
 };

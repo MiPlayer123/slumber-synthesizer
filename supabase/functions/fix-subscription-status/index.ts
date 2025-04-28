@@ -9,7 +9,7 @@ const logDebug = (message: string, data?: any) => {
   );
 };
 
-serve(async (req) => {
+serve(async () => {
   try {
     // Initialize the Supabase client with service role for admin access
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";

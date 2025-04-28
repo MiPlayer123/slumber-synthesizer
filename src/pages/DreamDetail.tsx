@@ -20,7 +20,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
 export default function DreamDetail() {
@@ -43,8 +42,7 @@ export default function DreamDetail() {
   const { hasReachedLimit } = useSubscription();
 
   // Get comment count - move it outside the conditional
-  const { commentCount = 0, isLoading: isLoadingCommentCount } =
-    useDreamCommentCount(dreamId || "");
+  const { commentCount = 0 } = useDreamCommentCount(dreamId || "");
 
   // Check for analyze parameter and apply free limit check
   useEffect(() => {

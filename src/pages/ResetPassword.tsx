@@ -16,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
 const ResetPassword = () => {
-  const { user, resetPassword, loading: authLoading } = useAuth();
+  const { user, resetPassword } = useAuth();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");

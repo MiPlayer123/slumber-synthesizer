@@ -11,26 +11,22 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  MessageCircle,
   Filter,
   Search,
   Sparkles,
   Wand2,
   Share,
   Loader2,
-  MoreHorizontal,
   X,
 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
@@ -92,13 +88,10 @@ export default function DreamWall() {
     [queryClient],
   );
 
-  const {
-    likesCount: selectedDreamLikes,
-    hasLiked: selectedDreamHasLiked,
-    toggleLike: toggleSelectedDreamLike,
-    isLoading: isTogglingLike,
-    refetch: refetchSelectedDreamLikes,
-  } = useDreamLikes(selectedDream?.id || "", refreshLikes);
+  const { refetch: refetchSelectedDreamLikes } = useDreamLikes(
+    selectedDream?.id || "",
+    refreshLikes,
+  );
 
   // Setup intersection observer for infinite scrolling
   useEffect(() => {

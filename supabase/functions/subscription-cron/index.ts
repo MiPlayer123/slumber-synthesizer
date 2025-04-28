@@ -24,7 +24,7 @@ const logDebug = (message: string, data?: any) => {
  *
  * And updates them to "canceled" status.
  */
-serve(async (req) => {
+serve(async () => {
   try {
     const now = new Date();
     logDebug(`Running scheduled subscription check at ${now.toISOString()}`);

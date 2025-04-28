@@ -56,7 +56,7 @@ export const CheckoutComplete = () => {
     if (!user) return; // Add guard clause
     // ... rest of function logic ...
     try {
-      const { data: existingRecord, error: checkError } = await supabase
+      const { data: existingRecord } = await supabase
         .from("customer_subscriptions")
         .select("id, stripe_customer_id, status, current_period_end")
         .eq("user_id", user.id)
@@ -70,7 +70,8 @@ export const CheckoutComplete = () => {
       } else {
         // ... logic if not active ...
       }
-    } catch (error) {
+    } catch (err) {
+      console.error("Error verifying subscription via Stripe API:", err);
       // ... error handling ...
       setLoading(false);
     }
@@ -94,7 +95,8 @@ export const CheckoutComplete = () => {
         // On failure or error:
         // setLoading(false);
         // Potentially call attemptVerificationViaStripeAPI() as fallback
-      } catch (error) {
+      } catch (err) {
+        console.error("Error verifying payment with Stripe:", err);
         // ... error handling ...
         setLoading(false);
       }
@@ -240,195 +242,6 @@ export const CheckoutComplete = () => {
     verifyPaymentWithStripe,
   ]);
 
-  // Update the subscription status in the database
-  const updateSubscriptionStatus = async (subscriptionId: string) => {
-    try {
-      if (!user) {
-        console.error("Cannot update subscription: User not logged in");
-        // Set flag in session storage to indicate coming from checkout
-        sessionStorage.setItem("from_checkout", "true");
-        // Navigate to settings with tab parameter
-        window.history.pushState({}, "", "/settings?tab=subscription");
-        // Force a dispatch of popstate event to trigger route change without reload
-        window.dispatchEvent(new PopStateEvent("popstate", { state: {} }));
-        return;
-      }
-
-      console.log(`Updating subscription status for ID: ${subscriptionId}`);
-
-      // First check if we already have a record for this subscription
-      const { data: existingRecord, error: checkError } = await supabase
-        .from("customer_subscriptions")
-        .select("id, subscription_id, status, current_period_end")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (checkError) {
-        console.error("Error checking existing record:", checkError);
-      } else if (existingRecord) {
-        console.log("Found existing subscription record:", existingRecord);
-
-        // Check for payment_failed status in database
-        if (
-          existingRecord.status === "past_due" ||
-          existingRecord.status === "unpaid"
-        ) {
-          console.log(
-            "Payment failed status found in database, redirecting to subscription tab",
-          );
-          // Set flag in session storage to indicate coming from checkout
-          sessionStorage.setItem("from_checkout", "true");
-          // Navigate to settings with tab parameter
-          window.history.pushState({}, "", "/settings?tab=subscription");
-          // Force a dispatch of popstate event to trigger route change without reload
-          window.dispatchEvent(new PopStateEvent("popstate", { state: {} }));
-          return;
-        }
-
-        // Check for expired subscription
-        if (
-          existingRecord.current_period_end &&
-          new Date(existingRecord.current_period_end) <= new Date()
-        ) {
-          console.log("Subscription expired, redirecting to subscription tab");
-          // Set flag in session storage to indicate coming from checkout
-          sessionStorage.setItem("from_checkout", "true");
-          // Navigate to settings with tab parameter
-          window.history.pushState({}, "", "/settings?tab=subscription");
-          // Force a dispatch of popstate event to trigger route change without reload
-          window.dispatchEvent(new PopStateEvent("popstate", { state: {} }));
-          return;
-        }
-      }
-
-      // Try to get the full subscription details from Stripe directly
-      let currentPeriodEnd = null;
-      let status = "active";
-
-      try {
-        // Get the current session for auth
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData?.session?.access_token;
-
-        if (accessToken) {
-          // Call get-stripe-subscription with the subscription ID to get full details
-          const { data, error: stripeError } = await supabase.functions.invoke(
-            "get-stripe-subscription",
-            {
-              body: {
-                subscriptionId: subscriptionId,
-              },
-            },
-          );
-
-          if (!stripeError && data) {
-            if (data.success && data.current_period_end) {
-              currentPeriodEnd = data.current_period_end;
-              status = data.status || "active";
-            }
-          }
-        }
-      } catch (error) {
-        console.error(
-          "Error fetching subscription details from Stripe:",
-          error,
-        );
-      }
-
-      // Update the subscription record with Stripe data
-      const { error } = await supabase
-        .from("customer_subscriptions")
-        .update({
-          subscription_id: subscriptionId,
-          status: status,
-          updated_at: new Date().toISOString(),
-          ...(currentPeriodEnd && { current_period_end: currentPeriodEnd }),
-        })
-        .eq("user_id", user.id);
-
-      if (error) {
-        console.error("Error updating subscription:", error);
-        // Set flag in session storage to indicate coming from checkout
-        sessionStorage.setItem("from_checkout", "true");
-        // Navigate to settings with tab parameter
-        window.history.pushState({}, "", "/settings?tab=subscription");
-        // Force a dispatch of popstate event to trigger route change without reload
-        window.dispatchEvent(new PopStateEvent("popstate", { state: {} }));
-        return;
-      }
-
-      console.log("Successfully updated subscription status");
-
-      // Verify the update was successful by querying again
-      const { data: verifyData, error: verifyError } = await supabase
-        .from("customer_subscriptions")
-        .select("subscription_id, subscription_status, current_period_end")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (verifyError) {
-        console.error("Error verifying update:", verifyError);
-      } else {
-        console.log("Verified database state after update:", verifyData);
-
-        // Make sure subscription is active and not expired
-        const isActive =
-          verifyData?.subscription_id === subscriptionId &&
-          verifyData?.subscription_status === "active";
-        const isExpired =
-          verifyData?.current_period_end &&
-          new Date(verifyData.current_period_end) <= new Date();
-
-        if (isActive && !isExpired) {
-          console.log("Database update verified successful!");
-        } else {
-          console.warn(
-            "Database update may not have succeeded - state doesn't match expected",
-          );
-          if (isExpired) {
-            console.error("Subscription appears to be expired");
-            // Set flag in session storage to indicate coming from checkout
-            sessionStorage.setItem("from_checkout", "true");
-            // Navigate to settings with tab parameter
-            window.history.pushState({}, "", "/settings?tab=subscription");
-            // Force a dispatch of popstate event to trigger route change without reload
-            window.dispatchEvent(new PopStateEvent("popstate", { state: {} }));
-            return;
-          }
-        }
-      }
-
-      // Refresh subscription data
-      try {
-        console.log("Refreshing subscription data from context");
-        await refreshSubscription();
-        console.log("Subscription data refreshed");
-      } catch (refreshError) {
-        console.error("Error refreshing subscription:", refreshError);
-        setLoading(false);
-        // Set flag in session storage to indicate coming from checkout
-        sessionStorage.setItem("from_checkout", "true");
-        // Navigate to settings with tab parameter
-        window.history.pushState({}, "", "/settings?tab=subscription");
-        // Force a dispatch of popstate event to trigger route change without reload
-        window.dispatchEvent(new PopStateEvent("popstate", { state: {} }));
-        return;
-      }
-
-      setLoading(false);
-      setSubscriptionActivated(true);
-    } catch (error) {
-      console.error("Error updating subscription status:", error);
-      setLoading(false);
-      // Set flag in session storage to indicate coming from checkout
-      sessionStorage.setItem("from_checkout", "true");
-      // Navigate to settings with tab parameter
-      window.history.pushState({}, "", "/settings?tab=subscription");
-      // Force a dispatch of popstate event to trigger route change without reload
-      window.dispatchEvent(new PopStateEvent("popstate", { state: {} }));
-    }
-  };
-
   const handleReturnToSettings = () => {
     // Set flag in session storage to indicate coming from checkout
     sessionStorage.setItem("from_checkout", "true");
@@ -443,24 +256,6 @@ export const CheckoutComplete = () => {
     window.history.pushState({}, "", "/");
     // Force a dispatch of popstate event to trigger route change without reload
     window.dispatchEvent(new PopStateEvent("popstate", { state: {} }));
-  };
-
-  const handleForceActivate = async () => {
-    if (!user) return;
-
-    try {
-      setLoading(true);
-      await attemptVerificationViaStripeAPI();
-    } catch (error) {
-      console.error("Error during force activation:", error);
-      setLoading(false);
-      // Set flag in session storage to indicate coming from checkout
-      sessionStorage.setItem("from_checkout", "true");
-      // Navigate to settings with tab parameter
-      window.history.pushState({}, "", "/settings?tab=subscription");
-      // Force a dispatch of popstate event to trigger route change without reload
-      window.dispatchEvent(new PopStateEvent("popstate", { state: {} }));
-    }
   };
 
   // Only render successful checkout content

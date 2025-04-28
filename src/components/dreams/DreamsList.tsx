@@ -8,10 +8,8 @@ interface DreamsListProps {
   onAnalyze?: (dreamId: string) => void;
   onEdit?: (dreamId: string) => void;
   onDelete?: (dreamId: string) => void;
-  onGenerateImage?: (dream: Dream) => void;
   isLoading: boolean;
   generatingImageForDreams?: Set<string>;
-  showLikeButtons?: boolean;
   isFetchingNextPage?: boolean;
   hasNextPage?: boolean;
   fetchNextPage?: () => void;
@@ -24,10 +22,8 @@ export const DreamsList = ({
   onAnalyze,
   onEdit,
   onDelete,
-  onGenerateImage,
   isLoading,
   generatingImageForDreams = new Set(),
-  showLikeButtons = false,
   isFetchingNextPage = false,
   hasNextPage = false,
   fetchNextPage,
@@ -84,7 +80,6 @@ export const DreamsList = ({
             onAnalyze={onAnalyze}
             onEdit={onEdit}
             onDelete={onDelete}
-            onGenerateImage={onGenerateImage}
             isPersonalView={true}
             isGeneratingImage={generatingImageForDreams.has(dream.id)}
           />

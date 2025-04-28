@@ -37,13 +37,9 @@ import {
   Bell,
   CreditCard,
   CheckCircle,
-  Lock,
   ImageIcon,
   Sparkles,
-  RefreshCw,
-  X,
   XCircle,
-  AlertTriangle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -63,9 +59,12 @@ const Settings = () => {
     remainingUsage,
     startCheckout,
     refreshSubscription,
-    setSubscription,
-    getReturnUrl,
   } = useSubscription();
+
+  // Helper function to get the return URL for Stripe
+  const getReturnUrl = () => {
+    return `${window.location.origin}${window.location.pathname}?tab=subscription`;
+  };
 
   // Form states
   const [username, setUsername] = useState(user?.user_metadata?.username || "");
@@ -484,27 +483,6 @@ const Settings = () => {
       setTimeout(() => {
         window.location.href = supportFormUrl;
       }, 1500);
-    } finally {
-      setIsRefreshingSubscription(false);
-    }
-  };
-
-  // Handle subscription refresh
-  const handleRefreshSubscription = async () => {
-    setIsRefreshingSubscription(true);
-    try {
-      await refreshSubscription();
-      toast({
-        title: "Subscription Refreshed",
-        description: "Your subscription status has been updated.",
-      });
-    } catch (error) {
-      console.error("Error refreshing subscription:", error);
-      toast({
-        variant: "destructive",
-        title: "Refresh Failed",
-        description: "Could not refresh your subscription status.",
-      });
     } finally {
       setIsRefreshingSubscription(false);
     }

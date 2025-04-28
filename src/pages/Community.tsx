@@ -7,14 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useDreamLikes } from "@/hooks/use-dream-likes";
 import { useDreamCommentCount } from "@/hooks/use-dream-comments";
 import { LikeButton } from "@/components/dreams/LikeButton";
-import {
-  MessageSquare,
-  MoreHorizontal,
-  Share,
-  Loader2,
-  MoreVertical,
-  Trash2,
-} from "lucide-react";
+import { MoreHorizontal, Share, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { CommentButton } from "@/components/dreams/CommentButton";
@@ -148,7 +141,6 @@ function DreamCard({ dream }: DreamCardProps) {
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [isPostingComment, setIsPostingComment] = useState(false);
-  const [, setIsDeletingComment] = useState(false);
 
   const refreshLikes = useCallback(() => {
     queryClient.invalidateQueries({
@@ -261,44 +253,24 @@ function DreamCard({ dream }: DreamCardProps) {
   const handleShareDream = () => {
     const shareUrl = `${window.location.origin}/dream/${dream.id}`;
 
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      toast({
-        title: "Link copied",
-        description: "Dream link copied to clipboard!",
-      });
-    });
-  };
-
-  const handleDeleteComment = async (commentId: string) => {
-    if (!user || !dream.id) return;
-
-    setIsDeletingComment(true);
-
-    try {
-      const { error } = await supabase
-        .from("comments")
-        .delete()
-        .eq("id", commentId)
-        .eq("dream_id", dream.id)
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-
-      fetchComments();
-
-      toast({
-        title: "Comment deleted",
-        description: "Your comment has been removed from this dream",
-      });
-    } catch (error) {
-      console.error("Error deleting comment:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to delete comment",
-      });
-    } finally {
-      setIsDeletingComment(false);
+    if (navigator.share) {
+      navigator
+        .share({
+          title: dream.title,
+          text: `Check out this dream: ${dream.title}`,
+          url: shareUrl,
+        })
+        .catch((error) => console.error("Error sharing:", error));
+    } else {
+      navigator.clipboard
+        .writeText(shareUrl)
+        .then(() => {
+          toast({
+            title: "Link copied",
+            description: "Dream link copied to clipboard!",
+          });
+        })
+        .catch((err) => console.error("Copy failed:", err));
     }
   };
 

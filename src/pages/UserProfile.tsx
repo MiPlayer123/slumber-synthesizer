@@ -10,7 +10,6 @@ import {
   Link as LinkIcon,
   ArrowLeft,
   Loader2,
-  MessageCircle,
   MessageSquare,
   Share,
   Clock,
