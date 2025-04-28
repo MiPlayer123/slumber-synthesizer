@@ -179,6 +179,7 @@ export default function DreamWall() {
     }
   };
 
+  // Fetch comments when selected dream changes
   useEffect(() => {
     if (selectedDream) {
       fetchComments(selectedDream.id);
@@ -189,7 +190,7 @@ export default function DreamWall() {
         refetchSelectedDreamLikes();
       }
     }
-  }, [selectedDream, refetchSelectedDreamLikes]);
+  }, [selectedDream, refetchSelectedDreamLikes, fetchComments]);
 
   const handlePostComment = async (e: React.FormEvent) => {
     e.preventDefault();

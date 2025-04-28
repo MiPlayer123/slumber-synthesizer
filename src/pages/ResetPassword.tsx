@@ -29,6 +29,62 @@ const ResetPassword = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Function to check for valid reset parameters in multiple places
+  const checkResetParameters = (): boolean => {
+    // Check in hash fragment
+    const hash = location.hash;
+    const hashParams = hash ? new URLSearchParams(hash.substring(1)) : null;
+
+    // Check in query parameters
+    const searchParams = new URLSearchParams(location.search);
+
+    // Look for any combination of parameters that would make this a valid reset link
+
+    // 0. Check for Supabase auth code (highest priority, this is the main flow)
+    if (searchParams.has("code")) {
+      console.log("Found Supabase auth code:", searchParams.get("code"));
+      return true;
+    }
+
+    // 1. Check for type=recovery
+    if (
+      searchParams.get("type") === "recovery" ||
+      hashParams?.get("type") === "recovery"
+    ) {
+      return true;
+    }
+
+    // 2. Check for token
+    if (searchParams.has("token") || hashParams?.has("token")) {
+      return true;
+    }
+
+    // 3. Check for Supabase-specific tokens
+    const hasAccessToken =
+      searchParams.has("access_token") || hashParams?.has("access_token");
+    const hasRefreshToken =
+      searchParams.has("refresh_token") || hashParams?.has("refresh_token");
+    if (hasAccessToken || hasRefreshToken) {
+      return true;
+    }
+
+    return false;
+  };
+
+  useEffect(() => {
+    // Reset state when the location changes
+    setIsPasswordResetFlow(checkResetParameters());
+
+    if (!checkResetParameters()) {
+      console.log("Invalid reset link parameters detected", {
+        hash: location.hash,
+        search: location.search,
+      });
+    } else {
+      console.log("Valid reset link detected");
+    }
+  }, [location, user]);
+
   // Check both hash parameters and query parameters for a valid password reset flow
   useEffect(() => {
     console.log("Processing URL parameters", {
@@ -74,49 +130,7 @@ const ResetPassword = () => {
     } else {
       console.log("Valid reset link detected");
     }
-  }, [location, user]);
-
-  // Function to check for valid reset parameters in multiple places
-  const checkResetParameters = (): boolean => {
-    // Check in hash fragment
-    const hash = location.hash;
-    const hashParams = hash ? new URLSearchParams(hash.substring(1)) : null;
-
-    // Check in query parameters
-    const searchParams = new URLSearchParams(location.search);
-
-    // Look for any combination of parameters that would make this a valid reset link
-
-    // 0. Check for Supabase auth code (highest priority, this is the main flow)
-    if (searchParams.has("code")) {
-      console.log("Found Supabase auth code:", searchParams.get("code"));
-      return true;
-    }
-
-    // 1. Check for type=recovery
-    if (
-      searchParams.get("type") === "recovery" ||
-      hashParams?.get("type") === "recovery"
-    ) {
-      return true;
-    }
-
-    // 2. Check for token
-    if (searchParams.has("token") || hashParams?.has("token")) {
-      return true;
-    }
-
-    // 3. Check for Supabase-specific tokens
-    const hasAccessToken =
-      searchParams.has("access_token") || hashParams?.has("access_token");
-    const hasRefreshToken =
-      searchParams.has("refresh_token") || hashParams?.has("refresh_token");
-    if (hasAccessToken || hasRefreshToken) {
-      return true;
-    }
-
-    return false;
-  };
+  }, [location, user, checkResetParameters]);
 
   // Only redirect if user is logged in AND this is NOT a password reset flow
   if (user && !isPasswordResetFlow) {

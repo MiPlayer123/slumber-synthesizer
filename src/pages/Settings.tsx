@@ -162,7 +162,7 @@ const Settings = () => {
 
       return () => clearTimeout(timer);
     }
-  }, [refreshSubscription, user, hasInitiallyRefreshed]);
+  }, [refreshSubscription, user, hasInitiallyRefreshed, isLoadingSubscription]);
 
   // Remove the session storage when component unmounts to ensure it's fresh on next Settings visit
   useEffect(() => {

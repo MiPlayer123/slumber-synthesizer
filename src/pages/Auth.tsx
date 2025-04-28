@@ -108,7 +108,7 @@ const Auth = () => {
     };
 
     checkUser();
-  }, [user, needsProfileCompletion, navigate, supabase]);
+  }, [user, needsProfileCompletion, navigate]);
 
   // Check URL for error parameters when component mounts
   useEffect(() => {
@@ -188,7 +188,7 @@ const Auth = () => {
       // Clear the URL parameters to prevent interference
       window.history.replaceState({}, document.title, "/auth");
     }
-  }, [location, user]);
+  }, [location, user, completeGoogleSignUp]);
 
   // Check if user needs profile completion
   useEffect(() => {

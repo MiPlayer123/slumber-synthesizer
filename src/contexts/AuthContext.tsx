@@ -430,35 +430,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 case "INITIAL_SESSION":
                   // Only process INITIAL_SESSION if we don't already have a matching session
                   // or if we're in the initial loading phase (!isInitialized)
-                  const shouldProcessInitialSession =
-                    !isInitialized ||
-                    !session ||
-                    !currentSession ||
-                    session.access_token !== currentSession.access_token;
+                  {
+                    const shouldProcessInitialSession =
+                      !isInitialized ||
+                      !session ||
+                      !currentSession ||
+                      session.access_token !== currentSession.access_token;
 
-                  if (shouldProcessInitialSession) {
-                    console.log("Processing INITIAL_SESSION event");
-                    if (currentSession?.user) {
-                      setUser(currentSession.user);
-                      setSession(currentSession);
+                    if (shouldProcessInitialSession) {
+                      console.log("Processing INITIAL_SESSION event");
+                      if (currentSession?.user) {
+                        setUser(currentSession.user);
+                        setSession(currentSession);
 
-                      // Only check profile if we actually have a different user or session
-                      if (
-                        !session ||
-                        session.access_token !== currentSession.access_token
-                      ) {
-                        await ensureUserProfile(currentSession.user);
+                        // Only check profile if we actually have a different user or session
+                        if (
+                          !session ||
+                          session.access_token !== currentSession.access_token
+                        ) {
+                          await ensureUserProfile(currentSession.user);
+                        }
+                      } else {
+                        setUser(null);
+                        setSession(null);
+                        setNeedsProfileCompletion(false);
                       }
                     } else {
-                      setUser(null);
-                      setSession(null);
-                      setNeedsProfileCompletion(false);
-                    }
-                  } else {
-                    console.log("Skipping redundant INITIAL_SESSION event");
-                    // Force the loading state to false to prevent getting stuck
-                    if (loading && isMountedRef.current) {
-                      setLoading(false);
+                      console.log("Skipping redundant INITIAL_SESSION event");
+                      // Force the loading state to false to prevent getting stuck
+                      if (loading && isMountedRef.current) {
+                        setLoading(false);
+                      }
                     }
                   }
                   break;
@@ -1022,8 +1024,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         "Username creation complete, forcing page reload before token refresh...",
       );
 
-      // Use window.location.href to force a complete page reload
-      window.location.href = window.location.href;
+      // Use window.location.reload() to force a complete page reload
+      window.location.reload();
 
       // The code below will not execute due to the page reload
       // But we'll keep it for completeness

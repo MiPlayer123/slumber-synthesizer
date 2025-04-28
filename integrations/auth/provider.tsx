@@ -1,7 +1,13 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Session, User } from "@supabase/supabase-js";
-import { useToast } from "@/hooks/use-toast";
+import {
+  supabase,
+  isSessionValid,
+  refreshSession,
+} from "../../src/integrations/supabase/client";
+import { Session, User, AuthError } from "@supabase/supabase-js";
+import { useToast } from "../../src/hooks/use-toast";
+import { Button } from "../../src/components/ui/button";
 
 interface AuthContextType {
   user: User | null;
@@ -172,7 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     initializeAuth();
-  }, []);
+  }, [ensureUserProfile, toast]);
 
   const signIn = async (email: string, password: string) => {
     try {
