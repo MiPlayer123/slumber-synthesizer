@@ -244,7 +244,7 @@ serve(async (req) => {
 
     try {
       // Upload using Blob - no need to pass contentType as it's taken from Blob.type
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from("dream-images")
         .upload(fileName, fileBlob);
 

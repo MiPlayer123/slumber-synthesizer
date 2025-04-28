@@ -153,7 +153,7 @@ serve(async (req) => {
                 };
 
                 // Use upsert instead of update to handle both new and existing rows
-                const { data, error } = await supabase
+                const { error } = await supabase
                   .from("customer_subscriptions")
                   .upsert(row, { onConflict: "user_id" });
 

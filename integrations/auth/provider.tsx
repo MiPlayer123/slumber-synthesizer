@@ -6,14 +6,9 @@ import React, {
   useState,
   useCallback,
 } from "react";
-import {
-  supabase,
-  isSessionValid,
-  refreshSession,
-} from "../../src/integrations/supabase/client";
-import { Session, User, AuthError } from "@supabase/supabase-js";
+import { supabase } from "../../src/integrations/supabase/client";
+import { Session, User } from "@supabase/supabase-js";
 import { useToast } from "../../src/hooks/use-toast";
-import { Button } from "../../src/components/ui/button";
 
 interface AuthContextType {
   user: User | null;
@@ -191,7 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -304,7 +299,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: window.location.origin + "/auth",

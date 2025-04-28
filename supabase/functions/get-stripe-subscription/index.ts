@@ -23,16 +23,23 @@ const stripe = new Stripe(STRIPE_SECRET_KEY, {
 });
 
 // Debug logger
-const logDebug = (message: string, data?: any) => {
+const logDebug = (message: string) => {
   // Only log the message without the potentially sensitive data
   console.log(`[GET-STRIPE-SUBSCRIPTION] ${message}`);
 };
 
-// Info logger
-function logInfo(message: string, data?: any) {
-  // Don't log potentially sensitive data, just log the message
-  console.log(`[GET-STRIPE-SUBSCRIPTION] ${message}`);
-}
+// Helper function to check if subscription has payment issues
+const hasPaymentIssues = (status: string): boolean => {
+  return ["past_due", "unpaid", "incomplete"].includes(status);
+};
+
+// Helper function to build standard response
+const buildResponse = (data: any, status = 200) => {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+};
 
 // POST /get-stripe-subscription  { sessionId }
 // ----------------------------------------------------------------
@@ -47,10 +54,7 @@ serve(async (req) => {
 
   // Only accept POST requests
   if (req.method !== "POST") {
-    return new Response("Method Not Allowed", {
-      status: 405,
-      headers: corsHeaders,
-    });
+    return buildResponse({ error: "Method Not Allowed" }, 405);
   }
 
   try {
@@ -73,17 +77,11 @@ serve(async (req) => {
 
         if (!subscriptions.data.length) {
           logDebug(`No subscriptions found for customer ${stripeCustomerId}`);
-          return new Response(
-            JSON.stringify({
-              error: "No subscriptions found for this customer",
-              success: false,
-              payment_failed: false,
-            }),
-            {
-              status: 200,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            },
-          );
+          return buildResponse({
+            error: "No subscriptions found for this customer",
+            success: false,
+            payment_failed: false,
+          });
         }
 
         // Use the most recent subscription
@@ -91,14 +89,9 @@ serve(async (req) => {
         logDebug(`Found subscription: ${sub.id} with status ${sub.status}`);
 
         // Check if subscription has payment issues
-        let paymentFailed = false;
-        if (
-          sub.status === "past_due" ||
-          sub.status === "unpaid" ||
-          sub.status === "incomplete"
-        ) {
+        const paymentFailed = hasPaymentIssues(sub.status);
+        if (paymentFailed) {
           logDebug(`Subscription has payment issues: status=${sub.status}`);
-          paymentFailed = true;
         }
 
         // Create portal URL for subscription management
@@ -159,32 +152,23 @@ serve(async (req) => {
           logDebug(`Successfully updated subscription data`);
         }
 
-        return new Response(
-          JSON.stringify({
-            success: true,
-            subscription_id: sub.id,
-            status: sub.status,
-            payment_failed: paymentFailed,
-            cancel_at_period_end: sub.cancel_at_period_end,
-            current_period_end: sub.current_period_end,
-          }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
+        return buildResponse({
+          success: true,
+          subscription_id: sub.id,
+          status: sub.status,
+          payment_failed: paymentFailed,
+          cancel_at_period_end: sub.cancel_at_period_end,
+          current_period_end: sub.current_period_end,
+        });
       } catch (stripeError) {
         logDebug(`Stripe error: ${stripeError.message}`);
-        return new Response(
-          JSON.stringify({
+        return buildResponse(
+          {
             error: stripeError.message,
             success: false,
             payment_failed: false,
-          }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
           },
+          500,
         );
       }
     }
@@ -198,42 +182,27 @@ serve(async (req) => {
         logDebug(`Retrieved subscription: status=${sub.status}`);
 
         // Check payment status
-        let paymentFailed = false;
-        if (
-          sub.status === "past_due" ||
-          sub.status === "unpaid" ||
-          sub.status === "incomplete"
-        ) {
+        const paymentFailed = hasPaymentIssues(sub.status);
+        if (paymentFailed) {
           logDebug(`Subscription has payment issues: status=${sub.status}`);
-          paymentFailed = true;
         }
 
-        return new Response(
-          JSON.stringify({
-            success: true,
-            subscription_id: sub.id,
-            status: sub.status,
-            payment_failed: paymentFailed,
-            cancel_at_period_end: sub.cancel_at_period_end,
-            current_period_end: sub.current_period_end,
-          }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
+        return buildResponse({
+          success: true,
+          subscription_id: sub.id,
+          status: sub.status,
+          payment_failed: paymentFailed,
+          customer_id: sub.customer,
+        });
       } catch (subError) {
         logDebug(`Error retrieving subscription: ${subError.message}`);
-        return new Response(
-          JSON.stringify({
+        return buildResponse(
+          {
             error: subError.message,
             success: false,
             payment_failed: false,
-          }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
           },
+          500,
         );
       }
     }
@@ -279,41 +248,29 @@ serve(async (req) => {
         }
       }
 
-      // If payment failed and no subscription or not active, return early with payment_failed flag
-      if (
-        paymentFailed &&
-        (!sub || (sub.status !== "active" && sub.status !== "trialing"))
-      ) {
+      // Check subscription status
+      if (paymentFailed) {
+        logDebug(`Subscription has payment issues: status=${sub.status}`);
+
+        // Payment specific error handling
         logDebug(
           `Payment failed and no active subscription found for session ${sessionId}`,
         );
-        return new Response(
-          JSON.stringify({
-            error: "Payment failed or subscription inactive",
-            payment_failed: true,
-            success: false,
-          }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
+        return buildResponse({
+          error: "Payment failed or subscription inactive",
+          payment_failed: true,
+          success: false,
+        });
       }
 
       // If no subscription found at all or inactive (and not due to payment failure)
       if (!sub || (sub.status !== "active" && sub.status !== "trialing")) {
         logDebug(`No active subscription found for session ${sessionId}`);
-        return new Response(
-          JSON.stringify({
-            error: "No active subscription found",
-            payment_failed: paymentFailed,
-            success: false,
-          }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
+        return buildResponse({
+          error: "No active subscription found for this session",
+          success: false,
+          payment_failed: false,
+        });
       }
 
       logDebug(`Found active subscription: ${sub.id}`);
@@ -322,16 +279,13 @@ serve(async (req) => {
       const userId = session.metadata?.user_id;
       if (!userId) {
         logDebug(`user_id missing from session metadata`);
-        return new Response(
-          JSON.stringify({
-            error: "user_id missing from metadata",
-            payment_failed: paymentFailed,
-            success: false,
-          }),
+        return buildResponse(
           {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            error: "user_id missing from session metadata",
+            success: false,
+            payment_failed: false,
           },
+          400,
         );
       }
 
@@ -394,16 +348,13 @@ serve(async (req) => {
 
         if (fallbackError) {
           logDebug(`Fallback upsert also failed: ${fallbackError.message}`);
-          return new Response(
-            JSON.stringify({
+          return buildResponse(
+            {
               error: fallbackError.message,
               payment_failed: paymentFailed,
               success: false,
-            }),
-            {
-              status: 500,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
             },
+            500,
           );
         } else {
           logDebug(`Database updated with basic subscription details`);
@@ -412,46 +363,34 @@ serve(async (req) => {
         logDebug(`Successfully upserted subscription data`);
       }
 
-      return new Response(
-        JSON.stringify({
-          success: true,
-          subscription_id: sub.id,
-          status: sub.status,
-          payment_failed: paymentFailed,
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+      return buildResponse({
+        success: true,
+        subscription_id: sub.id,
+        status: sub.status,
+        payment_failed: paymentFailed,
+      });
     }
     // No valid parameters provided
     else {
-      return new Response(
-        JSON.stringify({
+      return buildResponse(
+        {
           error:
             "No valid parameters provided. Please provide either sessionId, userId+stripeCustomerId, or subscriptionId",
           success: false,
           payment_failed: false,
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
+        400,
       );
     }
   } catch (err) {
     logDebug(`Error: ${err.message}`);
-    return new Response(
-      JSON.stringify({
+    return buildResponse(
+      {
         error: err.message,
         success: false,
         payment_failed: false,
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
+      500,
     );
   }
 });

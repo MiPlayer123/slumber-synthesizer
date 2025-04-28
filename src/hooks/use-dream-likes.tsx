@@ -116,7 +116,7 @@ export function useDreamLikes(dreamId: string, onSuccess?: () => void) {
           table: "likes",
           filter: `dream_id=eq.${dreamId}`,
         },
-        (payload) => {
+        () => {
           debugLog("Real-time like update received");
           // Force refetch to get the latest count
           refetch();

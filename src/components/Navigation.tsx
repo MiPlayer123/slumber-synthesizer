@@ -36,7 +36,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { track } from "@vercel/analytics/react";
-import { useNavigate } from "react-router-dom";
 
 export const Navigation = () => {
   const { theme, setTheme } = useTheme();

@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { fixStripeRedirectUrl } from "@/utils/urlUtils";
+
 import { Loader2 } from "lucide-react";
 
 const NotFound = () => {

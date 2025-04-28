@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+
 import {
   Card,
   CardContent,
@@ -8,9 +8,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle, Loader2 } from "lucide-react";
 import { useSubscription } from "@/hooks/use-subscription";
-import { useToast } from "@/hooks/use-toast";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -18,9 +18,8 @@ import { useAuth } from "@/hooks/useAuth";
 const CHECKOUT_PROCESSED_KEY = "checkout_processed";
 
 export const CheckoutComplete = () => {
-  const navigate = useNavigate();
   const { refreshSubscription } = useSubscription();
-  const { toast } = useToast();
+
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<"success" | "canceled" | "unknown">(

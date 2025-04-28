@@ -14,7 +14,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { useAuth } from "@/hooks/useAuth";
 import { Suspense, lazy, useEffect } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
-import { Analytics, track } from "@vercel/analytics/react";
+import { Analytics } from "@vercel/analytics/react";
 
 // Pages
 import Index from "@/pages/Index";
@@ -311,8 +311,6 @@ function AppRoutes() {
 
 // Create a separate component that uses the router hooks
 function AppContent() {
-  const location = useLocation();
-
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>

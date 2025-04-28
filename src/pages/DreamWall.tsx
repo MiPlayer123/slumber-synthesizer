@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Dream, Profile } from "@/lib/types";
+import { Dream } from "@/lib/types";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -41,10 +41,8 @@ import { useDreamLikes } from "@/hooks/use-dream-likes";
 import { usePublicDreams } from "@/hooks/use-dreams";
 import { useDreamCommentCount } from "@/hooks/use-dream-comments";
 import { CommentButton } from "@/components/dreams/CommentButton";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ProfileHoverCard } from "@/components/ui/profile-hover-card";
-import { Input } from "@/components/ui/input";
-import { MessageSquare, ThumbsUp } from "lucide-react";
 
 export default function DreamWall() {
   const { user } = useAuth();
@@ -61,7 +59,7 @@ export default function DreamWall() {
   const [emotionFilter, setEmotionFilter] = useState("");
 
   // Reference for infinite scrolling
-  const observerRef = useRef<IntersectionObserver | null>(null);
+
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Use the paginated public dreams hook

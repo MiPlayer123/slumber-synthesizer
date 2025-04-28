@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -19,8 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { Dream as BaseDream, Profile as ProfileType } from "@/lib/types";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DreamCard } from "@/components/dreams/DreamCard";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { useDreamLikes } from "@/hooks/use-dream-likes";
 import { useDreamCommentCount } from "@/hooks/use-dream-comments";
@@ -35,7 +34,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { DreamLikeButton } from "@/components/dreams/DreamLikeButton";
-import { CommentsSection } from "@/components/dreams/CommentsSection";
+
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProfileHoverCard } from "@/components/ui/profile-hover-card";
@@ -59,7 +58,6 @@ export const UserProfile = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const location = useLocation();
 
   const [loading, setLoading] = useState(true);
   const [dreamsLoading, setDreamsLoading] = useState(true);

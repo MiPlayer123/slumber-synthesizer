@@ -10,7 +10,7 @@ import { DreamsList } from "@/components/dreams/DreamsList";
 import { DreamHeader } from "@/components/dreams/DreamHeader";
 import { AnalyzingDialog } from "@/components/dreams/AnalyzingDialog";
 import { EditDreamForm } from "@/components/dreams/EditDreamForm";
-import { useDreams } from "@/hooks/use-dreams";
+
 import { useDreamAnalyses } from "@/hooks/use-dream-analyses";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FeedbackBanner } from "@/components/ui/feedback-banner";
@@ -33,8 +33,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 const Journal = () => {
   const { user, completeGoogleSignUp } = useAuth();
   const { toast } = useToast();
-  const { subscription, recordUsage, hasReachedLimit, remainingUsage } =
-    useSubscription();
+  const { subscription, recordUsage, hasReachedLimit } = useSubscription();
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -90,7 +89,7 @@ const Journal = () => {
         const filePath = `${fileName}`;
 
         // Upload the file to Supabase storage using the correct bucket name
-        const { data, error } = await supabase.storage
+        const { error } = await supabase.storage
           .from("dream-images")
           .upload(filePath, file);
 

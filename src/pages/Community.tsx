@@ -1,5 +1,5 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Dream, Profile } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,20 +28,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useCommunityDreams } from "@/hooks/use-dreams";
 import { ProfileHoverCard } from "@/components/ui/profile-hover-card";
-import { format } from "date-fns";
+
 import { useAuth } from "@/hooks/useAuth";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
 const Community = () => {
   // References for infinite scrolling
-  const observerRef = useRef<IntersectionObserver | null>(null);
+
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Use the paginated community dreams hook
@@ -156,7 +148,7 @@ function DreamCard({ dream }: DreamCardProps) {
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [isPostingComment, setIsPostingComment] = useState(false);
-  const [isDeletingComment, setIsDeletingComment] = useState(false);
+  const [, setIsDeletingComment] = useState(false);
 
   const refreshLikes = useCallback(() => {
     queryClient.invalidateQueries({

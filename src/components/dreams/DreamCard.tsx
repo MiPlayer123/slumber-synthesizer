@@ -7,7 +7,6 @@ import {
   Trash2,
   Loader2,
   Lock,
-  ImageIcon,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -52,7 +51,7 @@ export const DreamCard = ({
     hasReachedLimit,
     subscription,
     remainingUsage,
-    refreshUsage,
+    refreshSubscription,
     isUsageLoading,
   } = useSubscription();
   const analysis = analyses?.find((a) => a.dream_id === dream.id);
@@ -87,7 +86,7 @@ export const DreamCard = ({
 
     // As a last-resort guard, re-fetch usage before proceeding for free tier users
     if (subscription?.status !== "active") {
-      await refreshUsage();
+      await refreshSubscription();
       // Safely check remainingUsage which could still be null
       if ((remainingUsage?.dreamAnalyses ?? 0) <= 0) {
         return;

@@ -82,7 +82,7 @@ export const useSubscription = () => {
         `${SUBSCRIPTION_STATUS_KEY}_${user.id}`,
       );
       return storedStatus as SubscriptionStatus;
-    } catch (e) {
+    } catch (error) {
       return null;
     }
   }, [user]);
@@ -676,7 +676,6 @@ export const useSubscription = () => {
         setIsLoading(true);
 
         // Get previous status from localStorage
-        const previousStatus = getPreviousStatus();
 
         // Directly query the customer_subscriptions table to get the current status
         const { data: subscriptionData, error: subscriptionError } =
@@ -969,66 +968,6 @@ export const useSubscription = () => {
     }
   };
 
-  // Function to get the correct return URL for Stripe portal
-  const getReturnUrl = () => {
-    // Add a fromStripe parameter to identify returns from Stripe portal
-    return makeReturnUrl(STRIPE_RETURN_PATHS.SETTINGS) + "&fromStripe=true";
-  };
-
-  // Update startCheckout function to use dynamic return URL
-  const startCheckout = async (planId: string, returnUrl?: string) => {
-    if (!user) {
-      toast({
-        variant: "destructive",
-        title: "Authentication Required",
-        description: "Please sign in to subscribe.",
-      });
-      return;
-    }
-
-    try {
-      toast({
-        title: "Creating checkout session...",
-        description: "Please wait while we prepare your checkout.",
-      });
-
-      // Use supabase.functions.invoke instead of direct fetch
-      const { data, error } = await supabase.functions.invoke(
-        "create-checkout",
-        {
-          body: {
-            userId: user.id,
-            planId,
-            returnUrl:
-              returnUrl || makeReturnUrl(STRIPE_RETURN_PATHS.CHECKOUT_COMPLETE),
-          },
-        },
-      );
-
-      if (error) {
-        console.error("Error response:", error);
-        throw new Error(`Failed to create checkout session: ${error.message}`);
-      }
-
-      if (data?.url) {
-        // Redirect to Stripe Checkout
-        window.location.href = data.url;
-      } else {
-        throw new Error("No checkout URL returned");
-      }
-    } catch (error) {
-      console.error("Checkout error:", error);
-      toast({
-        variant: "destructive",
-        title: "Checkout Error",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Failed to create checkout session",
-      });
-    }
-  };
-
   // Function to manually refresh subscription status
   const refreshSubscription = async () => {
     // First check if we have a recent cached subscription
@@ -1306,6 +1245,60 @@ export const useSubscription = () => {
     } catch (error) {
       console.error("Error in refreshSubscription:", error);
       await safelyFetchUsageData();
+    }
+  };
+
+  // Update startCheckout function to use dynamic return URL
+  const startCheckout = async (planId: string, returnUrl?: string) => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Required",
+        description: "Please sign in to subscribe.",
+      });
+      return;
+    }
+
+    try {
+      toast({
+        title: "Creating checkout session...",
+        description: "Please wait while we prepare your checkout.",
+      });
+
+      // Use supabase.functions.invoke instead of direct fetch
+      const { data, error } = await supabase.functions.invoke(
+        "create-checkout",
+        {
+          body: {
+            userId: user.id,
+            planId,
+            returnUrl:
+              returnUrl || makeReturnUrl(STRIPE_RETURN_PATHS.CHECKOUT_COMPLETE),
+          },
+        },
+      );
+
+      if (error) {
+        console.error("Error response:", error);
+        throw new Error(`Failed to create checkout session: ${error.message}`);
+      }
+
+      if (data?.url) {
+        // Redirect to Stripe Checkout
+        window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL returned");
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+      toast({
+        variant: "destructive",
+        title: "Checkout Error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to create checkout session",
+      });
     }
   };
 

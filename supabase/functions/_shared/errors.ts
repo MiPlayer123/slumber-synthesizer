@@ -394,7 +394,7 @@ export function extractFallbackAnalysis(
             result[field] = parsedArray;
             continue;
           }
-        } catch (err) {
+        } catch (e) {
           // Silently handle JSON parse errors, will try other extraction methods
         }
       }

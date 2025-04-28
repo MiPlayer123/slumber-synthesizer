@@ -35,7 +35,7 @@ import {
   ZAxis,
   CartesianGrid,
 } from "recharts";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import {
   CalendarIcon,
   CloudIcon,
@@ -209,8 +209,6 @@ const Statistics = () => {
     analyses?.flatMap((analysis) => analysis.themes || []) || [];
   const allSymbols =
     analyses?.flatMap((analysis) => analysis.symbols || []) || [];
-  const allEmotions =
-    analyses?.flatMap((analysis) => analysis.emotions || []) || [];
 
   // Count themes and symbols frequency
   const themesFrequency = allThemes.reduce(
@@ -224,14 +222,6 @@ const Statistics = () => {
   const symbolsFrequency = allSymbols.reduce(
     (acc, symbol) => {
       acc[symbol] = (acc[symbol] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
-
-  const emotionsFromAnalyses = allEmotions.reduce(
-    (acc, emotion) => {
-      acc[emotion] = (acc[emotion] || 0) + 1;
       return acc;
     },
     {} as Record<string, number>,

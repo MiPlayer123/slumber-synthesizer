@@ -21,7 +21,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { X } from "lucide-react";
+
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 

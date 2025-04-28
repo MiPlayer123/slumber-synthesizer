@@ -1,21 +1,12 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useRef,
-  useCallback,
-} from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   supabase,
-  isSessionValid,
-  refreshSession,
   isValidSupabaseConfig,
 } from "@/integrations/supabase/client"; // Use the existing client
 import { Session, User, AuthError } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { AuthContext, AuthContextType } from "./AuthContextDefinition"; // Import from new file
+
+import { AuthContext } from "./AuthContextDefinition"; // Import from new file
 
 const AUTH_STORAGE_PREFIX = "slumber-synthesizer-"; // Keep this definition
 

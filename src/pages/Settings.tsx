@@ -45,12 +45,11 @@ import {
   XCircle,
   AlertTriangle,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useSubscription } from "@/hooks/use-subscription";
-import { makeReturnUrl, STRIPE_RETURN_PATHS } from "@/utils/constants";
 
 const Settings = () => {
-  const { user, resetPassword } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const themeContext = useContext(ThemeContext);
   if (!themeContext) {
@@ -67,7 +66,6 @@ const Settings = () => {
     setSubscription,
     getReturnUrl,
   } = useSubscription();
-  const navigate = useNavigate();
 
   // Form states
   const [username, setUsername] = useState(user?.user_metadata?.username || "");
@@ -78,7 +76,7 @@ const Settings = () => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [email, setEmail] = useState(user?.email || "");
+  const [email] = useState(user?.email || "");
   const [exportFormat, setExportFormat] = useState("json");
   const [selectedPlan, setSelectedPlan] = useState("monthly");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
