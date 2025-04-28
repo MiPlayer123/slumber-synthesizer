@@ -287,7 +287,6 @@ export const useSubscription = () => {
   }, [fetchUsageData]);
 
   // Fetch subscription data
-
   useEffect(() => {
     if (!user) {
       setIsLoading(false);
@@ -601,16 +600,6 @@ export const useSubscription = () => {
             });
 
             if (!response.ok) {
-              // Handle 404 errors specifically - likely due to Edge Function not being available in dev
-              if (response.status === 404) {
-                console.warn(
-                  "Subscription API not available. Using free tier fallback in development.",
-                );
-                setSubscription(null);
-                saveStatusToStorage(null);
-                await safelyFetchUsageData();
-                return;
-              }
               throw new Error(`HTTP error: ${response.status}`);
             }
 
@@ -669,6 +658,7 @@ export const useSubscription = () => {
     };
 
     fetchSubscription();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     user,
     toast,
@@ -678,6 +668,7 @@ export const useSubscription = () => {
   ]);
 
   // Add listener for when user returns from Stripe portal
+
   useEffect(() => {
     // Define the subscription fetch function
     const refreshFromStripe = async () => {
@@ -894,13 +885,8 @@ export const useSubscription = () => {
 
     // Return cleanup function - nothing to clean up
     return () => {};
-  }, [
-    user,
-    safelyFetchUsageData,
-    getPreviousStatus,
-    saveStatusToStorage,
-    showActivationToast,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, getPreviousStatus, saveStatusToStorage, showActivationToast]);
 
   // Check if user has reached their usage limit for a specific feature
   const hasReachedLimit = (type: "image" | "analysis") => {
@@ -1276,8 +1262,15 @@ export const useSubscription = () => {
                   imageGenerations: Infinity,
                   dreamAnalyses: Infinity,
                 });
+                console.log(
+                  "Active subscription confirmed from API, unlimited usage enabled",
+                );
 
-                saveStatusToStorage(data.subscription.status);
+                // Only show notification when status changes from non-active to active
+                if (previousStatus !== "active") {
+                  showActivationToast(previousStatus);
+                }
+                saveStatusToStorage("active");
               } else {
                 // Not active, use the free tier limits
                 saveStatusToStorage(data.subscription.status);
@@ -1290,41 +1283,40 @@ export const useSubscription = () => {
             }
           } catch (error) {
             console.error("Error fetching subscription from API:", error);
+            // Don't show the error toast in development mode
+            if (!import.meta.env.DEV) {
+              toast({
+                variant: "destructive",
+                title: "Subscription Check Failed",
+                description:
+                  "Using free tier limits for now. Please try again later.",
+              });
+            }
             setSubscription(null);
             saveStatusToStorage(null);
             await safelyFetchUsageData();
           }
         }
       } catch (error) {
-        console.error("Error fetching subscription data:", error);
-        setSubscription(null);
-        saveStatusToStorage(null);
+        console.error("Error in subscription hook:", error);
         await safelyFetchUsageData();
+      } finally {
+        setIsLoading(false);
       }
     } catch (error) {
-      console.error("Error refreshing subscription:", error);
-      toast({
-        variant: "destructive",
-        title: "Refresh Failed",
-        description: "Could not refresh your subscription status.",
-      });
+      console.error("Error in refreshSubscription:", error);
       await safelyFetchUsageData();
-    } finally {
-      setIsLoading(false);
     }
   };
 
   return {
     subscription,
+    remainingUsage,
     isLoading,
     isUsageLoading,
-    remainingUsage,
     hasReachedLimit,
     recordUsage,
     startCheckout,
-    refreshUsage: safelyFetchUsageData,
     refreshSubscription,
-    setSubscription,
-    getReturnUrl,
   };
 };
