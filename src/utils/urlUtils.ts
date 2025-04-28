@@ -52,7 +52,7 @@ export const fixStripeRedirectUrl = (url: string): string => {
       const basePath = path.substring(0, path.lastIndexOf("/"));
 
       // Get the parameter value
-      let params = new URLSearchParams();
+      const params = new URLSearchParams();
       if (lastPart.includes("=")) {
         const [key, value] = lastPart.split("=");
         params.append(key, value);

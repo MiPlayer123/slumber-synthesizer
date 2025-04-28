@@ -138,7 +138,15 @@ const Journal = () => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = usePaginatedDreams(user.id, 10);
+  } = user
+    ? usePaginatedDreams(user.id, 10)
+    : {
+        data: undefined,
+        isLoading: false,
+        fetchNextPage: () => Promise.resolve(),
+        hasNextPage: false,
+        isFetchingNextPage: false,
+      };
 
   // Extract all dreams from pages
   const dreams = dreamsPages

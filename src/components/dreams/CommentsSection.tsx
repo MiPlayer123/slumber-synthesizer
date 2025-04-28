@@ -26,12 +26,13 @@ interface CommentsSectionProps {
 }
 
 export const CommentsSection = ({ dreamId }: CommentsSectionProps) => {
-  const { user } = useAuth();
-  const { toast } = useToast();
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newComment, setNewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const fetchComments = async () => {
@@ -44,7 +45,10 @@ export const CommentsSection = ({ dreamId }: CommentsSectionProps) => {
           .from("comments")
           .select(
             `
-            *,
+            id,
+            content,
+            created_at,
+            user_id,
             profiles(username, avatar_url)
           `,
           )
@@ -53,7 +57,16 @@ export const CommentsSection = ({ dreamId }: CommentsSectionProps) => {
 
         if (error) throw error;
 
-        setComments(data as Comment[]);
+        // Transform the data to match our Comment type
+        const formattedComments = data.map((comment: any) => ({
+          id: comment.id,
+          content: comment.content,
+          created_at: comment.created_at,
+          user_id: comment.user_id,
+          profiles: comment.profiles[0], // Get the first (and only) profile
+        }));
+
+        setComments(formattedComments);
       } catch (error) {
         console.error("Error fetching comments:", error);
         toast({
@@ -72,7 +85,7 @@ export const CommentsSection = ({ dreamId }: CommentsSectionProps) => {
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user || !newComment.trim() || isSubmitting) return;
+    if (!newComment.trim() || !user || isSubmitting) return;
 
     setIsSubmitting(true);
 
@@ -81,12 +94,15 @@ export const CommentsSection = ({ dreamId }: CommentsSectionProps) => {
         .from("comments")
         .insert({
           dream_id: dreamId,
-          user_id: user.id,
           content: newComment.trim(),
+          user_id: user.id,
         })
         .select(
           `
-          *,
+          id,
+          content,
+          created_at,
+          user_id,
           profiles(username, avatar_url)
         `,
         )
@@ -94,11 +110,19 @@ export const CommentsSection = ({ dreamId }: CommentsSectionProps) => {
 
       if (error) throw error;
 
-      setComments((prev) => [...prev, data as Comment]);
+      // Transform to match our Comment type
+      const newCommentData: Comment = {
+        id: data.id,
+        content: data.content,
+        created_at: data.created_at,
+        user_id: data.user_id,
+        profiles: data.profiles[0], // Get the first (and only) profile
+      };
+
+      setComments((prev) => [...prev, newCommentData]);
       setNewComment("");
 
       // Use React Query's queryClient to invalidate comment count
-      const queryClient = useQueryClient();
       if (queryClient) {
         queryClient.invalidateQueries({
           queryKey: ["dream-comments-count", dreamId],

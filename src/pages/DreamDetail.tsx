@@ -42,11 +42,9 @@ export default function DreamDetail() {
   const fromProfile = location.state?.fromProfile === true;
   const { hasReachedLimit } = useSubscription();
 
-  // Get comment count
-  const commentData = dreamId
-    ? useDreamCommentCount(dreamId)
-    : { commentCount: 0, isLoading: false };
-  const commentCount = commentData.commentCount || 0;
+  // Get comment count - move it outside the conditional
+  const { commentCount = 0, isLoading: isLoadingCommentCount } =
+    useDreamCommentCount(dreamId || "");
 
   // Check for analyze parameter and apply free limit check
   useEffect(() => {
