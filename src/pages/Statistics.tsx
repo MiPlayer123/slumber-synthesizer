@@ -71,6 +71,39 @@ const Statistics = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
 
+  // Fetch dreams
+  const { data: dreams, isLoading: dreamsLoading } = useQuery({
+    queryKey: ["dreams", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from("dreams")
+        .select("*")
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      return data as Dream[];
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch dream analyses
+  const { data: analyses, isLoading: analysesLoading } = useQuery({
+    queryKey: ["dream-analyses", user?.id, dreams?.map((d) => d.id)],
+    queryFn: async () => {
+      if (!user?.id || !dreams || dreams.length === 0) return [];
+      const dreamIds = dreams.map((d) => d.id);
+      const { data, error } = await supabase
+        .from("dream_analyses")
+        .select("*")
+        .in("dream_id", dreamIds);
+
+      if (error) throw error;
+      return data as DreamAnalysis[];
+    },
+    enabled: !!user?.id && !!dreams && dreams.length > 0,
+  });
+
   // Redirect if not authenticated
   if (!user) {
     toast({
@@ -80,35 +113,6 @@ const Statistics = () => {
     });
     return <Navigate to="/auth" replace />;
   }
-
-  // Fetch dreams
-  const { data: dreams, isLoading: dreamsLoading } = useQuery({
-    queryKey: ["dreams", user.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dreams")
-        .select("*")
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-      return data as Dream[];
-    },
-  });
-
-  // Fetch dream analyses
-  const { data: analyses, isLoading: analysesLoading } = useQuery({
-    queryKey: ["dream-analyses", user.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dream_analyses")
-        .select("*")
-        .in("dream_id", dreams?.map((d) => d.id) || []);
-
-      if (error) throw error;
-      return data as DreamAnalysis[];
-    },
-    enabled: !!dreams && dreams.length > 0,
-  });
 
   const isLoading = dreamsLoading || analysesLoading;
 

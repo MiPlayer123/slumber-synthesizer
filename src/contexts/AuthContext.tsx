@@ -468,7 +468,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       delete (window as any).isReturningToTab;
       delete (window as any).blockNextAuthRefresh;
     };
-  }, [ensureUserProfile, logAuthError]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ensureUserProfile, logAuthError]); // Removed 'loading', 'session', 'user' to prevent infinite loops
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);

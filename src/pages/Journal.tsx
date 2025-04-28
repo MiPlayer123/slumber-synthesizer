@@ -60,77 +60,6 @@ const Journal = () => {
     analyzeDreamId?: string;
   } | null;
 
-  // Handle redirected analysis request once on component mount
-  useEffect(() => {
-    // One-time check for redirected dream analysis request
-    const checkRedirectedAnalysis = () => {
-      if (
-        redirectStateData?.fromDreamDetail &&
-        redirectStateData?.analyzeDreamId &&
-        user
-      ) {
-        // Double-check limit (defense in depth)
-        if (hasReachedLimit("analysis")) {
-          toast({
-            variant: "destructive",
-            title: "Free Limit Reached",
-            description:
-              "You've reached your free dream analysis limit this week. Upgrade to premium for unlimited analyses.",
-          });
-          return;
-        }
-
-        // Set timeout to allow component to fully initialize
-        setTimeout(() => {
-          // Get the dream ID from the redirect data
-          const dreamId = redirectStateData.analyzeDreamId;
-
-          // ALWAYS check if user has reached analysis limit
-          if (hasReachedLimit("analysis")) {
-            toast({
-              variant: "destructive",
-              title: "Free Limit Reached",
-              description:
-                "You've reached your free dream analysis limit this week. Upgrade to premium for unlimited analyses.",
-            });
-            return;
-          }
-
-          // Proceed with analysis
-          track("dream_analysis_started", { dream_id: dreamId });
-          analyzeDream.mutate(dreamId);
-
-          // Clear the state to prevent repeated analyses on refresh
-          window.history.replaceState({}, document.title, location.pathname);
-        }, 100);
-      }
-    };
-
-    if (user && !isAnalyzing) {
-      checkRedirectedAnalysis();
-    }
-    // Only run once on mount, not on every render
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Effect to scroll to top when editing a dream
-  useEffect(() => {
-    if (editingDreamId && topRef.current) {
-      topRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [editingDreamId]);
-
-  // Handle auth redirection
-  if (!user) {
-    console.log("No user found, redirecting to auth page");
-    toast({
-      variant: "destructive",
-      title: "Authentication required",
-      description: "Please log in to access your dream journal.",
-    });
-    return <Navigate to="/auth" replace />;
-  }
-
   // Use the paginated dreams hook for infinite scrolling
   const {
     data: dreamsPages,
@@ -138,20 +67,10 @@ const Journal = () => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = usePaginatedDreams(user.id, 10);
-
-  // Extract all dreams from pages
-  const dreams = dreamsPages
-    ? dreamsPages.pages.flatMap((page) => page.dreams)
-    : [];
+  } = usePaginatedDreams(user?.id, 10);
 
   // Custom hooks for data fetching
   const { data: analyses } = useDreamAnalyses();
-
-  // Get the dream being edited
-  const dreamBeingEdited = editingDreamId
-    ? dreams?.find((dream) => dream.id === editingDreamId)
-    : null;
 
   // Upload media mutation
   const uploadMedia = useMutation({
@@ -710,7 +629,9 @@ const Journal = () => {
         );
       }
 
-      const dream = dreams?.find((d) => d.id === dreamId);
+      const dream = dreamsPages?.pages
+        .flatMap((page) => page.dreams)
+        ?.find((d) => d.id === dreamId);
       if (!dream) throw new Error("Dream not found");
 
       try {
@@ -961,6 +882,87 @@ const Journal = () => {
       setIsSubmittingUsername(false);
     }
   };
+
+  // Handle redirected analysis request once on component mount
+  useEffect(() => {
+    // One-time check for redirected dream analysis request
+    const checkRedirectedAnalysis = () => {
+      if (
+        redirectStateData?.fromDreamDetail &&
+        redirectStateData?.analyzeDreamId &&
+        user
+      ) {
+        // Double-check limit (defense in depth)
+        if (hasReachedLimit("analysis")) {
+          toast({
+            variant: "destructive",
+            title: "Free Limit Reached",
+            description:
+              "You've reached your free dream analysis limit this week. Upgrade to premium for unlimited analyses.",
+          });
+          return;
+        }
+
+        // Set timeout to allow component to fully initialize
+        setTimeout(() => {
+          // Get the dream ID from the redirect data
+          const dreamId = redirectStateData.analyzeDreamId;
+
+          // ALWAYS check if user has reached analysis limit
+          if (hasReachedLimit("analysis")) {
+            toast({
+              variant: "destructive",
+              title: "Free Limit Reached",
+              description:
+                "You've reached your free dream analysis limit this week. Upgrade to premium for unlimited analyses.",
+            });
+            return;
+          }
+
+          // Proceed with analysis
+          track("dream_analysis_started", { dream_id: dreamId });
+          analyzeDream.mutate(dreamId);
+
+          // Clear the state to prevent repeated analyses on refresh
+          window.history.replaceState({}, document.title, location.pathname);
+        }, 100);
+      }
+    };
+
+    if (user && !isAnalyzing) {
+      checkRedirectedAnalysis();
+    }
+    // Only run once on mount, not on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Effect to scroll to top when editing a dream
+  useEffect(() => {
+    if (editingDreamId && topRef.current) {
+      topRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [editingDreamId]);
+
+  // Handle auth redirection
+  if (!user) {
+    console.log("No user found, redirecting to auth page");
+    toast({
+      variant: "destructive",
+      title: "Authentication required",
+      description: "Please log in to access your dream journal.",
+    });
+    return <Navigate to="/auth" replace />;
+  }
+
+  // Extract all dreams from pages
+  const dreams = dreamsPages
+    ? dreamsPages.pages.flatMap((page) => page.dreams)
+    : [];
+
+  // Get the dream being edited
+  const dreamBeingEdited = editingDreamId
+    ? dreams?.find((dream) => dream.id === editingDreamId)
+    : null;
 
   return (
     <div ref={topRef} className="container py-8 max-w-5xl">

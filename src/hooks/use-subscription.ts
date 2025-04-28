@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,15 @@ export type SubscriptionStatus =
   | "past_due"
   | "unpaid"
   | null;
+
+const validSubscriptionStatuses: Array<SubscriptionStatus> = [
+  "active",
+  "canceled",
+  "trialing",
+  "past_due",
+  "unpaid",
+  null,
+];
 
 export interface Subscription {
   id: string;
@@ -66,7 +75,7 @@ export const useSubscription = () => {
   const lastStatusLogRef = useRef<string>("");
 
   // Get previous status from localStorage, not from state to persist across page reloads
-  const getPreviousStatus = (): SubscriptionStatus => {
+  const getPreviousStatus = useCallback((): SubscriptionStatus => {
     if (!user) return null;
     try {
       const storedStatus = localStorage.getItem(
@@ -76,20 +85,23 @@ export const useSubscription = () => {
     } catch (e) {
       return null;
     }
-  };
+  }, [user]);
 
   // Save status to localStorage
-  const saveStatusToStorage = (status: SubscriptionStatus) => {
-    if (!user) return;
-    try {
-      localStorage.setItem(
-        `${SUBSCRIPTION_STATUS_KEY}_${user.id}`,
-        status || "null",
-      );
-    } catch (e) {
-      console.error("Failed to save subscription status to localStorage:", e);
-    }
-  };
+  const saveStatusToStorage = useCallback(
+    (status: SubscriptionStatus) => {
+      if (!user) return;
+      try {
+        localStorage.setItem(
+          `${SUBSCRIPTION_STATUS_KEY}_${user.id}`,
+          status || "null",
+        );
+      } catch (e) {
+        console.error("Failed to save subscription status to localStorage:", e);
+      }
+    },
+    [user],
+  );
 
   // Add helper function for logging status to avoid duplication
   const logStatusOnce = (status: string, forceLog = false) => {
@@ -113,23 +125,26 @@ export const useSubscription = () => {
   };
 
   // Add helper function for showing toast notifications
-  const showActivationToast = (prevStatus: SubscriptionStatus) => {
-    // Only show notification when status changes from non-active to active
-    // AND not if we've shown it in the last 5 seconds
-    const now = Date.now();
-    if (
-      prevStatus !== "active" &&
-      prevStatus !== ("canceling" as any) &&
-      now - lastNotificationRef.current > 5000
-    ) {
-      toast({
-        title: "Premium Active",
-        description:
-          "Your premium subscription is active. You have unlimited dream analyses and image generations!",
-      });
-      lastNotificationRef.current = now;
-    }
-  };
+  const showActivationToast = useCallback(
+    (prevStatus: SubscriptionStatus) => {
+      // Only show notification when status changes from non-active to active
+      // AND not if we've shown it in the last 5 seconds
+      const now = Date.now();
+      if (
+        prevStatus !== "active" &&
+        prevStatus !== ("canceling" as any) &&
+        now - lastNotificationRef.current > 5000
+      ) {
+        toast({
+          title: "Premium Active",
+          description:
+            "Your premium subscription is active. You have unlimited dream analyses and image generations!",
+        });
+        lastNotificationRef.current = now;
+      }
+    },
+    [toast],
+  );
 
   // Create helper functions for caching subscription data
   const getSubscriptionFromCache = () => {
@@ -161,7 +176,118 @@ export const useSubscription = () => {
     }
   };
 
+  // Fetch usage data from the database - only needed for free tier
+  const fetchUsageData = useCallback(async () => {
+    if (!user) {
+      setRemainingUsage({
+        imageGenerations: 0,
+        dreamAnalyses: 0,
+      });
+      setIsUsageLoading(false);
+      return;
+    }
+
+    // If user has an active subscription, they have unlimited usage
+    if (subscription?.status === "active") {
+      setRemainingUsage({
+        imageGenerations: Infinity,
+        dreamAnalyses: Infinity,
+      });
+      setIsUsageLoading(false);
+      return;
+    }
+
+    try {
+      // Get the current week's start date (Sunday)
+      const now = new Date();
+      const dayOfWeek = now.getUTCDay(); // 0 = Sunday
+      const startOfWeek = new Date(now);
+      startOfWeek.setUTCDate(now.getUTCDate() - dayOfWeek);
+      startOfWeek.setUTCHours(0, 0, 0, 0);
+      const startDateStr = startOfWeek.toISOString();
+
+      // Set free tier limits
+      const freeImageLimit = 5;
+      const freeAnalysisLimit = 7;
+
+      // Fallback values - assume maximum usage in case of any errors
+      let imageCount = 0;
+      let analysisCount = 0;
+
+      try {
+        // Count image generations from usage_logs
+        const { data: imageData, error: imageError } = await supabase
+          .from("usage_logs" as any)
+          .select("count")
+          .eq("user_id", user.id)
+          .eq("type", "image")
+          .gte("created_at", startDateStr);
+
+        if (!imageError && imageData) {
+          imageCount = imageData.reduce(
+            (sum, record) => sum + (record.count || 0),
+            0,
+          );
+        }
+
+        // Count analyses from usage_logs
+        const { data: analysisData, error: analysisError } = await supabase
+          .from("usage_logs" as any)
+          .select("count")
+          .eq("user_id", user.id)
+          .eq("type", "analysis")
+          .gte("created_at", startDateStr);
+
+        if (!analysisError && analysisData) {
+          analysisCount = analysisData.reduce(
+            (sum, record) => sum + (record.count || 0),
+            0,
+          );
+        }
+      } catch (error) {
+        console.error("Error counting from usage_logs:", error);
+        // If counting fails, assume limit reached to be safe?
+        // Or stick with 0 counts?
+        imageCount = freeImageLimit; // Assume limit reached if count fails
+        analysisCount = freeAnalysisLimit;
+      }
+
+      // Update the remaining usage for free tier
+      setRemainingUsage({
+        imageGenerations: Math.max(0, freeImageLimit - imageCount),
+        dreamAnalyses: Math.max(0, freeAnalysisLimit - analysisCount),
+      });
+    } catch (error) {
+      console.error("Error fetching usage data:", error);
+      // Use default free tier values in case of error
+      setRemainingUsage({
+        imageGenerations: 5,
+        dreamAnalyses: 7,
+      });
+    } finally {
+      setIsUsageLoading(false);
+    }
+  }, [user, subscription]);
+
+  // Safely fetch usage data, with fallbacks for any errors
+  const safelyFetchUsageData = useCallback(async () => {
+    setIsUsageLoading(true);
+    try {
+      await fetchUsageData();
+    } catch (error) {
+      console.error("Error in safelyFetchUsageData:", error);
+      // Use default free tier values in case of ANY error
+      setRemainingUsage({
+        imageGenerations: 5,
+        dreamAnalyses: 7,
+      });
+    } finally {
+      setIsUsageLoading(false);
+    }
+  }, [fetchUsageData]);
+
   // Fetch subscription data
+
   useEffect(() => {
     if (!user) {
       setIsLoading(false);
@@ -286,6 +412,13 @@ export const useSubscription = () => {
                   // Successfully fetched subscription ID, check for cancellation
                   const stripeData = await fetchResponse.json();
 
+                  // Validate status before setting
+                  const validatedStatus = validSubscriptionStatuses.includes(
+                    stripeData.status as SubscriptionStatus,
+                  )
+                    ? (stripeData.status as SubscriptionStatus)
+                    : null;
+
                   // Set subscription with proper cancellation status and generate display status
                   let isActive = stripeData.status === "active";
                   let isCanceling = isActive && stripeData.cancel_at_period_end;
@@ -311,9 +444,9 @@ export const useSubscription = () => {
                     displayStatus = isCanceling ? "canceling" : "active";
                   }
 
-                  setSubscription({
+                  const subscriptionObj: Subscription = {
                     id: subscriptionData.subscription_id || "",
-                    status: isActive ? "active" : stripeData.status,
+                    status: validatedStatus,
                     displayStatus,
                     planName: "Premium",
                     currentPeriodEnd: stripeData.current_period_end
@@ -328,10 +461,15 @@ export const useSubscription = () => {
                     canceledAt: stripeData.canceled_at
                       ? new Date(stripeData.canceled_at * 1000).toISOString()
                       : null,
-                  });
+                  };
 
-                  // Save status
-                  saveStatusToStorage(displayStatus);
+                  setSubscription(subscriptionObj);
+
+                  // Cache the fetched data
+                  saveSubscriptionToCache(subscriptionObj);
+
+                  // Save status using the actual Stripe status
+                  saveStatusToStorage(validatedStatus);
 
                   // ALWAYS set unlimited for active subscribers and canceling subscribers within the paid period
                   setRemainingUsage({
@@ -360,7 +498,7 @@ export const useSubscription = () => {
           }
 
           // Fallback if Stripe check fails: Set subscription to active
-          setSubscription({
+          const subscriptionObj: Subscription = {
             id: subscriptionData.subscription_id || "",
             status: "active",
             displayStatus: "active",
@@ -369,7 +507,12 @@ export const useSubscription = () => {
             customerPortalUrl: subscriptionData.customer_portal_url || null,
             cancelAtPeriodEnd: false,
             canceledAt: null,
-          });
+          };
+
+          setSubscription(subscriptionObj);
+
+          // Cache the subscription data for faster loading
+          saveSubscriptionToCache(subscriptionObj);
 
           // Always set unlimited for active subscribers
           setRemainingUsage({
@@ -404,18 +547,25 @@ export const useSubscription = () => {
 
           if (updateError) {
             console.error("Error updating subscription status:", updateError);
+            // Fallback to free tier if update fails
+            setSubscription(null);
+            saveStatusToStorage(null);
+            await safelyFetchUsageData();
           } else {
-            // Set subscription to active
-            setSubscription({
+            // Set subscription to active after successful DB update
+            const updatedSubscriptionObj: Subscription = {
               id: subscriptionData.subscription_id || "",
               status: "active",
               displayStatus: "active",
               planName: "Premium",
-              currentPeriodEnd: null,
+              currentPeriodEnd: null, // DB doesn't have this reliably
               customerPortalUrl: subscriptionData.customer_portal_url || null,
               cancelAtPeriodEnd: false,
               canceledAt: null,
-            });
+            };
+            setSubscription(updatedSubscriptionObj);
+            saveSubscriptionToCache(updatedSubscriptionObj);
+            saveStatusToStorage("active");
 
             // Set unlimited usage
             setRemainingUsage({
@@ -426,7 +576,6 @@ export const useSubscription = () => {
             // Show notification if status changed
             if (previousStatus !== "active") {
               showActivationToast(previousStatus);
-              saveStatusToStorage("active");
             }
           }
         } else {
@@ -520,7 +669,13 @@ export const useSubscription = () => {
     };
 
     fetchSubscription();
-  }, [user, toast]);
+  }, [
+    user,
+    toast,
+    getPreviousStatus,
+    saveStatusToStorage,
+    showActivationToast,
+  ]);
 
   // Add listener for when user returns from Stripe portal
   useEffect(() => {
@@ -549,7 +704,10 @@ export const useSubscription = () => {
         } else if (subscriptionData && subscriptionData.status === "active") {
           // For active & canceling subscriptions, check with Stripe for full details
           try {
-            if (subscriptionData.subscription_id) {
+            if (
+              subscriptionData.subscription_id &&
+              subscriptionData.stripe_customer_id
+            ) {
               // Get current session
               const { data: sessionData } = await supabase.auth.getSession();
               const accessToken = sessionData?.session?.access_token;
@@ -573,8 +731,14 @@ export const useSubscription = () => {
                 );
 
                 if (fetchResponse.ok) {
-                  // Successfully fetched subscription ID, check for cancellation
                   const stripeData = await fetchResponse.json();
+
+                  // Validate status before setting
+                  const validatedStatus = validSubscriptionStatuses.includes(
+                    stripeData.status as SubscriptionStatus,
+                  )
+                    ? (stripeData.status as SubscriptionStatus)
+                    : null;
 
                   // Set subscription with proper cancellation status and generate display status
                   let isActive = stripeData.status === "active";
@@ -601,9 +765,9 @@ export const useSubscription = () => {
                     displayStatus = isCanceling ? "canceling" : "active";
                   }
 
-                  setSubscription({
+                  const subscriptionObj: Subscription = {
                     id: subscriptionData.subscription_id || "",
-                    status: isActive ? "active" : stripeData.status,
+                    status: validatedStatus,
                     displayStatus,
                     planName: "Premium",
                     currentPeriodEnd: stripeData.current_period_end
@@ -612,16 +776,19 @@ export const useSubscription = () => {
                         ).toISOString()
                       : null,
                     customerPortalUrl:
-                      subscriptionData.customer_portal_url || null,
+                      subscriptionData.customer_portal_url ||
+                      stripeData.customer_portal_url ||
+                      null,
                     cancelAtPeriodEnd:
                       isCanceling || stripeData.cancel_at_period_end || false,
                     canceledAt: stripeData.canceled_at
                       ? new Date(stripeData.canceled_at * 1000).toISOString()
                       : null,
-                  });
+                  };
 
-                  // Save status
-                  saveStatusToStorage(displayStatus);
+                  setSubscription(subscriptionObj);
+                  saveSubscriptionToCache(subscriptionObj);
+                  saveStatusToStorage(validatedStatus);
 
                   // ALWAYS set unlimited for active subscribers and canceling subscribers within the paid period
                   setRemainingUsage({
@@ -635,21 +802,57 @@ export const useSubscription = () => {
                       ? "canceling"
                       : stripeData.status;
                   logStatusOnce(statusToLog);
+                } else {
+                  // Handle fetch not OK
+                  console.error(
+                    "Stripe fetch failed in refreshFromStripe:",
+                    fetchResponse.status,
+                  );
+                  // Fallback: Assume free tier if Stripe check fails on refresh
+                  setSubscription(null);
+                  saveStatusToStorage(null);
+                  await safelyFetchUsageData();
                 }
+              } else {
+                // Handle no access token
+                console.error("No access token in refreshFromStripe");
+                setSubscription(null);
+                saveStatusToStorage(null);
+                await safelyFetchUsageData();
               }
+            } else {
+              // Handle missing subscription_id or stripe_customer_id
+              console.warn("Missing IDs for Stripe check in refreshFromStripe");
+              setSubscription(null);
+              saveStatusToStorage(null);
+              await safelyFetchUsageData();
             }
           } catch (err) {
             console.error(
               "Error checking cancellation status after Stripe portal:",
               err,
             );
+            // Fallback: Assume free tier on error
+            setSubscription(null);
+            saveStatusToStorage(null);
+            await safelyFetchUsageData();
           }
+        } else {
+          // No subscription data found in DB on refresh
+          console.log("No DB subscription found in refreshFromStripe");
+          setSubscription(null);
+          saveStatusToStorage(null);
+          await safelyFetchUsageData();
         }
       } catch (error) {
         console.error(
           "Error refreshing subscription after Stripe portal:",
           error,
         );
+        // Fallback: Assume free tier on outer error
+        setSubscription(null);
+        saveStatusToStorage(null);
+        await safelyFetchUsageData();
       } finally {
         setIsLoading(false);
       }
@@ -691,112 +894,13 @@ export const useSubscription = () => {
 
     // Return cleanup function - nothing to clean up
     return () => {};
-  }, [user]);
-
-  // Safely fetch usage data, with fallbacks for any errors
-  const safelyFetchUsageData = async () => {
-    setIsUsageLoading(true);
-    try {
-      await fetchUsageData();
-    } catch (error) {
-      console.error("Error in safelyFetchUsageData:", error);
-      // Use default free tier values in case of ANY error
-      setRemainingUsage({
-        imageGenerations: 5,
-        dreamAnalyses: 7,
-      });
-    } finally {
-      setIsUsageLoading(false);
-    }
-  };
-
-  // Fetch usage data from the database - only needed for free tier
-  const fetchUsageData = async () => {
-    if (!user) {
-      setRemainingUsage({
-        imageGenerations: 0,
-        dreamAnalyses: 0,
-      });
-      setIsUsageLoading(false);
-      return;
-    }
-
-    // If user has an active subscription, they have unlimited usage
-    if (subscription?.status === "active") {
-      setRemainingUsage({
-        imageGenerations: Infinity,
-        dreamAnalyses: Infinity,
-      });
-      setIsUsageLoading(false);
-      return;
-    }
-
-    try {
-      // Get the current week's start date (Sunday)
-      const now = new Date();
-      const dayOfWeek = now.getUTCDay(); // 0 = Sunday
-      const startOfWeek = new Date(now);
-      startOfWeek.setUTCDate(now.getUTCDate() - dayOfWeek);
-      startOfWeek.setUTCHours(0, 0, 0, 0);
-      const startDateStr = startOfWeek.toISOString();
-
-      // Set free tier limits
-      const freeImageLimit = 5;
-      const freeAnalysisLimit = 7;
-
-      // Fallback values - assume maximum usage in case of any errors
-      let imageCount = 0;
-      let analysisCount = 0;
-
-      try {
-        // Count image generations from usage_logs
-        const { data: imageData, error: imageError } = await supabase
-          .from("usage_logs")
-          .select("count")
-          .eq("user_id", user.id)
-          .eq("type", "image")
-          .gte("created_at", startDateStr);
-
-        if (!imageError && imageData) {
-          // Sum up all counts
-          imageCount = imageData.reduce((sum, record) => sum + record.count, 0);
-        }
-
-        // Count analyses from usage_logs
-        const { data: analysisData, error: analysisError } = await supabase
-          .from("usage_logs")
-          .select("count")
-          .eq("user_id", user.id)
-          .eq("type", "analysis")
-          .gte("created_at", startDateStr);
-
-        if (!analysisError && analysisData) {
-          // Sum up all counts
-          analysisCount = analysisData.reduce(
-            (sum, record) => sum + record.count,
-            0,
-          );
-        }
-      } catch (error) {
-        console.error("Error counting from usage_logs:", error);
-      }
-
-      // Update the remaining usage for free tier
-      setRemainingUsage({
-        imageGenerations: Math.max(0, freeImageLimit - imageCount),
-        dreamAnalyses: Math.max(0, freeAnalysisLimit - analysisCount),
-      });
-    } catch (error) {
-      console.error("Error fetching usage data:", error);
-      // Use default free tier values in case of error
-      setRemainingUsage({
-        imageGenerations: 5,
-        dreamAnalyses: 7,
-      });
-    } finally {
-      setIsUsageLoading(false);
-    }
-  };
+  }, [
+    user,
+    safelyFetchUsageData,
+    getPreviousStatus,
+    saveStatusToStorage,
+    showActivationToast,
+  ]);
 
   // Check if user has reached their usage limit for a specific feature
   const hasReachedLimit = (type: "image" | "analysis") => {
@@ -805,9 +909,9 @@ export const useSubscription = () => {
     // Always unlimited access for active subscriptions
     if (subscription?.status === "active") return false;
 
-    // Check if cancelling but still within subscription period
+    // Check if canceling but still within subscription period
     if (
-      subscription?.status === "canceling" &&
+      subscription?.displayStatus === "canceling" &&
       subscription?.currentPeriodEnd
     ) {
       const endDate = new Date(subscription.currentPeriodEnd);
@@ -838,7 +942,7 @@ export const useSubscription = () => {
 
     // No need to record usage for canceling subscriptions still within their paid period
     if (
-      subscription?.status === "canceling" &&
+      subscription?.displayStatus === "canceling" &&
       subscription?.currentPeriodEnd
     ) {
       const endDate = new Date(subscription.currentPeriodEnd);
@@ -1022,6 +1126,13 @@ export const useSubscription = () => {
                   // Successfully fetched subscription ID, check for cancellation
                   const stripeData = await fetchResponse.json();
 
+                  // Validate status before setting
+                  const validatedStatus = validSubscriptionStatuses.includes(
+                    stripeData.status as SubscriptionStatus,
+                  )
+                    ? (stripeData.status as SubscriptionStatus)
+                    : null;
+
                   // Set subscription with proper cancellation status and generate display status
                   let isActive = stripeData.status === "active";
                   let isCanceling = isActive && stripeData.cancel_at_period_end;
@@ -1047,9 +1158,9 @@ export const useSubscription = () => {
                     displayStatus = isCanceling ? "canceling" : "active";
                   }
 
-                  const subscriptionObj = {
+                  const subscriptionObj: Subscription = {
                     id: subscriptionData.subscription_id || "",
-                    status: isActive ? "active" : stripeData.status,
+                    status: validatedStatus,
                     displayStatus,
                     planName: "Premium",
                     currentPeriodEnd: stripeData.current_period_end
@@ -1068,11 +1179,11 @@ export const useSubscription = () => {
 
                   setSubscription(subscriptionObj);
 
-                  // Cache the subscription data for faster loading
+                  // Cache the fetched data
                   saveSubscriptionToCache(subscriptionObj);
 
-                  // Save status
-                  saveStatusToStorage(displayStatus);
+                  // Save status using the actual Stripe status
+                  saveStatusToStorage(validatedStatus);
 
                   // ALWAYS set unlimited for active subscribers and canceling subscribers within the paid period
                   setRemainingUsage({
@@ -1101,7 +1212,7 @@ export const useSubscription = () => {
           }
 
           // Fallback if Stripe check fails: Set subscription to active
-          const subscriptionObj = {
+          const subscriptionObj: Subscription = {
             id: subscriptionData.subscription_id || "",
             status: "active",
             displayStatus: "active",
