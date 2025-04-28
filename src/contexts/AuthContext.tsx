@@ -15,41 +15,9 @@ import {
 import { Session, User, AuthError } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { AuthContext, AuthContextType } from "./AuthContextDefinition"; // Import from new file
 
-interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  loading: boolean; // True during initial load or async auth actions
-  error: Error | null;
-  needsProfileCompletion: boolean; // Added from previous fixes
-  signIn: (
-    email: string,
-    password: string,
-  ) => Promise<{ success: boolean; error: AuthError | Error | null }>;
-  signUp: (
-    email: string,
-    password: string,
-    username: string,
-    fullName: string,
-  ) => Promise<{ success: boolean; error: AuthError | Error | null }>;
-  signOut: () => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
-  forgotPassword: (
-    email: string,
-  ) => Promise<{ success: boolean; error: AuthError | Error | null }>;
-  resetPassword: (
-    password: string,
-  ) => Promise<{ success: boolean; error: AuthError | Error | null }>;
-  completeGoogleSignUp: (
-    username: string,
-  ) => Promise<{ success: boolean; error: AuthError | Error | null }>;
-  clearAuthStorage: () => boolean;
-  // Removed refreshUserSession and checkSessionStatus as they are less needed with simpler logic
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const AUTH_STORAGE_PREFIX = "slumber-synthesizer-";
+const AUTH_STORAGE_PREFIX = "slumber-synthesizer-"; // Keep this definition
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -1062,13 +1030,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-// --- useAuth Hook --- (Keep as is)
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
 }

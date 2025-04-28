@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dream, Profile } from "@/lib/types";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +43,8 @@ import { useDreamCommentCount } from "@/hooks/use-dream-comments";
 import { CommentButton } from "@/components/dreams/CommentButton";
 import { useNavigate, Link } from "react-router-dom";
 import { ProfileHoverCard } from "@/components/ui/profile-hover-card";
+import { Input } from "@/components/ui/input";
+import { MessageSquare, ThumbsUp } from "lucide-react";
 
 export default function DreamWall() {
   const { user } = useAuth();

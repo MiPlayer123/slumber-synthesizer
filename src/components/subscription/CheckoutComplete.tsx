@@ -12,7 +12,7 @@ import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 
 // Key used to prevent processing checkout multiple times
 const CHECKOUT_PROCESSED_KEY = "checkout_processed";

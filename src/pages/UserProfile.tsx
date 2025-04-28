@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -35,8 +35,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { DreamLikeButton } from "@/components/dreams/DreamLikeButton";
-import CommentsSection from "@/components/dreams/CommentsSection";
-import { useAuth } from "@/contexts/AuthContext";
+import { CommentsSection } from "@/components/dreams/CommentsSection";
+import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProfileHoverCard } from "@/components/ui/profile-hover-card";
 import {
@@ -98,80 +98,36 @@ export const UserProfile = () => {
     }
   }, [username, loading, dreamsLoading]);
 
-  // Fetch user profile by username
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!username) return;
-
+  // Fetch public dreams from the user
+  const fetchPublicDreams = useCallback(
+    async (userId: string) => {
       try {
-        setLoading(true);
-
-        // Get the profile by username
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
+        setDreamsLoading(true);
+        const { data, error } = await supabase
+          .from("dreams")
           .select("*")
-          .eq("username", username)
-          .single();
+          .eq("user_id", userId)
+          .eq("is_public", true)
+          .order("created_at", { ascending: false });
 
-        if (profileError) {
-          throw profileError;
-        }
-
-        if (profileData) {
-          setProfile(profileData);
-
-          // After getting profile, fetch their public dreams
-          await fetchPublicDreams(profileData.id);
-
-          // Get dream stats
-          await fetchDreamStats(profileData.id);
-        }
+        if (error) throw error;
+        setDreams(data || []);
       } catch (error) {
-        console.error("Error fetching profile:", error);
+        console.error("Error fetching dreams:", error);
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to load profile information",
+          description: "Failed to load dreams",
         });
       } finally {
-        setLoading(false);
+        setDreamsLoading(false);
       }
-    };
-
-    fetchProfile();
-  }, [username, toast]);
-
-  // Fetch public dreams from the user
-  const fetchPublicDreams = async (userId: string) => {
-    try {
-      setDreamsLoading(true);
-
-      const { data, error } = await supabase
-        .from("dreams")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("is_public", true)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-
-      setDreams(data || []);
-    } catch (error) {
-      console.error("Error fetching dreams:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load dreams",
-      });
-    } finally {
-      setDreamsLoading(false);
-    }
-  };
+    },
+    [toast],
+  );
 
   // Fetch dream statistics
-  const fetchDreamStats = async (userId: string) => {
+  const fetchDreamStats = useCallback(async (userId: string) => {
     try {
       // Count total dreams (only public ones for other users' profiles)
       const { count: totalCount, error: countError } = await supabase
@@ -219,7 +175,46 @@ export const UserProfile = () => {
     } catch (error) {
       console.error("Error fetching dream stats:", error);
     }
-  };
+  }, []);
+
+  // Fetch user profile by username
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!username) return;
+
+      try {
+        setLoading(true);
+
+        // Get the profile by username
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("username", username)
+          .single();
+
+        if (profileError) {
+          throw profileError;
+        }
+
+        if (profileData) {
+          setProfile(profileData);
+          await fetchPublicDreams(profileData.id);
+          await fetchDreamStats(profileData.id);
+        }
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load profile information",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [username, toast, fetchPublicDreams, fetchDreamStats]);
 
   // Add comment fetching functionality
   const fetchComments = async (dreamId: string) => {

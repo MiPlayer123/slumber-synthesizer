@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useState, useEffect, useContext } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useTheme } from "@/hooks/use-theme";
+import { ThemeContext } from "@/hooks/ThemeContextDefinition";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -52,7 +52,11 @@ import { makeReturnUrl, STRIPE_RETURN_PATHS } from "@/utils/constants";
 const Settings = () => {
   const { user, resetPassword } = useAuth();
   const { toast } = useToast();
-  const { theme, setTheme } = useTheme();
+  const themeContext = useContext(ThemeContext);
+  if (!themeContext) {
+    throw new Error("useTheme must be used within a ThemeProvider");
+  }
+  const { theme, setTheme } = themeContext;
   const [activeTab, setActiveTab] = useState("account");
   const {
     subscription,

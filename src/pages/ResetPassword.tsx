@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { track } from "@vercel/analytics/react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -82,8 +82,6 @@ const ResetPassword = () => {
     const searchParams = new URLSearchParams(location.search);
     const code = searchParams.get("code");
 
-    // If there's a code in the URL, we're in a password reset flow
-    // even if the user appears to be logged in (as Supabase auto-creates a session)
     if (code) {
       console.log(
         "Password reset code detected, allowing reset flow even if user appears logged in",
@@ -91,7 +89,6 @@ const ResetPassword = () => {
       setIsPasswordResetFlow(true);
     }
 
-    // Check for explicit error parameters
     if (
       searchParams.get("error") === "access_denied" &&
       searchParams.get("error_code") === "otp_expired"
@@ -104,7 +101,6 @@ const ResetPassword = () => {
       return;
     }
 
-    // Check if the URL contains valid token parameters
     const isValid = checkResetParameters();
     setTokenStatus(isValid ? "valid" : "invalid");
 

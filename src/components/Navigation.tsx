@@ -6,7 +6,7 @@ import {
   Home,
   Users,
   LogOut,
-  User,
+  User as UserIcon,
   BarChart,
   Settings,
   Grid,
@@ -15,8 +15,8 @@ import {
   CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useTheme } from "@/hooks/use-theme";
-import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/hooks/useTheme";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState } from "react";
@@ -36,6 +36,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { track } from "@vercel/analytics/react";
+import { useNavigate } from "react-router-dom";
 
 export const Navigation = () => {
   const { theme, setTheme } = useTheme();
@@ -203,7 +204,7 @@ export const Navigation = () => {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link to="/profile">
-                      <User className="mr-2 h-4 w-4" />
+                      <UserIcon className="mr-2 h-4 w-4" />
                       <span>My Profile</span>
                     </Link>
                   </DropdownMenuItem>
@@ -397,7 +398,7 @@ export const Navigation = () => {
                         onClick={() => handleNavigation("/profile")}
                         className={`flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent ${location.pathname === "/profile" ? "bg-accent" : ""}`}
                       >
-                        <User className="mr-2 h-4 w-4" />
+                        <UserIcon className="mr-2 h-4 w-4" />
                         <span>My Profile</span>
                       </Link>
                       <Link

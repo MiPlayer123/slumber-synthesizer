@@ -29,7 +29,15 @@ import {
 import { useCommunityDreams } from "@/hooks/use-dreams";
 import { ProfileHoverCard } from "@/components/ui/profile-hover-card";
 import { format } from "date-fns";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const Community = () => {
   // References for infinite scrolling
