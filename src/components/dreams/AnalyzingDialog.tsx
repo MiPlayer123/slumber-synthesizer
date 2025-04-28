@@ -1,4 +1,3 @@
-
 import {
   Dialog,
   DialogContent,
@@ -12,7 +11,10 @@ interface AnalyzingDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export const AnalyzingDialog = ({ isOpen, onOpenChange }: AnalyzingDialogProps) => {
+export const AnalyzingDialog = ({
+  isOpen,
+  onOpenChange,
+}: AnalyzingDialogProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">

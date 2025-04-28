@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { fixStripeRedirectUrl } from "@/utils/urlUtils";
+
 import { Loader2 } from "lucide-react";
 
 const NotFound = () => {
@@ -12,16 +12,16 @@ const NotFound = () => {
   useEffect(() => {
     console.error(
       "404 Error: User attempted to access non-existent route:",
-      location.pathname
+      location.pathname,
     );
 
     // Check if this is a checkout-complete URL with malformed parameters
-    if (location.pathname.includes('checkout-complete&')) {
+    if (location.pathname.includes("checkout-complete&")) {
       setIsRedirecting(true);
-      
+
       // Get the correct URL using our utility
-      const fixedUrl = location.pathname.replace('&', '?');
-      
+      const fixedUrl = location.pathname.replace("&", "?");
+
       // Redirect to the correct path after a short delay
       setTimeout(() => {
         navigate(fixedUrl, { replace: true });
@@ -49,7 +49,9 @@ const NotFound = () => {
         ) : (
           <>
             <h1 className="text-4xl font-bold mb-2">404</h1>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-6">Oops! Page not found</p>
+            <p className="text-xl text-gray-600 dark:text-gray-300 mb-6">
+              Oops! Page not found
+            </p>
             <Button onClick={handleReturnHome} className="w-full">
               Return to Home
             </Button>

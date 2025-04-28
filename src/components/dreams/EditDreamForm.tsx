@@ -18,23 +18,45 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { X } from "lucide-react";
+
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type EditDreamFormProps = {
   dream: Dream;
-  onSubmit: (dreamId: string, updatedDream: Partial<Dream>, file?: File) => void;
+  onSubmit: (
+    dreamId: string,
+    updatedDream: Partial<Dream>,
+    file?: File,
+  ) => void;
   onCancel: () => void;
 };
 
-const dreamCategories: DreamCategory[] = ['normal', 'nightmare', 'lucid', 'recurring', 'prophetic'];
-const dreamEmotions: DreamEmotion[] = ['neutral', 'joy', 'fear', 'confusion', 'anxiety', 'peace', 'excitement', 'sadness'];
+const dreamCategories: DreamCategory[] = [
+  "normal",
+  "nightmare",
+  "lucid",
+  "recurring",
+  "prophetic",
+];
+const dreamEmotions: DreamEmotion[] = [
+  "neutral",
+  "joy",
+  "fear",
+  "confusion",
+  "anxiety",
+  "peace",
+  "excitement",
+  "sadness",
+];
 
-export function EditDreamForm({ dream, onSubmit, onCancel }: EditDreamFormProps) {
+export function EditDreamForm({
+  dream,
+  onSubmit,
+  onCancel,
+}: EditDreamFormProps) {
   const { toast } = useToast();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [updatedDream, setUpdatedDream] = useState({
@@ -44,18 +66,18 @@ export function EditDreamForm({ dream, onSubmit, onCancel }: EditDreamFormProps)
     emotion: dream.emotion,
     is_public: dream.is_public,
   });
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Don't proceed if there's no description or title
     if (!updatedDream.description.trim()) {
       toast({
         title: "Description Required",
         description: "Please tell us about your dream before saving.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -64,21 +86,22 @@ export function EditDreamForm({ dream, onSubmit, onCancel }: EditDreamFormProps)
       toast({
         title: "Title Required",
         description: "Please provide a title for your dream.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       onSubmit(dream.id, updatedDream, selectedFile || undefined);
     } catch (error) {
-      console.error('Error during dream update:', error);
+      console.error("Error during dream update:", error);
       toast({
         title: "Update Error",
-        description: "There was a problem updating your dream. Please try again.",
-        variant: "destructive"
+        description:
+          "There was a problem updating your dream. Please try again.",
+        variant: "destructive",
       });
       setIsSubmitting(false);
     }
@@ -105,7 +128,9 @@ export function EditDreamForm({ dream, onSubmit, onCancel }: EditDreamFormProps)
             <Input
               id="title"
               value={updatedDream.title}
-              onChange={(e) => setUpdatedDream({ ...updatedDream, title: e.target.value })}
+              onChange={(e) =>
+                setUpdatedDream({ ...updatedDream, title: e.target.value })
+              }
               required
               placeholder="Enter a title for your dream"
             />
@@ -116,7 +141,12 @@ export function EditDreamForm({ dream, onSubmit, onCancel }: EditDreamFormProps)
             <Textarea
               id="description"
               value={updatedDream.description}
-              onChange={(e) => setUpdatedDream({ ...updatedDream, description: e.target.value })}
+              onChange={(e) =>
+                setUpdatedDream({
+                  ...updatedDream,
+                  description: e.target.value,
+                })
+              }
               required
               rows={8}
               placeholder="Describe your dream in as much detail as you can remember..."
@@ -180,11 +210,11 @@ export function EditDreamForm({ dream, onSubmit, onCancel }: EditDreamFormProps)
 
           <div className="space-y-2">
             <Label htmlFor="media">Replace Image (Optional)</Label>
-            <Input 
-              id="media" 
-              type="file" 
-              accept="image/*,video/*" 
-              onChange={handleFileChange} 
+            <Input
+              id="media"
+              type="file"
+              accept="image/*,video/*"
+              onChange={handleFileChange}
             />
             <p className="text-sm text-muted-foreground">
               Upload a new image or keep the existing one.
@@ -192,17 +222,26 @@ export function EditDreamForm({ dream, onSubmit, onCancel }: EditDreamFormProps)
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
-            <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto order-2 sm:order-1">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              className="w-full sm:w-auto order-2 sm:order-1"
+            >
               Cancel
             </Button>
-            <Button type="submit" className="w-full sm:w-auto order-1 sm:order-2" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              className="w-full sm:w-auto order-1 sm:order-2"
+              disabled={isSubmitting}
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Updating...
                 </>
               ) : (
-                'Update Dream'
+                "Update Dream"
               )}
             </Button>
           </div>

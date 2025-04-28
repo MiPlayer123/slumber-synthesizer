@@ -1,6 +1,18 @@
-
-export type DreamCategory = 'nightmare' | 'lucid' | 'recurring' | 'prophetic' | 'normal';
-export type DreamEmotion = 'joy' | 'fear' | 'confusion' | 'anxiety' | 'peace' | 'excitement' | 'sadness' | 'neutral';
+export type DreamCategory =
+  | "nightmare"
+  | "lucid"
+  | "recurring"
+  | "prophetic"
+  | "normal";
+export type DreamEmotion =
+  | "joy"
+  | "fear"
+  | "confusion"
+  | "anxiety"
+  | "peace"
+  | "excitement"
+  | "sadness"
+  | "neutral";
 
 export interface Profile {
   id: string;

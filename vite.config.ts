@@ -6,12 +6,12 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   // 1. load all env vars (no prefix filter)
-  const env = loadEnv(mode, process.cwd(), '');
+  const env = loadEnv(mode, process.cwd(), "");
 
   // 2. coerce to the right types
   const PORT = env.PORT ? parseInt(env.PORT, 10) : 8080;
-  const ORIGIN = env.ORIGIN || 'http://localhost';
-  const API = env.SUPABASE_URL || 'https://api.lucidrem.com';
+  const ORIGIN = env.ORIGIN || "http://localhost";
+  const API = env.SUPABASE_URL || "https://api.lucidrem.com";
 
   return {
     server: {
@@ -22,10 +22,11 @@ export default defineConfig(({ mode }) => {
         "/api/functions/v1": {
           target: API,
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/functions\/v1/, "/functions/v1"),
+          rewrite: (path) =>
+            path.replace(/^\/api\/functions\/v1/, "/functions/v1"),
           headers: {
-            "Origin": ORIGIN
-          }
+            Origin: ORIGIN,
+          },
         },
         // Proxy requests to the Supabase REST API
         "/api/rest/v1": {
@@ -33,16 +34,14 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/rest\/v1/, "/rest/v1"),
           headers: {
-            "Origin": ORIGIN
-          }
-        }
-      }
+            Origin: ORIGIN,
+          },
+        },
+      },
     },
-    plugins: [
-      react(),
-      mode === 'development' &&
-      componentTagger(),
-    ].filter(Boolean),
+    plugins: [react(), mode === "development" && componentTagger()].filter(
+      Boolean,
+    ),
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
@@ -54,10 +53,10 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks: {
             // Split vendor code to help with caching
-            vendor: ['react', 'react-dom', 'react-router-dom']
-          }
-        }
-      }
-    }
+            vendor: ["react", "react-dom", "react-router-dom"],
+          },
+        },
+      },
+    },
   };
 });
