@@ -167,7 +167,7 @@ export function VoiceRecorder({
   const processAndTranscribeAudio = async (audioBlob: Blob) => {
     try {
       console.log("Processing audio recording...");
-      
+     
       // Add a timeout for the entire process to prevent infinite loading
       const processingTimeout = setTimeout(() => {
         console.error("Audio processing timed out after 30 seconds");
@@ -184,19 +184,10 @@ export function VoiceRecorder({
       console.log(`Platform detection: Desktop=${isDesktop}`);
       
       try {
-        if (isDesktop) {
-          // Simplified approach for desktop - send directly as webm
-          console.log("Using simplified processing for desktop browsers");
-          await transcribeAudio(audioBlob, audioBlob.type.split('/')[1] || 'webm');
-          clearTimeout(processingTimeout);
-          return;
-        }
-        
-        // Mobile processing path - convert to WAV
-        // 1. Get audio data as array buffer
+        // Get audio data as array buffer
         const arrayBuffer = await audioBlob.arrayBuffer();
         
-        // 2. Decode the audio using Web Audio API
+        // Decode the audio using Web Audio API
         const audioContext = getAudioContext();
         let audioBuffer;
         try {
@@ -204,18 +195,18 @@ export function VoiceRecorder({
           console.log(`Decoded audio: ${audioBuffer.duration}s, ${audioBuffer.numberOfChannels} channels, ${audioBuffer.sampleRate}Hz`);
         } catch (decodeError) {
           console.error("Failed to decode audio:", decodeError);
-          // If decoding fails on mobile, try the desktop approach as fallback
+          // If decoding fails, try direct transcription without decoding
           console.log("Falling back to direct transcription without decoding");
           await transcribeAudio(audioBlob, audioBlob.type.split('/')[1] || 'webm');
           clearTimeout(processingTimeout);
           return;
         }
         
-        // 3. Convert to WAV format
+        // Convert to WAV format
         const wavBlob = await audioBufferToWav(audioBuffer);
         console.log(`WAV conversion complete. Size: ${wavBlob.size} bytes`);
         
-        // 4. Send for transcription
+        // Send for transcription
         await transcribeAudio(wavBlob, 'wav');
         clearTimeout(processingTimeout);
       } catch (processingError) {
@@ -349,12 +340,7 @@ export function VoiceRecorder({
       
       if (error) {
         console.error('Transcription function error:', error);
-        const isDesktop = !(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
-        if (isDesktop) {
-          throw new Error('Desktop transcription failed. Try recording from a mobile device instead, or use the text input.');
-        } else {
-          throw new Error(error.message || 'Transcription failed');
-        }
+        throw new Error(error.message || 'Transcription failed');
       }
       
       if (data?.text) {

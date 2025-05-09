@@ -418,9 +418,18 @@ const Settings = () => {
           return;
         }
         
-        // As a fallback for other errors, try to use customer support link
-        const supportUrl = "https://billing.stripe.com/p/login/test_3cs8xSc4bcCt9aw9AA";
-        window.location.href = supportUrl;
+        // For all other errors, send to support form instead of test URL
+        toast({
+          variant: "destructive", 
+          title: "Portal Unavailable",
+          description: "Could not access the billing portal. Redirecting to support form.",
+        });
+        
+        // Open support form after a short delay
+        setTimeout(() => {
+          window.location.href = "https://forms.gle/aMFrfqbqiMMBSEKr9";
+        }, 1500);
+        
         return;
       }
       
@@ -591,9 +600,18 @@ const Settings = () => {
           return;
         }
         
-        // As a fallback for other errors, try to use customer support link
-        const supportUrl = "https://billing.stripe.com/p/login/test_3cs8xSc4bcCt9aw9AA";
-        window.location.href = supportUrl;
+        // For all other errors, send to support form instead of test URL
+        toast({
+          variant: "destructive", 
+          title: "Portal Unavailable",
+          description: "Could not access the billing portal. Redirecting to support form.",
+        });
+        
+        // Open support form after a short delay
+        setTimeout(() => {
+          window.location.href = "https://forms.gle/aMFrfqbqiMMBSEKr9";
+        }, 1500);
+        
         return;
       }
       

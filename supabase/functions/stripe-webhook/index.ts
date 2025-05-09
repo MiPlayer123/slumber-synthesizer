@@ -58,11 +58,17 @@ serve(async (req) => {
   }
 
   try {
-    // Get the raw request body
-    const body = await req.text();
+    // Get the raw request body using arrayBuffer for reliable signature verification
+    const buf = await req.arrayBuffer();
+    const body = new TextDecoder().decode(buf);
     
     // Verify the webhook signature
     logInfo("Verifying webhook signature");
+    if (!webhookSecret) {
+      logDebug("No webhook secret configured - this will cause signature verification to fail");
+      throw new Error("No webhook secret configured");
+    }
+    
     const event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     
     logInfo(`Event received: ${event.type}`);
@@ -474,6 +480,16 @@ serve(async (req) => {
     });
   } catch (err) {
     logDebug(`Error processing webhook: ${err.message}`, err);
+    
+    // Special handling for specific errors
+    if (err.message && (
+      err.message.includes("No signature") ||
+      err.message.includes("No webhook secret configured") ||
+      err.message.includes("signature verification failed")
+    )) {
+      logDebug("Signature verification failed - check STRIPE_WEBHOOK_SECRET env var");
+    }
+    
     return new Response(JSON.stringify({ error: err.message }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

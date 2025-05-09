@@ -95,10 +95,17 @@ serve(async (req) => {
         }
         
         // Create portal URL for subscription management
-        const portalSession = await stripe.billingPortal.sessions.create({
-          customer: stripeCustomerId,
-          return_url: `${Deno.env.get("SITE_URL")}/settings?tab=subscription`,
-        });
+        let portalUrl: string|null = null;
+        try {
+          const portalSession = await stripe.billingPortal.sessions.create({
+            customer: stripeCustomerId,
+            return_url: `${Deno.env.get("SITE_URL")}/settings?tab=subscription`,
+          });
+          portalUrl = portalSession.url;
+        } catch (err) {
+          console.warn("[GET-STRIPE-SUBSCRIPTION] portal create failed (live mode unconfigured)", err.message);
+          // portalUrl stays null
+        }
         
         // Build the row for database update
         const row = {
@@ -107,7 +114,7 @@ serve(async (req) => {
           subscription_id: sub.id,
           status: sub.status === "active" ? "active" : sub.status,
           subscription_status: sub.status === "active" ? "active" : sub.status,
-          customer_portal_url: portalSession.url,
+          customer_portal_url: portalUrl,
           cancel_at_period_end: sub.cancel_at_period_end || false,
           canceled_at: sub.canceled_at ? new Date(sub.canceled_at * 1000).toISOString() : null,
           current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
@@ -314,10 +321,17 @@ serve(async (req) => {
         : session.customer.id;
         
       // Create portal URL for subscription management
-      const portalSession = await stripe.billingPortal.sessions.create({
-        customer: customerId,
-        return_url: `${Deno.env.get("SITE_URL")}/settings?tab=subscription`,
-      });
+      let portalUrl: string|null = null;
+      try {
+        const portalSession = await stripe.billingPortal.sessions.create({
+          customer: customerId,
+          return_url: `${Deno.env.get("SITE_URL")}/settings?tab=subscription`,
+        });
+        portalUrl = portalSession.url;
+      } catch (err) {
+        console.warn("[GET-STRIPE-SUBSCRIPTION] portal create failed (live mode unconfigured)", err.message);
+        // portalUrl stays null
+      }
       
       // Build the row for database insert/update
       const row = {
@@ -326,7 +340,7 @@ serve(async (req) => {
         subscription_id: sub.id,
         status: paymentFailed ? "past_due" : "active",
         subscription_status: paymentFailed ? "past_due" : "active",
-        customer_portal_url: portalSession.url,
+        customer_portal_url: portalUrl,
         cancel_at_period_end: sub.cancel_at_period_end || false,
         canceled_at: sub.canceled_at ? new Date(sub.canceled_at * 1000).toISOString() : null,
         current_period_end: new Date(sub.current_period_end * 1000).toISOString(),

@@ -124,11 +124,151 @@ serve(async (req) => {
     console.log("Creating portal session");
     const defaultReturnUrl = `${Deno.env.get("SITE_URL")}/settings?tab=subscription`;
     
+    // Helper function to create portal session with auto-configuration fallback
+    async function createPortalSession(customer: string, returnUrl: string) {
+      try {
+        return await stripe.billingPortal.sessions.create({
+          customer,
+          return_url: returnUrl
+        });
+      } catch (err) {
+        // Handle "no configuration" error once, then re-throw others
+        if (err?.raw?.message?.startsWith('No configuration provided')) {
+          console.log("No portal configuration found, creating one automatically");
+          
+          // Create a minimal configuration on the fly
+          const { product, prices } = await getCustomerProductAndPrices(customer);
+          
+          const cfg = await stripe.billingPortal.configurations.create({
+            business_profile: {
+              headline: 'LucidRem',
+              privacy_policy_url: `${Deno.env.get('SITE_URL')}/privacy`,
+              terms_of_service_url: `${Deno.env.get('SITE_URL')}/terms`
+            },
+            features: {
+              payment_method_update: {
+                enabled: true
+              },
+              subscription_cancel: { enabled: true, mode: 'at_period_end' },
+              subscription_update: { 
+                enabled: true, 
+                proration_behavior: 'create_prorations',
+                default_allowed_updates: ['price', 'promotion_code'],
+                products: [
+                  {
+                    product,
+                    prices
+                  }
+                ]
+              }
+            }
+          });
+
+          console.log("Created new portal configuration:", cfg.id);
+
+          // now retry with that configuration
+          return await stripe.billingPortal.sessions.create({
+            customer,
+            return_url: returnUrl,
+            configuration: cfg.id
+          });
+        }
+        throw err; // any other Stripe error
+      }
+    }
+    
+    // Helper function to get the product ID from customer's current subscription
+    async function getCustomerProductId(customerId: string): Promise<string> {
+      try {
+        // Fetch customer's subscriptions
+        const subscriptions = await stripe.subscriptions.list({
+          customer: customerId,
+          status: 'active',
+          limit: 1
+        });
+        
+        if (subscriptions.data.length === 0) {
+          console.log("No active subscriptions found for customer, using default product");
+          // If no subscription found, use a default product ID
+          // This is a placeholder - replace with your actual product ID
+          return 'prod_P1wPUbIjbkDfz0'; // Replace with your product ID
+        }
+        
+        // Get the subscription item's product ID
+        const subscription = subscriptions.data[0];
+        const items = subscription.items.data;
+        
+        if (items.length === 0) {
+          console.log("No items in subscription, using default product");
+          // Fallback to default product ID
+          return 'prod_P1wPUbIjbkDfz0'; // Replace with your product ID
+        }
+        
+        // Get price from the first item and fetch its product ID
+        const price = await stripe.prices.retrieve(items[0].price.id);
+        console.log(`Found product ID: ${price.product}`);
+        
+        return price.product as string;
+      } catch (error) {
+        console.error("Error fetching product ID:", error);
+        // Fallback to default product ID
+        return 'prod_P1wPUbIjbkDfz0'; // Replace with your product ID
+      }
+    }
+
+    // Helper function to get the product and price IDs from customer's current subscription
+    async function getCustomerProductAndPrices(customerId: string): Promise<{ product: string; prices: string[] }> {
+      try {
+        // Fetch customer's subscriptions
+        const subscriptions = await stripe.subscriptions.list({
+          customer: customerId,
+          status: 'active',
+          limit: 1
+        });
+        
+        if (subscriptions.data.length === 0) {
+          console.log("No active subscriptions found for customer, using default product/price");
+          // If no subscription found, use default product and price IDs
+          return {
+            product: 'prod_P1wPUbIjbkDfz0', // Replace with your default product ID
+            prices: ['price_1ABCDxyzDefaultPrice'] // Replace with your default price ID
+          };
+        }
+        
+        // Get the subscription item's product and price ID
+        const subscription = subscriptions.data[0];
+        const items = subscription.items.data;
+        
+        if (items.length === 0) {
+          console.log("No items in subscription, using default product/price");
+          // Fallback to default product and price IDs
+          return {
+            product: 'prod_P1wPUbIjbkDfz0', // Replace with your default product ID
+            prices: ['price_1ABCDxyzDefaultPrice'] // Replace with your default price ID
+          };
+        }
+        
+        // Get price from the first item and fetch its product ID
+        const priceId = items[0].price.id;
+        const price = await stripe.prices.retrieve(priceId);
+        console.log(`Found product ID: ${price.product} and price ID: ${priceId}`);
+        
+        return {
+          product: price.product as string,
+          prices: [priceId]
+        };
+      } catch (error) {
+        console.error("Error fetching product and price IDs:", error);
+        // Fallback to default product and price IDs
+        return {
+          product: 'prod_P1wPUbIjbkDfz0', // Replace with your default product ID
+          prices: ['price_1ABCDxyzDefaultPrice'] // Replace with your default price ID
+        };
+      }
+    }
+    
     try {
-      const portalSession = await stripe.billingPortal.sessions.create({
-        customer: stripeCustomerId,
-        return_url: returnUrl || defaultReturnUrl,
-      });
+      const portalSession = await createPortalSession(stripeCustomerId, returnUrl || defaultReturnUrl);
       
       console.log("Portal session created successfully, URL length:", portalSession.url.length);
       

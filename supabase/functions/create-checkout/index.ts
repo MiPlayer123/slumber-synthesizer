@@ -105,7 +105,8 @@ serve(async (req) => {
       cancel_url : `${returnUrl || SITE_URL + "/checkout-complete"}?canceled=true`,
       subscription_data: { metadata: { user_id: userId } },
       // We store the user_id and the stripe_customer_id in the session metadata to use later
-      metadata: { user_id: userId, stripe_customer_id: customerId }
+      metadata: { user_id: userId, stripe_customer_id: customerId },
+      allow_promotion_codes: true  // Enable coupon code entry field
     });
     
     console.log(`Created checkout session: ${session.id}, url: ${session.url}`);
