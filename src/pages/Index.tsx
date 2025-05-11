@@ -1,271 +1,244 @@
-import { useNavigate } from "react-router-dom";
+import { useRef, useState, useEffect } from "react";
+import { ArrowRight, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { useEffect } from "react";
-import { MoonIcon, StarIcon, BookOpenIcon, BrainIcon, UsersIcon } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import DreamScene from "@/components/dream-journal/dream-scene";
+import { FeatureGrid } from "@/components/dream-journal/feature-grid";
+import { TestimonialSlider } from "@/components/dream-journal/testimonial-slider";
+import { ParticleField } from "@/components/dream-journal/particle-field";
+import { DreamStatistics } from "@/components/dream-journal/dream-statistics";
+import { DreamImageGenerator } from "@/components/dream-journal/dream-image-generator";
+import { DreamSharing } from "@/components/dream-journal/dream-sharing";
+import { DreamAnalysis } from "@/components/dream-journal/dream-analysis";
+import { Brain, BarChart, Sparkles, Share2 } from "lucide-react";
+import { Navigation } from "@/components/Navigation";
 
-const Index = () => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
+interface DreamItem {
+  id: number;
+  title: string;
+  color: string;
+}
+
+export default function Index() {
+  const [scrollY, setScrollY] = useState(0);
+  const heroRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    document.title = "Rem";
-    
-    // Redirect to journal if user is already logged in
-    if (user) {
-      navigate("/journal");
-      return;
-    }
-    
-    // Check if we need to scroll to features section
-    const shouldScrollToFeatures = sessionStorage.getItem("scrollToFeatures");
-    if (shouldScrollToFeatures === "true") {
-      // Remove the flag from storage
-      sessionStorage.removeItem("scrollToFeatures");
-      
-      // Scroll to features section with a slight delay to ensure the page is fully loaded
-      setTimeout(() => {
-        const featuresSection = document.getElementById("features");
-        if (featuresSection) {
-          featuresSection.scrollIntoView({ behavior: "smooth" });
-        }
-      }, 100);
-    }
-  }, [user, navigate]);
-
-  // Animation variants
-  const fadeIn = {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.7 }
-  };
-
-  const staggerContainer = {
-    animate: { transition: { staggerChildren: 0.1 } }
-  };
-
-  const floatAnimation = {
-    initial: { y: 0 },
-    animate: { y: [0, -10, 0], transition: { repeat: Infinity, duration: 6, ease: "easeInOut" }}
-  };
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-950/90 via-purple-900/80 to-indigo-950/90 text-white">
-      {/* Hero Section */}
-      <div className="container mx-auto px-4 pt-20 pb-32 relative">
-        <motion.div 
-          className="absolute top-20 right-20 text-purple-300/30 hidden md:block"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 200, repeat: Infinity, ease: "linear" }}
-        >
-          <StarIcon size={40} />
-        </motion.div>
-        
-        <motion.div 
-          className="absolute bottom-40 left-20 text-blue-300/20 hidden md:block"
-          {...floatAnimation}
-        >
-          <MoonIcon size={60} />
-        </motion.div>
+    <div className="min-h-screen bg-[#1a0b2e] text-white overflow-x-hidden">
+      {/* Particle Background */}
+      <div className="fixed inset-0 z-0 opacity-30">
+        <ParticleField />
+      </div>
 
-        <div className="max-w-3xl mx-auto text-center relative z-10">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8 }}
-          >
-            <div className="flex justify-center mb-6">
-              <div className="p-3 bg-purple-500/20 backdrop-blur rounded-full">
-                <MoonIcon size={40} className="text-purple-200" />
+      {/* Header */}
+      <Navigation />
+
+      {/* Navigation renders mobile menu automatically */}
+
+      <main className="relative z-10">
+        {/* Hero Section */}
+        <section ref={heroRef} className="relative min-h-[80vh] flex items-center justify-center overflow-hidden pb-12">
+          <div className="absolute inset-0 z-0">
+            <DreamScene scrollY={scrollY} />
+          </div>
+
+          <div className="container mx-auto px-6 py-16 md:py-24 relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="max-w-3xl mx-auto text-center space-y-6"
+            >
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-300 via-blue-400 to-cyan-400 drop-shadow-lg">
+                Capture and share the ephemeral world of dreams
+              </h1>
+              <p className="text-lg text-white/70 max-w-2xl mx-auto">
+                Record your dreams, uncover hidden patterns, and connect with a community of dreamers in a beautiful,
+                secure space.
+              </p>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+                className="flex flex-col sm:flex-row justify-center gap-4 pt-4"
+              >
+                <Button size="lg" className="bg-white text-black hover:bg-white/90 transition-all duration-300 hover:scale-105">
+                  Start Your Dream Journal
+                </Button>
+                <Button size="lg" className="bg-white text-black hover:bg-white/90 transition-all duration-300 hover:scale-105">
+                  Explore Dreams
+                </Button>
+              </motion.div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Dream Cards Section */}
+        {/* Dream Cards Section removed; statistics below already show patterns and trends */}
+
+        {/* Features Grid */}
+        <section id="features" className="relative pt-8 pb-16">
+          <FeatureGrid />
+        </section>
+
+        {/* Dream Analysis Section */}
+        <section className="relative py-24 overflow-hidden">
+          <div className="container mx-auto px-6">
+            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ duration: 1 }} viewport={{ once: true }} className="text-center mb-16">
+              <div className="inline-flex items-center justify-center gap-2 bg-white/5 px-3 py-1 rounded-full text-sm font-medium mb-4">
+                <Brain className="w-4 h-4 text-purple-400" />
+                <span>AI-Powered Analysis</span>
               </div>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Understand Your Dreams</h2>
+              <div className="w-16 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 mx-auto mt-4" />
+            </motion.div>
+
+            <DreamAnalysis />
+          </div>
+        </section>
+
+        {/* Dream Statistics Section */}
+        <section className="relative py-24 overflow-hidden">
+          <div className="container mx-auto px-6">
+            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ duration: 1 }} viewport={{ once: true }} className="text-center mb-16">
+              <div className="inline-flex items-center justify-center gap-2 bg-white/5 px-3 py-1 rounded-full text-sm font-medium mb-4">
+                <BarChart className="w-4 h-4 text-blue-400" />
+                <span>Dream Patterns</span>
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Track Your Dream Patterns</h2>
+              <div className="w-16 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 mx-auto mt-4" />
+            </motion.div>
+
+            <DreamStatistics />
+          </div>
+        </section>
+
+        {/* Dream Image Generator Section */}
+        <section className="relative py-24 overflow-hidden">
+          <div className="container mx-auto px-6">
+            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ duration: 1 }} viewport={{ once: true }} className="text-center mb-16">
+              <div className="inline-flex items-center justify-center gap-2 bg-white/5 px-3 py-1 rounded-full text-sm font-medium mb-4">
+                <Sparkles className="w-4 h-4 text-green-400" />
+                <span>Dream Visualization</span>
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Visualize Your Dreams</h2>
+              <div className="w-16 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 mx-auto mt-4" />
+            </motion.div>
+
+            <div className="max-w-2xl mx-auto">
+              <DreamImageGenerator />
             </div>
-          </motion.div>
-          
-          <motion.h1 
-            className="text-5xl md:text-6xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-200 to-blue-200"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-          >
-            Capture and share the ephemeral world of dreams
-          </motion.h1>
-          
-          <motion.p 
-            className="text-xl text-purple-100/90 mb-10"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-          >
-            Record your dreams, uncover hidden patterns, and connect with a community of dreamers in a beautiful, secure space.
-          </motion.p>
-          
-          <motion.div 
-            className="flex flex-col sm:flex-row justify-center gap-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.4 }}
-          >
-            <Button 
-              size="lg" 
-              onClick={() => navigate("/journal")}
-              className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white border-0 px-8 py-6 text-lg"
-            >
-              Start Your Dream Journal
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline"
-              onClick={() => navigate("/community")}
-              className="border-purple-300 text-purple-500 hover:bg-purple-900/30 px-8 py-6 text-lg"
-            >
-              Explore Dreams
-            </Button>
-          </motion.div>
-        </div>
-      </div>
+          </div>
+        </section>
 
-      {/* Features Section */}
-      <div id="features" className="container mx-auto px-4 py-24 bg-indigo-950/40 backdrop-blur-sm">
-        <motion.div
-          variants={staggerContainer}
-          initial="initial"
-          whileInView="animate"
-          viewport={{ once: true, amount: 0.3 }}
-          className="max-w-4xl mx-auto"
-        >
-          <motion.h2 
-            variants={fadeIn}
-            className="text-3xl md:text-4xl font-bold text-center mb-16 text-purple-100"
-          >
-            Your dream experience, evolved
-          </motion.h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            <motion.div variants={fadeIn} className="feature-card">
-              <div className="mb-6 flex justify-center">
-                <div className="p-4 rounded-full bg-purple-500/20 backdrop-blur">
-                  <BookOpenIcon className="h-8 w-8 text-purple-300" />
-                </div>
+        {/* Dream Sharing Section */}
+        <section className="relative py-24 overflow-hidden">
+          <div className="container mx-auto px-6">
+            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ duration: 1 }} viewport={{ once: true }} className="text-center mb-16">
+              <div className="inline-flex items-center justify-center gap-2 bg-white/5 px-3 py-1 rounded-full text-sm font-medium mb-4">
+                <Share2 className="w-4 h-4 text-cyan-400" />
+                <span>Dream Community</span>
               </div>
-              <h3 className="text-xl font-semibold mb-3 text-center text-purple-100">Journal With Ease</h3>
-              <p className="text-center text-purple-200/80">
-                Capture rich dream details with our intuitive journaling tools designed for both quick entries and deep reflection.
-              </p>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Share Your Dreams</h2>
+              <div className="w-16 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 mx-auto mt-4" />
             </motion.div>
 
-            <motion.div variants={fadeIn} className="feature-card">
-              <div className="mb-6 flex justify-center">
-                <div className="p-4 rounded-full bg-purple-500/20 backdrop-blur">
-                  <BrainIcon className="h-8 w-8 text-purple-300" />
-                </div>
-              </div>
-              <h3 className="text-xl font-semibold mb-3 text-center text-purple-100">AI-Powered Insights</h3>
-              <p className="text-center text-purple-200/80">
-                Discover patterns, symbols, and meanings in your dreams with our thoughtful AI analysis.
-              </p>
+            <DreamSharing />
+          </div>
+        </section>
+
+        {/* Testimonials */}
+        <section id="testimonials" className="relative py-24">
+          <div className="container mx-auto px-6">
+            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ duration: 1 }} viewport={{ once: true }} className="text-center mb-16">
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Stories from the dreamscape</h2>
+              <div className="w-16 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 mx-auto mt-4" />
             </motion.div>
 
-            <motion.div variants={fadeIn} className="feature-card">
-              <div className="mb-6 flex justify-center">
-                <div className="p-4 rounded-full bg-purple-500/20 backdrop-blur">
-                  <UsersIcon className="h-8 w-8 text-purple-300" />
-                </div>
-              </div>
-              <h3 className="text-xl font-semibold mb-3 text-center text-purple-100">Dream Community</h3>
-              <p className="text-center text-purple-200/80">
-                Share experiences and connect with fellow dreamers in a supportive, respectful environment.
+            <TestimonialSlider />
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="relative py-24">
+          <div className="container mx-auto px-6">
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} viewport={{ once: true }} className="max-w-2xl mx-auto text-center">
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-4">Begin your dream journey</h2>
+              <p className="text-white/70 mb-8">
+                Join thousands exploring their subconscious mind and connecting through dreams.
               </p>
+              <Button size="lg" className="bg-white text-black hover:bg-white/90 transition-all duration-300 hover:scale-105">
+                Start Free <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             </motion.div>
           </div>
-        </motion.div>
-      </div>
-
-      {/* Testimonial Section - Simplified */}
-      <div className="container mx-auto px-4 py-24">
-        <motion.div
-          initial="initial"
-          whileInView="animate"
-          viewport={{ once: true, amount: 0.3 }}
-          className="max-w-3xl mx-auto"
-        >
-          <motion.h2 
-            variants={fadeIn}
-            className="text-3xl md:text-4xl font-bold text-center mb-12 text-purple-100"
-          >
-            Stories from the dreamscape
-          </motion.h2>
-
-          <div className="space-y-6">
-            <motion.div 
-              variants={fadeIn}
-              className="p-8 rounded-xl bg-purple-800/20 backdrop-blur border border-purple-500/20"
-            >
-              <p className="text-purple-100 italic mb-4">
-                "Rem has transformed how I connect with my dreams. The insights I've gained have been truly illuminating, and the community is wonderfully supportive."
-              </p>
-              <p className="text-right text-purple-300 font-medium">— Alex D.</p>
-            </motion.div>
-            
-            <motion.div 
-              variants={fadeIn}
-              className="p-8 rounded-xl bg-indigo-800/20 backdrop-blur border border-indigo-500/20"
-            >
-              <p className="text-purple-100 italic mb-4">
-                "I've kept dream journals for years, but Rem brings a whole new dimension to the practice. The AI analysis has helped me understand recurring themes I never noticed before."
-              </p>
-              <p className="text-right text-purple-300 font-medium">— Jamie L.</p>
-            </motion.div>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* CTA Section */}
-      <motion.div 
-        initial="initial"
-        whileInView="animate"
-        viewport={{ once: true }}
-        className="container mx-auto px-4 py-20"
-      >
-        <motion.div 
-          variants={fadeIn}
-          className="max-w-3xl mx-auto text-center p-12 rounded-3xl bg-gradient-to-r from-purple-600/30 to-indigo-600/30 backdrop-blur-md border border-purple-500/30"
-        >
-          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white">Begin your dream journey</h2>
-          <p className="text-xl text-purple-100 mb-8">
-            Join thousands exploring their subconscious mind and connecting through dreams.
-          </p>
-          <Button
-            size="lg"
-            onClick={() => navigate("/auth")}
-            className="bg-white text-purple-900 hover:bg-purple-100 px-8 py-6 text-lg font-medium"
-          >
-            Start Free
-          </Button>
-        </motion.div>
-      </motion.div>
+        </section>
+      </main>
 
       {/* Footer */}
-      <footer className="bg-indigo-950/80 border-t border-purple-500/20 py-12">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-8">
-            <div className="flex items-center mb-4 md:mb-0">
-              <span className="text-xl font-bold text-purple-100">REM</span>
+      <footer className="relative z-10 border-t border-white/10 py-12">
+        <div className="container mx-auto px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="bg-gradient-to-r from-purple-500 to-blue-500 p-1.5 rounded-full">
+                  <Moon size={16} className="text-black" />
+                </div>
+                <span className="text-lg font-medium tracking-tight">Rem</span>
+              </div>
+              <p className="text-sm text-white/50">Explore the world of dreams with our innovative journaling platform.</p>
             </div>
-            <div className="flex space-x-6">
-              <a href="/about" className="text-purple-300 hover:text-white transition">About</a>
-              <a href="https://forms.gle/aMFrfqbqiMMBSEKr9" target="_blank" rel="noopener noreferrer" className="text-purple-300 hover:text-white transition">Support</a>
-              <a href="/privacy" className="text-purple-300 hover:text-white transition">Privacy</a>
-              <a href="/terms" className="text-purple-300 hover:text-white transition">Terms</a>
+            <div>
+              <h3 className="text-sm font-medium mb-4">Features</h3>
+              <ul className="space-y-2 text-sm text-white/50">
+                {[
+                  "Dream Journal",
+                  "AI Analysis",
+                  "Community",
+                  "Privacy",
+                ].map((item, idx) => (
+                  <li key={idx}>
+                    <a href="#" className="hover:text-white transition-colors">
+                      {item}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium mb-4">Company</h3>
+              <ul className="space-y-2 text-sm text-white/50">
+                {["About Us", "Careers", "Contact"].map((item, idx) => (
+                  <li key={idx}>
+                    <a href="#" className="hover:text-white transition-colors">
+                      {item}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium mb-4">Resources</h3>
+              <ul className="space-y-2 text-sm text-white/50">
+                {["Blog", "Help Center", "Terms of Service", "Privacy Policy"].map((item, idx) => (
+                  <li key={idx}>
+                    <a href="#" className="hover:text-white transition-colors">
+                      {item}
+                    </a>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
-          <div className="text-center text-purple-400 text-sm">
-            <p>&copy; {new Date().getFullYear()} REM. All rights reserved.</p>
-          </div>
+          <p className="mt-8 text-center text-xs text-white/40">© {new Date().getFullYear()} Rem. All rights reserved.</p>
         </div>
       </footer>
     </div>
   );
-};
-
-export default Index;
+}

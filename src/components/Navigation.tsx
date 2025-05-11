@@ -63,8 +63,16 @@ export const Navigation = () => {
     setIsOpen(false);
   };
 
+  const isLanding = location.pathname === "/";
+
   return (
-    <nav className="fixed top-0 w-full bg-background/80 dark:bg-background/25 backdrop-blur-lg border-b z-50 animate-fade-in">
+    <nav
+      className={`fixed top-0 w-full z-50 animate-fade-in transition-colors duration-300 ${
+        isLanding
+          ? "bg-transparent border-transparent backdrop-blur-0"
+          : "bg-background/80 dark:bg-background/25 backdrop-blur-lg border-b"
+      }`}
+    >
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link to={user ? "/journal" : "/"} className="flex items-center space-x-2">
           <span className="text-2xl font-bold text-dream-600">☾ REM</span>
@@ -211,7 +219,12 @@ export const Navigation = () => {
             </>
           ) : (
             <Link to="/auth" onClick={() => handleNavigation('/auth')}>
-              <Button variant="default">Sign In</Button>
+              <Button 
+                variant={isLanding ? "outline" : "default"}
+                className={`w-full ${isLanding ? "border-white/20 text-white hover:bg-white/10" : ""}`}
+              >
+                Sign In
+              </Button>
             </Link>
           )}
         </div>
@@ -363,7 +376,12 @@ export const Navigation = () => {
                 ) : (
                   <div className="flex flex-col space-y-4">
                     <Link to="/auth" onClick={() => handleNavigation('/auth')}>
-                      <Button className="w-full">Sign In</Button>
+                      <Button 
+                        variant={isLanding ? "outline" : "default"}
+                        className={`w-full ${isLanding ? "border-white/20 text-white hover:bg-white/10" : ""}`}
+                      >
+                        Sign In
+                      </Button>
                     </Link>
                     <button
                       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
