@@ -69,7 +69,7 @@ export const Navigation = () => {
     <nav
       className={`fixed top-0 w-full z-50 animate-fade-in transition-colors duration-300 ${
         isLanding
-          ? "bg-transparent border-transparent backdrop-blur-0"
+          ? "bg-[#1a0b2e] border-[#1a0b2e]"
           : "bg-background/80 dark:bg-background/25 backdrop-blur-lg border-b"
       }`}
     >
@@ -301,7 +301,7 @@ export const Navigation = () => {
                 {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-72">
+            <SheetContent side="right" className={`w-72 ${isLanding ? "bg-[#1a0b2e] border-[#1a0b2e]" : ""}`}>
               <div className="py-4">
                 <div className="mb-8 flex items-center">
                   <span className="text-2xl font-bold text-dream-600">☾ REM</span>

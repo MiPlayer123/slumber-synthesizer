@@ -6,9 +6,9 @@ import { Brain, Share2, BookOpen, Sparkles, BarChart } from "lucide-react"
 const features = [
   { icon: <BookOpen className="text-purple-400" />, title: "Journal With Ease", description: "Capture rich dream details with our intuitive journaling tools designed for both quick entries and deep reflection.", color: "from-purple-500/20 to-blue-500/20", x: -1, y: 0 },
   { icon: <Brain className="text-blue-400" />, title: "AI-Powered Insights", description: "Discover patterns, symbols, and meanings in your dreams with our thoughtful AI analysis.", color: "from-blue-500/20 to-cyan-500/20", x: 1, y: 0 },
-  { icon: <Share2 className="text-cyan-400" />, title: "Dream Community", description: "Share experiences and connect with fellow dreamers in a supportive, respectful environment.", color: "from-cyan-500/20 to-green-500/20", x: 0, y: 1 },
-  { icon: <Sparkles className="text-green-400" />, title: "Dream Visualization", description: "Transform your dreams into stunning images with our AI-powered dream visualization tool.", color: "from-green-500/20 to-yellow-500/20", x: -1, y: 2 },
-  { icon: <BarChart className="text-yellow-400" />, title: "Dream Statistics", description: "Track patterns, recurring symbols, and emotional trends across your dream journal entries.", color: "from-yellow-500/20 to-purple-500/20", x: 1, y: 2 },
+  { icon: <Share2 className="text-cyan-400" />, title: "Dream Community", description: "Share experiences and connect with fellow dreamers in a supportive, respectful environment.", color: "from-cyan-500/20 to-green-500/20", x: 0, y: 0.5 },
+  { icon: <Sparkles className="text-green-400" />, title: "Dream Visualization", description: "Transform your dreams into stunning images with our AI-powered dream visualization tool.", color: "from-green-500/20 to-yellow-500/20", x: -1, y: 1 },
+  { icon: <BarChart className="text-yellow-400" />, title: "Dream Statistics", description: "Track patterns, recurring symbols, and emotional trends across your dream journal entries.", color: "from-yellow-500/20 to-purple-500/20", x: 1, y: 1 },
 ]
 
 export function FeatureGrid() {
