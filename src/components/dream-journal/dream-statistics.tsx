@@ -55,7 +55,7 @@ export function DreamStatistics() {
         { date: "2023-08-23", count: 1, emotion: "scared" },
         { date: "2023-08-28", count: 1, emotion: "happy" },
         { date: "2023-08-30", count: 1, emotion: "anxious" },
-      ],
+    ],
     }
   }
 
@@ -84,7 +84,7 @@ export function DreamStatistics() {
         <div className="flex overflow-x-auto gap-2 pb-4 mb-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
           <button
             onClick={() => setActiveTab("overview")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-300 ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-300 focus:outline-none focus-visible:ring-0 focus:ring-0 outline-none ${
               activeTab === "overview" 
                 ? "bg-gradient-to-r from-indigo-500/30 to-blue-500/30 text-white shadow-md shadow-indigo-500/10 border border-white/10" 
                 : "text-white/60 hover:text-white/90 hover:bg-white/5"
@@ -95,7 +95,7 @@ export function DreamStatistics() {
           </button>
           <button
             onClick={() => setActiveTab("patterns")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-300 ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-300 focus:outline-none focus-visible:ring-0 focus:ring-0 outline-none ${
               activeTab === "patterns" 
                 ? "bg-gradient-to-r from-blue-500/30 to-cyan-500/30 text-white shadow-md shadow-blue-500/10 border border-white/10" 
                 : "text-white/60 hover:text-white/90 hover:bg-white/5"
@@ -106,7 +106,7 @@ export function DreamStatistics() {
           </button>
           <button
             onClick={() => setActiveTab("themes")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-300 ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-300 focus:outline-none focus-visible:ring-0 focus:ring-0 outline-none ${
               activeTab === "themes" 
                 ? "bg-gradient-to-r from-cyan-500/30 to-teal-500/30 text-white shadow-md shadow-cyan-500/10 border border-white/10" 
                 : "text-white/60 hover:text-white/90 hover:bg-white/5"
@@ -115,21 +115,21 @@ export function DreamStatistics() {
             <Hash className="w-4 h-4" />
             <span>Themes & Symbols</span>
           </button>
-          <button
+            <button
             onClick={() => setActiveTab("calendar")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-300 ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-300 focus:outline-none focus-visible:ring-0 focus:ring-0 outline-none ${
               activeTab === "calendar" 
                 ? "bg-gradient-to-r from-teal-500/30 to-green-500/30 text-white shadow-md shadow-teal-500/10 border border-white/10" 
                 : "text-white/60 hover:text-white/90 hover:bg-white/5"
-            }`}
-          >
+              }`}
+            >
             <CalendarDays className="w-4 h-4" />
             <span>Calendar View</span>
-          </button>
+            </button>
         </div>
 
         <AnimatePresence mode="wait">
-          {activeTab === "overview" && (
+        {activeTab === "overview" && (
             <motion.div 
               key="overview"
               initial={{ opacity: 0, y: 10 }}
@@ -200,24 +200,112 @@ export function DreamStatistics() {
                   transition={{ delay: 0.5 }}
                   className="bg-gradient-to-br from-blue-500/10 to-cyan-500/5 p-5 rounded-lg border border-blue-500/20 backdrop-blur-sm"
                 >
-                  <h3 className="text-sm font-medium text-white/70 mb-3">Dream Time Distribution</h3>
-                  <div className="flex items-end h-32 mt-4 gap-1">
-                    {Object.entries(statsData.patterns.timeDistribution).map(([time, value], i) => (
-                      <div key={i} className="flex flex-col items-center flex-1">
-                        <div 
-                          className="w-full rounded-t-sm bg-gradient-to-t from-blue-400/50 to-blue-400/70"
-                          style={{ height: `${value}%` }}
-                        ></div>
-                        <span className="text-xs text-white/80 mt-2 capitalize">{time.replace(/([A-Z])/g, ' $1').trim()}</span>
+                  <h3 className="text-sm font-medium text-white/70 mb-3 flex items-center gap-2">
+                    <LineChart className="w-4 h-4 text-blue-400" />
+                    <span>Dream Time Distribution</span>
+                  </h3>
+                  
+                  {/* Dream Time Distribution Chart */}
+                  <div className="mt-4 h-40 relative">
+                    {/* Y-axis labels */}
+                    <div className="absolute left-0 top-0 bottom-0 w-8 flex flex-col justify-between text-xs text-white/50">
+                      <span>100%</span>
+                      <span>75%</span>
+                      <span>50%</span>
+                      <span>25%</span>
+                      <span>0%</span>
+                    </div>
+                    
+                    {/* Chart area */}
+                    <div className="absolute left-8 right-0 top-0 bottom-0">
+                      {/* Horizontal grid lines */}
+                      <div className="absolute inset-0 flex flex-col justify-between">
+                        {[0, 1, 2, 3, 4].map((i) => (
+                          <div key={i} className="border-t border-white/10 w-full h-0"></div>
+                        ))}
                       </div>
-                    ))}
+                      
+                      {/* Line chart */}
+                      <svg className="absolute inset-0" viewBox="0 0 300 300" preserveAspectRatio="none">
+                        {/* Data points coordinates calculation */}
+                        {(() => {
+                          const timeData = Object.entries(statsData.patterns.timeDistribution);
+                          const points = timeData.map(([time, value], i) => ({
+                            x: (i * 300) / (timeData.length - 1),
+                            y: 300 - value * 3,
+                            value,
+                            label: time.replace(/([A-Z])/g, ' $1').trim()
+                          }));
+                          
+                          return (
+                            <>
+                              {/* Line */}
+                              <motion.path
+                                initial={{ pathLength: 0, opacity: 0 }}
+                                animate={{ pathLength: 1, opacity: 1 }}
+                                transition={{ duration: 1.5, delay: 0.5, ease: "easeInOut" }}
+                                d={`M ${points[0].x},${points[0].y} ${points.slice(1).map(p => `L ${p.x},${p.y}`).join(' ')}`}
+                                fill="none"
+                                stroke="url(#timeGradient)"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              
+                              {/* Gradient for time distribution line */}
+                              <defs>
+                                <linearGradient id="timeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                  <stop offset="0%" stopColor="#3b82f6" />
+                                  <stop offset="100%" stopColor="#06b6d4" />
+                                </linearGradient>
+                                <linearGradient id="timeAreaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
+                                  <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.05" />
+                                </linearGradient>
+                              </defs>
+                              
+                              {/* Area under the line */}
+                              <motion.path
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 1.5, delay: 0.7 }}
+                                d={`M ${points[0].x},${points[0].y} ${points.slice(1).map(p => `L ${p.x},${p.y}`).join(' ')} L ${points[points.length-1].x},300 L ${points[0].x},300 Z`}
+                                fill="url(#timeAreaGradient)"
+                              />
+                              
+                              {/* Data points */}
+                              {points.map((point, i) => (
+                                <motion.circle
+                                  key={i}
+                                  initial={{ r: 0, opacity: 0 }}
+                                  animate={{ r: 5, opacity: 1 }}
+                                  transition={{ duration: 0.5, delay: 0.5 + i * 0.1 }}
+                                  cx={point.x}
+                                  cy={point.y}
+                                  fill="#3b82f6"
+                                  stroke="#fff"
+                                  strokeWidth="2"
+                                />
+                              ))}
+                            </>
+                          );
+                        })()}
+                      </svg>
+                    </div>
+                    
+                    {/* X-axis labels */}
+                    <div className="absolute left-8 right-0 bottom-0 translate-y-6 flex justify-between text-xs text-white/50">
+                      {Object.entries(statsData.patterns.timeDistribution).map(([time], i) => (
+                        <span key={i} className="capitalize">{time.replace(/([A-Z])/g, ' $1').trim()}</span>
+                      ))}
+                    </div>
                   </div>
                 </motion.div>
               </div>
             </motion.div>
-          )}
+        )}
 
-          {activeTab === "patterns" && (
+        {activeTab === "patterns" && (
             <motion.div 
               key="patterns"
               initial={{ opacity: 0, y: 10 }}
@@ -226,7 +314,7 @@ export function DreamStatistics() {
               transition={{ duration: 0.3 }}
               className="space-y-6"
             >
-              <motion.div 
+                    <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
@@ -319,11 +407,11 @@ export function DreamStatistics() {
                   <div className="absolute left-8 right-0 bottom-0 translate-y-6 flex justify-between text-xs text-white/50">
                     {months.map((month, i) => (
                       <span key={i}>{month}</span>
-                    ))}
-                  </div>
-                </div>
+                ))}
+              </div>
+            </div>
               </motion.div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <motion.div 
                   initial={{ opacity: 0, y: 10 }}
@@ -332,26 +420,96 @@ export function DreamStatistics() {
                   className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 p-5 rounded-lg border border-cyan-500/20 backdrop-blur-sm"
                 >
                   <h3 className="text-sm font-medium mb-4 flex items-center gap-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300">
-                    <BarChart3 className="w-5 h-5 text-cyan-400" />
+                    <LineChart className="w-5 h-5 text-cyan-400" />
                     <span>Dreams by Day of Week</span>
                   </h3>
                   
-                  <div className="flex items-end h-32 mt-2 gap-1">
-                    {statsData.patterns.weekdayDistribution.map((value, i) => (
-                      <div key={i} className="flex flex-col items-center flex-1">
-                        <motion.div 
-                          initial={{ height: 0 }}
-                          animate={{ height: `${(value / Math.max(...statsData.patterns.weekdayDistribution)) * 100}%` }}
-                          transition={{ duration: 0.7, delay: 0.4 + i * 0.1, ease: "easeOut" }}
-                          className="w-full rounded-t-sm bg-gradient-to-t from-cyan-400/50 to-cyan-400/70"
-                        ></motion.div>
-                        <span className="text-xs text-white/80 mt-2">{weekdays[i]}</span>
+                  {/* Dreams by Day of Week Chart */}
+                  <div className="mt-2 h-40 relative">
+                    {/* Y-axis labels */}
+                    <div className="absolute left-0 top-0 bottom-0 w-8 flex flex-col justify-between text-xs text-white/50">
+                      <span>30</span>
+                      <span>20</span>
+                      <span>10</span>
+                      <span>0</span>
+                    </div>
+                    
+                    {/* Chart area */}
+                    <div className="absolute left-8 right-0 top-0 bottom-0">
+                      {/* Horizontal grid lines */}
+                      <div className="absolute inset-0 flex flex-col justify-between">
+                        {[0, 1, 2, 3].map((i) => (
+                          <div key={i} className="border-t border-white/10 w-full h-0"></div>
+                        ))}
                       </div>
-                    ))}
+                      
+                      {/* Line chart */}
+                      <svg className="absolute inset-0" viewBox="0 0 600 300" preserveAspectRatio="none">
+                        {/* Weekday line */}
+                        <motion.path
+                          initial={{ pathLength: 0, opacity: 0 }}
+                          animate={{ pathLength: 1, opacity: 1 }}
+                          transition={{ duration: 1.5, delay: 0.3, ease: "easeInOut" }}
+                          d={`M 0,${300 - statsData.patterns.weekdayDistribution[0] * 10} ${statsData.patterns.weekdayDistribution.map((val, i) => 
+                            `L ${(i * 600) / (statsData.patterns.weekdayDistribution.length - 1)},${300 - val * 10}`
+                          ).join(' ')}`}
+                          fill="none"
+                          stroke="url(#weekdayGradient)"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        
+                        {/* Gradient for the weekday line */}
+                        <defs>
+                          <linearGradient id="weekdayGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#22d3ee" />
+                            <stop offset="100%" stopColor="#14b8a6" />
+                          </linearGradient>
+                          <linearGradient id="weekdayAreaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.3" />
+                            <stop offset="100%" stopColor="#14b8a6" stopOpacity="0.05" />
+                          </linearGradient>
+                        </defs>
+                        
+                        {/* Area under the weekday line */}
+                        <motion.path
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ duration: 1.5, delay: 0.5 }}
+                          d={`M 0,${300 - statsData.patterns.weekdayDistribution[0] * 10} ${statsData.patterns.weekdayDistribution.map((val, i) => 
+                            `L ${(i * 600) / (statsData.patterns.weekdayDistribution.length - 1)},${300 - val * 10}`
+                          ).join(' ')} L ${600},300 L 0,300 Z`}
+                          fill="url(#weekdayAreaGradient)"
+                        />
+                        
+                        {/* Data points */}
+                        {statsData.patterns.weekdayDistribution.map((val, i) => (
+                          <motion.circle
+                            key={i}
+                            initial={{ r: 0, opacity: 0 }}
+                            animate={{ r: 5, opacity: 1 }}
+                            transition={{ duration: 0.5, delay: 0.4 + i * 0.1 }}
+                            cx={(i * 600) / (statsData.patterns.weekdayDistribution.length - 1)}
+                            cy={300 - val * 10}
+                            fill="#22d3ee"
+                            stroke="#fff"
+                            strokeWidth="2"
+                          />
+                        ))}
+                      </svg>
+                    </div>
+                    
+                    {/* X-axis labels */}
+                    <div className="absolute left-8 right-0 bottom-0 translate-y-6 flex justify-between text-xs text-white/50">
+                      {weekdays.map((day, i) => (
+                        <span key={i}>{day}</span>
+                      ))}
+                    </div>
                   </div>
                 </motion.div>
                 
-                <motion.div 
+                  <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
@@ -378,12 +536,12 @@ export function DreamStatistics() {
                       <span className="text-sm text-white/80">Dreams recorded in summer tend to be more positive</span>
                     </li>
                   </ul>
-                </motion.div>
+                  </motion.div>
               </div>
             </motion.div>
-          )}
+        )}
 
-          {activeTab === "themes" && (
+        {activeTab === "themes" && (
             <motion.div 
               key="themes"
               initial={{ opacity: 0, y: 10 }}
@@ -414,10 +572,10 @@ export function DreamStatistics() {
                             {theme.name}
                           </span>
                           <span className="text-xs text-white/60">{theme.count} dreams</span>
-                        </div>
+                    </div>
                         <div className="h-2 rounded-full bg-white/10 overflow-hidden">
-                          <motion.div 
-                            initial={{ width: 0 }}
+                      <motion.div
+                        initial={{ width: 0 }}
                             animate={{ width: `${theme.percentage}%` }}
                             transition={{ duration: 0.8, delay: 0.5 + i * 0.1 }}
                             className="h-full bg-gradient-to-r from-cyan-500 to-teal-400 rounded-full"
@@ -463,7 +621,7 @@ export function DreamStatistics() {
                         </div>
                         <div className="text-right mt-1">
                           <span className="text-xs text-white/60">{symbol.percentage}%</span>
-                        </div>
+                    </div>
                       </motion.div>
                     ))}
                   </div>
@@ -481,7 +639,7 @@ export function DreamStatistics() {
                   <li className="flex items-start gap-2">
                     <div className="mt-1 bg-teal-500/20 p-1 rounded-full">
                       <Sparkles className="w-3 h-3 text-teal-300" />
-                    </div>
+            </div>
                     <span className="text-sm text-white/80">Adventure dreams tend to occur more often on weekends</span>
                   </li>
                   <li className="flex items-start gap-2">
@@ -524,8 +682,8 @@ export function DreamStatistics() {
                 ))}
               </div>
               
-              {/* Calendar grid */}
-              <div className="grid grid-cols-7 gap-1.5">
+              {/* Calendar grid - constrain width on larger screens */}
+              <div className="mx-auto w-full max-w-lg lg:max-w-2xl grid grid-cols-7 gap-1.5">
                 {/* Empty cells for days before the 1st */}
                 {[...Array(2)].map((_, i) => (
                   <div key={`empty-start-${i}`} className="aspect-square"></div>
@@ -567,8 +725,8 @@ export function DreamStatistics() {
                               }`}
                             ></div>
                           ))}
-                        </div>
-                      )}
+          </div>
+        )}
                     </motion.div>
                   );
                 })}
@@ -615,9 +773,9 @@ export function DreamStatistics() {
                     <div className="w-3 h-3 rounded-full bg-gray-400"></div>
                     <span className="text-xs text-white/70">Neutral</span>
                   </div>
-                </div>
-              </div>
-            </motion.div>
+          </div>
+      </div>
+    </motion.div>
           )}
         </AnimatePresence>
       </div>
