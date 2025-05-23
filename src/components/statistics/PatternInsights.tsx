@@ -22,39 +22,49 @@ export const PatternInsights = ({
   const getInsightIcon = (type: PatternInsight["type"]) => {
     switch (type) {
       case "trend":
-        return <TrendingUp className="w-5 h-5 text-blue-400" />;
+        return (
+          <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        );
       case "cycle":
-        return <RotateCcw className="w-5 h-5 text-green-400" />;
+        return (
+          <RotateCcw className="w-5 h-5 text-green-600 dark:text-green-400" />
+        );
       case "anomaly":
-        return <AlertTriangle className="w-5 h-5 text-yellow-400" />;
+        return (
+          <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+        );
       case "correlation":
-        return <Activity className="w-5 h-5 text-purple-400" />;
+        return (
+          <Activity className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+        );
       default:
-        return <Lightbulb className="w-5 h-5 text-gray-400" />;
+        return (
+          <Lightbulb className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+        );
     }
   };
 
   const getInsightColor = (type: PatternInsight["type"]) => {
     switch (type) {
       case "trend":
-        return "from-blue-500/20 to-blue-600/20 border-blue-500/30";
+        return "from-blue-100/70 to-blue-200/70 dark:from-blue-500/20 dark:to-blue-600/20 border-blue-300/50 dark:border-blue-500/30";
       case "cycle":
-        return "from-green-500/20 to-green-600/20 border-green-500/30";
+        return "from-green-100/70 to-green-200/70 dark:from-green-500/20 dark:to-green-600/20 border-green-300/50 dark:border-green-500/30";
       case "anomaly":
-        return "from-yellow-500/20 to-yellow-600/20 border-yellow-500/30";
+        return "from-yellow-100/70 to-yellow-200/70 dark:from-yellow-500/20 dark:to-yellow-600/20 border-yellow-300/50 dark:border-yellow-500/30";
       case "correlation":
-        return "from-purple-500/20 to-purple-600/20 border-purple-500/30";
+        return "from-purple-100/70 to-purple-200/70 dark:from-purple-500/20 dark:to-purple-600/20 border-purple-300/50 dark:border-purple-500/30";
       default:
-        return "from-gray-500/20 to-gray-600/20 border-gray-500/30";
+        return "from-gray-100/70 to-gray-200/70 dark:from-gray-500/20 dark:to-gray-600/20 border-gray-300/50 dark:border-gray-500/30";
     }
   };
 
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 0.8)
-      return "bg-green-500/20 text-green-400 border-green-500/30";
+      return "bg-green-200/50 dark:bg-green-500/20 text-green-700 dark:text-green-400 border-green-300/50 dark:border-green-500/30";
     if (confidence >= 0.6)
-      return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
-    return "bg-red-500/20 text-red-400 border-red-500/30";
+      return "bg-yellow-200/50 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-300/50 dark:border-yellow-500/30";
+    return "bg-red-200/50 dark:bg-red-500/20 text-red-700 dark:text-red-400 border-red-300/50 dark:border-red-500/30";
   };
 
   const getConfidenceLabel = (confidence: number) => {
@@ -66,16 +76,16 @@ export const PatternInsights = ({
   if (insights.length === 0) {
     return (
       <Card
-        className={`bg-gradient-to-br from-gray-900/20 to-slate-800/20 border-gray-500/20 ${className}`}
+        className={`bg-gradient-to-br from-gray-100/50 to-slate-100/50 dark:from-gray-900/20 dark:to-slate-800/20 border-gray-200/50 dark:border-gray-500/20 ${className}`}
       >
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Lightbulb className="w-5 h-5 text-gray-400" />
+          <CardTitle className="flex items-center gap-2 text-lg text-gray-900 dark:text-white">
+            <Lightbulb className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             Pattern Insights
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-gray-400">
+          <div className="text-center py-8 text-gray-600 dark:text-gray-400">
             <Lightbulb className="w-12 h-12 mx-auto mb-3 opacity-50" />
             <p>Keep recording dreams to discover patterns!</p>
             <p className="text-sm mt-1">
@@ -89,11 +99,11 @@ export const PatternInsights = ({
 
   return (
     <Card
-      className={`bg-gradient-to-br from-indigo-900/20 to-purple-900/20 border-indigo-500/20 ${className}`}
+      className={`bg-gradient-to-br from-indigo-100/50 to-purple-100/50 dark:from-indigo-900/20 dark:to-purple-900/20 border-indigo-200/50 dark:border-indigo-500/20 ${className}`}
     >
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Lightbulb className="w-5 h-5 text-indigo-400" />
+        <CardTitle className="flex items-center gap-2 text-lg text-gray-900 dark:text-white">
+          <Lightbulb className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
           Pattern Insights
           <Badge variant="secondary" className="ml-auto">
             {insights.length} {insights.length === 1 ? "insight" : "insights"}
@@ -116,7 +126,7 @@ export const PatternInsights = ({
                   <div className="flex items-center gap-2">
                     {getInsightIcon(insight.type)}
                     <div>
-                      <h3 className="font-medium text-white">
+                      <h3 className="font-medium text-gray-900 dark:text-white">
                         {insight.title}
                       </h3>
                       <Badge
@@ -133,20 +143,20 @@ export const PatternInsights = ({
                 </div>
 
                 {/* Description */}
-                <p className="text-gray-300 text-sm leading-relaxed">
+                <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
                   {insight.description}
                 </p>
 
                 {/* Actionable Recommendation */}
                 {insight.actionable && (
-                  <div className="mt-3 p-3 bg-white/5 rounded-md border border-white/10">
+                  <div className="mt-3 p-3 bg-gray-100/50 dark:bg-white/5 rounded-md border border-gray-200/50 dark:border-white/10">
                     <div className="flex items-start gap-2">
-                      <Lightbulb className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
+                      <Lightbulb className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
                       <div>
-                        <div className="text-xs font-medium text-yellow-400 mb-1">
+                        <div className="text-xs font-medium text-yellow-700 dark:text-yellow-400 mb-1">
                           Recommendation
                         </div>
-                        <p className="text-xs text-gray-300">
+                        <p className="text-xs text-gray-700 dark:text-gray-300">
                           {insight.actionable}
                         </p>
                       </div>
@@ -156,11 +166,11 @@ export const PatternInsights = ({
 
                 {/* Confidence Bar */}
                 <div className="pt-2">
-                  <div className="flex justify-between text-xs text-gray-400 mb-1">
+                  <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
                     <span>Confidence Level</span>
                     <span>{Math.round(insight.confidence * 100)}%</span>
                   </div>
-                  <div className="w-full bg-gray-700/50 rounded-full h-1.5">
+                  <div className="w-full bg-gray-300/50 dark:bg-gray-700/50 rounded-full h-1.5">
                     <motion.div
                       className={`h-1.5 rounded-full ${
                         insight.confidence >= 0.8
@@ -181,16 +191,16 @@ export const PatternInsights = ({
         </div>
 
         {/* Call to Action */}
-        <div className="mt-6 p-4 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-lg border border-indigo-500/20">
+        <div className="mt-6 p-4 bg-gradient-to-r from-indigo-100/30 to-purple-100/30 dark:from-indigo-500/10 dark:to-purple-500/10 rounded-lg border border-indigo-200/50 dark:border-indigo-500/20">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-indigo-500/20 rounded-full flex items-center justify-center">
-              <Lightbulb className="w-4 h-4 text-indigo-400" />
+            <div className="w-8 h-8 bg-indigo-200/50 dark:bg-indigo-500/20 rounded-full flex items-center justify-center">
+              <Lightbulb className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
             </div>
             <div className="flex-1">
-              <h4 className="text-sm font-medium text-white">
+              <h4 className="text-sm font-medium text-gray-900 dark:text-white">
                 Want deeper insights?
               </h4>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-600 dark:text-gray-400">
                 Keep recording dreams regularly to unlock more detailed pattern
                 analysis.
               </p>

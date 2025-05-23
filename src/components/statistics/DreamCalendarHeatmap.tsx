@@ -13,7 +13,7 @@ export const DreamCalendarHeatmap = ({
   className,
 }: DreamCalendarHeatmapProps) => {
   const getEmotionColor = (emotion: string, count: number) => {
-    if (count === 0) return "bg-gray-800/50";
+    if (count === 0) return "bg-gray-200/50 dark:bg-gray-800/50";
 
     const emotionColors = {
       joy: "bg-yellow-500/60",
@@ -71,18 +71,18 @@ export const DreamCalendarHeatmap = ({
 
   return (
     <Card
-      className={`bg-gradient-to-br from-slate-900/20 to-gray-800/20 border-slate-500/20 ${className}`}
+      className={`bg-gradient-to-br from-slate-100/50 to-gray-100/50 dark:from-slate-900/20 dark:to-gray-800/20 border-slate-200/50 dark:border-slate-500/20 ${className}`}
     >
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Calendar className="w-5 h-5 text-slate-400" />
+        <CardTitle className="flex items-center gap-2 text-lg text-gray-900 dark:text-white">
+          <Calendar className="w-5 h-5 text-slate-600 dark:text-slate-400" />
           Dream Activity Calendar
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           {/* Month Labels */}
-          <div className="grid grid-cols-12 gap-1 text-xs text-gray-400">
+          <div className="grid grid-cols-12 gap-1 text-xs text-gray-600 dark:text-gray-400">
             {monthNames.map((month) => (
               <div key={month} className="text-center">
                 {month}
@@ -97,7 +97,7 @@ export const DreamCalendarHeatmap = ({
               {dayNames.map((day) => (
                 <div
                   key={day}
-                  className="text-xs text-gray-400 text-center w-3 h-3 flex items-center justify-center"
+                  className="text-xs text-gray-600 dark:text-gray-400 text-center w-3 h-3 flex items-center justify-center"
                 >
                   {day}
                 </div>
@@ -135,7 +135,7 @@ export const DreamCalendarHeatmap = ({
                         title={`${date.toLocaleDateString()}: ${day.count} dreams (${day.dominantEmotion})`}
                       >
                         {/* Tooltip */}
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900/95 dark:bg-black/90 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
                           <div className="font-medium">
                             {date.toLocaleDateString()}
                           </div>
@@ -155,8 +155,8 @@ export const DreamCalendarHeatmap = ({
           </div>
 
           {/* Legend */}
-          <div className="flex items-center justify-between pt-4 border-t border-gray-600/30">
-            <div className="text-xs text-gray-400">Less</div>
+          <div className="flex items-center justify-between pt-4 border-t border-gray-300/50 dark:border-gray-600/30">
+            <div className="text-xs text-gray-600 dark:text-gray-400">Less</div>
             <div className="flex items-center gap-1">
               {[0, 1, 2, 3, 4].map((level) => (
                 <div
@@ -166,12 +166,14 @@ export const DreamCalendarHeatmap = ({
                 />
               ))}
             </div>
-            <div className="text-xs text-gray-400">More</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400">More</div>
           </div>
 
           {/* Emotion Legend */}
           <div className="pt-2">
-            <div className="text-xs text-gray-400 mb-2">Emotion Colors:</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+              Emotion Colors:
+            </div>
             <div className="grid grid-cols-4 gap-2 text-xs">
               {[
                 { emotion: "joy", color: "bg-yellow-500", label: "Joy" },
@@ -181,7 +183,9 @@ export const DreamCalendarHeatmap = ({
               ].map(({ emotion, color, label }) => (
                 <div key={emotion} className="flex items-center gap-1">
                   <div className={`w-2 h-2 rounded-sm ${color}`} />
-                  <span className="text-gray-300">{label}</span>
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {label}
+                  </span>
                 </div>
               ))}
             </div>

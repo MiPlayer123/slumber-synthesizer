@@ -308,16 +308,16 @@ export const AdvancedInsights = ({
   if (!dreams.length || !analyses.length) {
     return (
       <Card
-        className={`bg-gradient-to-br from-indigo-900/20 to-purple-900/20 border-indigo-500/20 ${className}`}
+        className={`bg-gradient-to-br from-indigo-100/50 to-purple-100/50 dark:from-indigo-900/20 dark:to-purple-900/20 border-indigo-200/50 dark:border-indigo-500/20 ${className}`}
       >
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Brain className="w-5 h-5 text-indigo-400" />
+          <CardTitle className="flex items-center gap-2 text-lg text-gray-900 dark:text-white">
+            <Brain className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             Advanced AI Insights
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-12 text-gray-400">
+          <div className="text-center py-12 text-gray-600 dark:text-gray-400">
             <Brain className="w-16 h-16 mx-auto mb-4 opacity-50" />
             <p className="text-lg font-medium mb-2">Building your profile...</p>
             <p className="text-sm">
@@ -332,15 +332,15 @@ export const AdvancedInsights = ({
 
   return (
     <Card
-      className={`bg-gradient-to-br from-indigo-900/20 to-purple-900/20 border-indigo-500/20 ${className}`}
+      className={`bg-gradient-to-br from-indigo-100/50 to-purple-100/50 dark:from-indigo-900/20 dark:to-purple-900/20 border-indigo-200/50 dark:border-indigo-500/20 ${className}`}
     >
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Brain className="w-5 h-5 text-indigo-400" />
+        <CardTitle className="flex items-center gap-2 text-lg text-gray-900 dark:text-white">
+          <Brain className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
           Advanced AI Insights
           <Badge
             variant="secondary"
-            className="ml-auto bg-indigo-500/20 text-indigo-300"
+            className="ml-auto bg-indigo-200/50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300"
           >
             AI Powered
           </Badge>
@@ -366,30 +366,40 @@ export const AdvancedInsights = ({
               const getInsightIcon = () => {
                 switch (insight.type) {
                   case "prediction":
-                    return <TrendingUp className="w-5 h-5 text-blue-400" />;
+                    return (
+                      <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    );
                   case "opportunity":
-                    return <Star className="w-5 h-5 text-yellow-400" />;
+                    return (
+                      <Star className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                    );
                   case "warning":
-                    return <Shield className="w-5 h-5 text-red-400" />;
+                    return (
+                      <Shield className="w-5 h-5 text-red-600 dark:text-red-400" />
+                    );
                   case "recommendation":
-                    return <Lightbulb className="w-5 h-5 text-green-400" />;
+                    return (
+                      <Lightbulb className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    );
                   default:
-                    return <Brain className="w-5 h-5 text-gray-400" />;
+                    return (
+                      <Brain className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                    );
                 }
               };
 
               const getInsightColor = () => {
                 switch (insight.type) {
                   case "prediction":
-                    return "from-blue-500/20 to-blue-600/20 border-blue-500/30";
+                    return "from-blue-100/70 to-blue-200/70 dark:from-blue-500/20 dark:to-blue-600/20 border-blue-300/50 dark:border-blue-500/30";
                   case "opportunity":
-                    return "from-yellow-500/20 to-yellow-600/20 border-yellow-500/30";
+                    return "from-yellow-100/70 to-yellow-200/70 dark:from-yellow-500/20 dark:to-yellow-600/20 border-yellow-300/50 dark:border-yellow-500/30";
                   case "warning":
-                    return "from-red-500/20 to-red-600/20 border-red-500/30";
+                    return "from-red-100/70 to-red-200/70 dark:from-red-500/20 dark:to-red-600/20 border-red-300/50 dark:border-red-500/30";
                   case "recommendation":
-                    return "from-green-500/20 to-green-600/20 border-green-500/30";
+                    return "from-green-100/70 to-green-200/70 dark:from-green-500/20 dark:to-green-600/20 border-green-300/50 dark:border-green-500/30";
                   default:
-                    return "from-gray-500/20 to-gray-600/20 border-gray-500/30";
+                    return "from-gray-100/70 to-gray-200/70 dark:from-gray-500/20 dark:to-gray-600/20 border-gray-300/50 dark:border-gray-500/30";
                 }
               };
 
@@ -406,7 +416,7 @@ export const AdvancedInsights = ({
                       <div className="flex items-center gap-2">
                         {getInsightIcon()}
                         <div>
-                          <h3 className="font-medium text-white">
+                          <h3 className="font-medium text-gray-900 dark:text-white">
                             {insight.title}
                           </h3>
                           <div className="flex items-center gap-2 mt-1">
@@ -416,7 +426,7 @@ export const AdvancedInsights = ({
                             >
                               {insight.type}
                             </Badge>
-                            <span className="text-xs text-gray-400 flex items-center gap-1">
+                            <span className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
                               <Clock className="w-3 h-3" />
                               {insight.timeframe}
                             </span>
@@ -427,24 +437,26 @@ export const AdvancedInsights = ({
                         variant="secondary"
                         className={`text-xs ${
                           insight.impact === "high"
-                            ? "bg-red-500/20 text-red-300"
+                            ? "bg-red-200/50 dark:bg-red-500/20 text-red-700 dark:text-red-300"
                             : insight.impact === "medium"
-                              ? "bg-yellow-500/20 text-yellow-300"
-                              : "bg-green-500/20 text-green-300"
+                              ? "bg-yellow-200/50 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-300"
+                              : "bg-green-200/50 dark:bg-green-500/20 text-green-700 dark:text-green-300"
                         }`}
                       >
                         {insight.impact} impact
                       </Badge>
                     </div>
 
-                    <p className="text-gray-300 text-sm">
+                    <p className="text-gray-700 dark:text-gray-300 text-sm">
                       {insight.description}
                     </p>
 
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-gray-400">AI Confidence</span>
-                        <span className="text-gray-300">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          AI Confidence
+                        </span>
+                        <span className="text-gray-700 dark:text-gray-300">
                           {Math.round(insight.confidence * 100)}%
                         </span>
                       </div>
@@ -455,7 +467,7 @@ export const AdvancedInsights = ({
                     </div>
 
                     <div className="space-y-2">
-                      <h4 className="text-sm font-medium text-gray-300 flex items-center gap-1">
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
                         <Target className="w-3 h-3" />
                         Recommended Actions:
                       </h4>
@@ -463,9 +475,11 @@ export const AdvancedInsights = ({
                         {insight.actionable.map((action, i) => (
                           <li
                             key={i}
-                            className="text-xs text-gray-400 flex items-start gap-2"
+                            className="text-xs text-gray-600 dark:text-gray-400 flex items-start gap-2"
                           >
-                            <span className="text-indigo-400 mt-1">•</span>
+                            <span className="text-indigo-600 dark:text-indigo-400 mt-1">
+                              •
+                            </span>
                             {action}
                           </li>
                         ))}

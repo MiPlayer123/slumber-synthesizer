@@ -1,3 +1,16 @@
+import {
+  Brain,
+  Calendar,
+  Star,
+  Tag,
+  Heart,
+  Flame,
+  TrendingUp,
+  Activity,
+  BarChart3,
+  Zap,
+} from "lucide-react";
+import React from "react";
 import type { Dream, DreamAnalysis } from "@/lib/types";
 import type {
   DreamWellnessScore,
@@ -6,6 +19,26 @@ import type {
   PatternInsight,
   DreamCalendarEntry,
 } from "@/types/statistics";
+
+// Function to get React icons for KPIs
+const getKPIIcon = (type: string) => {
+  switch (type) {
+    case "wellness":
+      return React.createElement(Brain, { className: "w-5 h-5" });
+    case "total":
+      return React.createElement(BarChart3, { className: "w-5 h-5" });
+    case "rating":
+      return React.createElement(Star, { className: "w-5 h-5" });
+    case "category":
+      return React.createElement(Tag, { className: "w-5 h-5" });
+    case "emotion":
+      return React.createElement(Heart, { className: "w-5 h-5" });
+    case "streak":
+      return React.createElement(Flame, { className: "w-5 h-5" });
+    default:
+      return React.createElement(Activity, { className: "w-5 h-5" });
+  }
+};
 
 export const calculateWellnessScore = (
   dreams: Dream[],
@@ -200,6 +233,8 @@ export const calculateKPIs = (
     {
       title: "Dream Wellness Score",
       value: wellness.overall,
+      description: "overall mental wellness",
+      icon: getKPIIcon("wellness"),
       trend: {
         direction:
           wellness.trends.weekly > 0
@@ -215,26 +250,36 @@ export const calculateKPIs = (
     {
       title: "Total Dreams",
       value: dreams.length,
+      description: "dreams recorded",
+      icon: getKPIIcon("total"),
       color: "blue",
     },
     {
       title: "Avg Dream Rating",
       value: avgRating.toFixed(1),
+      description: "out of 5 stars",
+      icon: getKPIIcon("rating"),
       color: "green",
     },
     {
       title: "Most Common Type",
       value: mostCommonCategory?.[0] || "N/A",
+      description: `${mostCommonCategory ? Math.round((mostCommonCategory[1] / dreams.length) * 100) : 0}% of dreams`,
+      icon: getKPIIcon("category"),
       color: "orange",
     },
     {
       title: "Dominant Emotion",
       value: mostCommonEmotion?.[0] || "N/A",
+      description: `${mostCommonEmotion ? Math.round((mostCommonEmotion[1] / dreams.length) * 100) : 0}% of dreams`,
+      icon: getKPIIcon("emotion"),
       color: "pink",
     },
     {
       title: "Current Streak",
       value: `${calculateStreakDays(dreams)} days`,
+      description: "consecutive recording",
+      icon: getKPIIcon("streak"),
       color: "red",
     },
   ];

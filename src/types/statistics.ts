@@ -23,6 +23,7 @@ export interface Achievement {
 export interface StatisticKPI {
   title: string;
   value: string | number;
+  description?: string;
   trend?: {
     direction: "up" | "down" | "stable";
     percentage: number;

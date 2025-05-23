@@ -18,11 +18,11 @@ export const AchievementsGrid = ({
 
   return (
     <Card
-      className={`bg-gradient-to-br from-amber-900/20 to-orange-900/20 border-amber-500/20 ${className}`}
+      className={`bg-gradient-to-br from-amber-100/50 to-orange-100/50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200/50 dark:border-amber-500/20 ${className}`}
     >
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Trophy className="w-5 h-5 text-amber-400" />
+        <CardTitle className="flex items-center gap-2 text-lg text-gray-900 dark:text-white">
+          <Trophy className="w-5 h-5 text-amber-600 dark:text-amber-400" />
           Achievements
           <Badge variant="secondary" className="ml-auto">
             {unlockedCount}/{achievements.length}
@@ -39,8 +39,8 @@ export const AchievementsGrid = ({
               transition={{ delay: index * 0.1 }}
               className={`relative p-4 rounded-lg border transition-all duration-300 ${
                 achievement.unlocked
-                  ? "bg-gradient-to-br from-amber-500/10 to-yellow-500/10 border-amber-500/30"
-                  : "bg-gray-800/50 border-gray-600/30"
+                  ? "bg-gradient-to-br from-amber-200/20 to-yellow-200/20 dark:from-amber-500/10 dark:to-yellow-500/10 border-amber-300/50 dark:border-amber-500/30"
+                  : "bg-gray-100/50 dark:bg-gray-800/50 border-gray-300/50 dark:border-gray-600/30"
               }`}
             >
               {/* Achievement Icon */}
@@ -55,14 +55,18 @@ export const AchievementsGrid = ({
                 <div className="flex-1 min-w-0">
                   <h3
                     className={`font-medium text-sm ${
-                      achievement.unlocked ? "text-white" : "text-gray-400"
+                      achievement.unlocked
+                        ? "text-gray-900 dark:text-white"
+                        : "text-gray-600 dark:text-gray-400"
                     }`}
                   >
                     {achievement.title}
                   </h3>
                   <p
                     className={`text-xs ${
-                      achievement.unlocked ? "text-gray-300" : "text-gray-500"
+                      achievement.unlocked
+                        ? "text-gray-700 dark:text-gray-300"
+                        : "text-gray-500 dark:text-gray-500"
                     }`}
                   >
                     {achievement.description}
@@ -74,8 +78,10 @@ export const AchievementsGrid = ({
               {achievement.maxProgress && (
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs">
-                    <span className="text-gray-400">Progress</span>
-                    <span className="text-gray-300">
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Progress
+                    </span>
+                    <span className="text-gray-700 dark:text-gray-300">
                       {achievement.progress || 0}/{achievement.maxProgress}
                     </span>
                   </div>
@@ -91,7 +97,7 @@ export const AchievementsGrid = ({
 
               {/* Unlock Date */}
               {achievement.unlocked && achievement.unlockedAt && (
-                <div className="mt-2 text-xs text-amber-400">
+                <div className="mt-2 text-xs text-amber-600 dark:text-amber-400">
                   Unlocked{" "}
                   {new Date(achievement.unlockedAt).toLocaleDateString()}
                 </div>
@@ -100,7 +106,7 @@ export const AchievementsGrid = ({
               {/* Unlock Effect */}
               {achievement.unlocked && (
                 <motion.div
-                  className="absolute inset-0 rounded-lg border-2 border-amber-400/50"
+                  className="absolute inset-0 rounded-lg border-2 border-amber-400/50 dark:border-amber-400/50"
                   initial={{ opacity: 0, scale: 1.1 }}
                   animate={{ opacity: [0, 1, 0], scale: [1.1, 1, 1] }}
                   transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
@@ -111,10 +117,12 @@ export const AchievementsGrid = ({
         </div>
 
         {/* Overall Progress */}
-        <div className="mt-4 pt-4 border-t border-gray-600/30">
+        <div className="mt-4 pt-4 border-t border-gray-300/50 dark:border-gray-600/30">
           <div className="flex justify-between text-sm mb-2">
-            <span className="text-gray-400">Overall Progress</span>
-            <span className="text-gray-300">
+            <span className="text-gray-600 dark:text-gray-400">
+              Overall Progress
+            </span>
+            <span className="text-gray-700 dark:text-gray-300">
               {Math.round((unlockedCount / achievements.length) * 100)}%
             </span>
           </div>

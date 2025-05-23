@@ -420,14 +420,18 @@ const Statistics = () => {
                     </defs>
                     <XAxis
                       dataKey="displayDate"
-                      tick={{ fontSize: 10 }}
+                      tick={{ fontSize: 10, fill: "currentColor" }}
                       interval="preserveStartEnd"
                     />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 10, fill: "currentColor" }}
+                    />
                     <CartesianGrid
                       strokeDasharray="3 3"
                       vertical={false}
                       opacity={0.3}
+                      className="stroke-gray-300 dark:stroke-gray-600"
                     />
                     <Tooltip
                       labelFormatter={(value) => `Date: ${value}`}
@@ -435,6 +439,12 @@ const Statistics = () => {
                         `${value} dreams`,
                         "Count",
                       ]}
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "6px",
+                        color: "hsl(var(--foreground))",
+                      }}
                     />
                     <Area
                       type="monotone"
@@ -481,8 +491,19 @@ const Statistics = () => {
                         `${value} dreams (${categoryChartData.find((item) => item.name === name)?.percentage || 0}%)`,
                         name,
                       ]}
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "6px",
+                        color: "hsl(var(--foreground))",
+                      }}
                     />
-                    <Legend wrapperStyle={{ fontSize: "10px" }} />
+                    <Legend
+                      wrapperStyle={{
+                        fontSize: "10px",
+                        color: "currentColor",
+                      }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -960,10 +981,27 @@ const Statistics = () => {
                       },
                     ]}
                   >
-                    <XAxis dataKey="day" tick={{ fontSize: 10 }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                    <Tooltip />
+                    <XAxis
+                      dataKey="day"
+                      tick={{ fontSize: 10, fill: "currentColor" }}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 10, fill: "currentColor" }}
+                    />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      opacity={0.3}
+                      className="stroke-gray-300 dark:stroke-gray-600"
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "6px",
+                        color: "hsl(var(--foreground))",
+                      }}
+                    />
                     <Bar dataKey="count" fill="#8884d8" />
                   </BarChart>
                 </ResponsiveContainer>
@@ -995,10 +1033,27 @@ const Statistics = () => {
                       };
                     })}
                   >
-                    <XAxis dataKey="month" tick={{ fontSize: 10 }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                    <Tooltip />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fontSize: 10, fill: "currentColor" }}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 10, fill: "currentColor" }}
+                    />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      opacity={0.3}
+                      className="stroke-gray-300 dark:stroke-gray-600"
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "6px",
+                        color: "hsl(var(--foreground))",
+                      }}
+                    />
                     <Line
                       type="monotone"
                       dataKey="count"

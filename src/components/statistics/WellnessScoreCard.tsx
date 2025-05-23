@@ -13,16 +13,22 @@ export const WellnessScoreCard = ({
   className,
 }: WellnessScoreCardProps) => {
   const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-400";
-    if (score >= 60) return "text-yellow-400";
-    if (score >= 40) return "text-orange-400";
-    return "text-red-400";
+    if (score >= 80) return "text-green-600 dark:text-green-400";
+    if (score >= 60) return "text-yellow-600 dark:text-yellow-400";
+    if (score >= 40) return "text-orange-600 dark:text-orange-400";
+    return "text-red-600 dark:text-red-400";
   };
 
   const getTrendIcon = (trend: number) => {
-    if (trend > 5) return <TrendingUp className="w-4 h-4 text-green-400" />;
-    if (trend < -5) return <TrendingDown className="w-4 h-4 text-red-400" />;
-    return <Minus className="w-4 h-4 text-gray-400" />;
+    if (trend > 5)
+      return (
+        <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+      );
+    if (trend < -5)
+      return (
+        <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400" />
+      );
+    return <Minus className="w-4 h-4 text-gray-600 dark:text-gray-400" />;
   };
 
   const circleCircumference = 2 * Math.PI * 45; // radius = 45
@@ -32,11 +38,11 @@ export const WellnessScoreCard = ({
 
   return (
     <Card
-      className={`bg-gradient-to-br from-purple-900/20 to-blue-900/20 border-purple-500/20 ${className}`}
+      className={`bg-gradient-to-br from-purple-100/50 to-blue-100/50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200/50 dark:border-purple-500/20 ${className}`}
     >
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Brain className="w-5 h-5 text-purple-400" />
+        <CardTitle className="flex items-center gap-2 text-lg text-gray-900 dark:text-white">
+          <Brain className="w-5 h-5 text-purple-600 dark:text-purple-400" />
           Dream Wellness Score
         </CardTitle>
       </CardHeader>
@@ -56,7 +62,7 @@ export const WellnessScoreCard = ({
                 stroke="currentColor"
                 strokeWidth="8"
                 fill="none"
-                className="text-gray-700"
+                className="text-gray-300 dark:text-gray-700"
               />
               {/* Progress circle */}
               <motion.circle
@@ -102,7 +108,9 @@ export const WellnessScoreCard = ({
               >
                 {wellness.overall}
               </motion.span>
-              <span className="text-xs text-gray-400">out of 100</span>
+              <span className="text-xs text-gray-600 dark:text-gray-400">
+                out of 100
+              </span>
             </div>
           </div>
         </div>
@@ -110,7 +118,7 @@ export const WellnessScoreCard = ({
         {/* Trend Indicator */}
         <div className="flex items-center justify-center gap-2 text-sm">
           {getTrendIcon(wellness.trends.weekly)}
-          <span className="text-gray-300">
+          <span className="text-gray-700 dark:text-gray-300">
             {Math.abs(wellness.trends.weekly)}% vs last week
           </span>
         </div>
@@ -123,7 +131,9 @@ export const WellnessScoreCard = ({
             >
               {wellness.emotional}
             </div>
-            <div className="text-xs text-gray-400">Emotional</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400">
+              Emotional
+            </div>
           </div>
           <div>
             <div
@@ -131,7 +141,9 @@ export const WellnessScoreCard = ({
             >
               {wellness.consistency}
             </div>
-            <div className="text-xs text-gray-400">Consistency</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400">
+              Consistency
+            </div>
           </div>
           <div>
             <div
@@ -139,7 +151,9 @@ export const WellnessScoreCard = ({
             >
               {wellness.quality}
             </div>
-            <div className="text-xs text-gray-400">Quality</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400">
+              Quality
+            </div>
           </div>
         </div>
       </CardContent>
