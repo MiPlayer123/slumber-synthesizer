@@ -479,11 +479,12 @@ export default function Index() {
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-white/10 py-12">
+      <footer className="relative z-10 border-t border-white/10 py-8">
         <div className="container mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            {/* Brand Section */}
+            <div className="max-w-sm">
+              <div className="flex items-center gap-2 mb-3">
                 <div className="bg-gradient-to-r from-purple-500 to-blue-500 p-1.5 rounded-full">
                   <Moon size={16} className="text-black" />
                 </div>
@@ -494,56 +495,86 @@ export default function Index() {
                 platform.
               </p>
             </div>
-            <div>
-              <h3 className="text-sm font-medium mb-4">Features</h3>
-              <ul className="space-y-2 text-sm text-white/50">
-                {["Dream Journal", "AI Analysis", "Community", "Privacy"].map(
-                  (item, idx) => (
-                    <li key={idx}>
-                      <a
-                        href="#"
-                        className="hover:text-white transition-colors"
-                      >
-                        {item}
-                      </a>
-                    </li>
-                  ),
-                )}
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium mb-4">Company</h3>
-              <ul className="space-y-2 text-sm text-white/50">
-                {["About Us", "Careers", "Contact"].map((item, idx) => (
-                  <li key={idx}>
-                    <a href="#" className="hover:text-white transition-colors">
-                      {item}
+
+            {/* Links Section */}
+            <div className="flex flex-wrap gap-8 md:gap-12">
+              {/* Product Links */}
+              <div>
+                <h3 className="text-sm font-medium mb-3 text-white">Product</h3>
+                <ul className="space-y-2 text-sm text-white/50">
+                  <li>
+                    <a
+                      href="#features"
+                      className="hover:text-white transition-colors"
+                    >
+                      Features
                     </a>
                   </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium mb-4">Resources</h3>
-              <ul className="space-y-2 text-sm text-white/50">
-                {[
-                  "Blog",
-                  "Help Center",
-                  "Terms of Service",
-                  "Privacy Policy",
-                ].map((item, idx) => (
-                  <li key={idx}>
-                    <a href="#" className="hover:text-white transition-colors">
-                      {item}
+                  <li>
+                    <a
+                      href="#testimonials"
+                      className="hover:text-white transition-colors"
+                    >
+                      Community
                     </a>
                   </li>
-                ))}
-              </ul>
+                  <li>
+                    <span className="text-white/30">
+                      Mobile App (Coming Soon)
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Legal Links */}
+              <div>
+                <h3 className="text-sm font-medium mb-3 text-white">Legal</h3>
+                <ul className="space-y-2 text-sm text-white/50">
+                  <li>
+                    <a
+                      href="/about"
+                      className="hover:text-white transition-colors"
+                    >
+                      About
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="https://forms.gle/aMFrfqbqiMMBSEKr9"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-white transition-colors"
+                    >
+                      Support
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="/privacy"
+                      className="hover:text-white transition-colors"
+                    >
+                      Privacy
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="/terms"
+                      className="hover:text-white transition-colors"
+                    >
+                      Terms
+                    </a>
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
-          <p className="mt-8 text-center text-xs text-white/40">
-            © {new Date().getFullYear()} Rem. All rights reserved.
-          </p>
+
+          {/* Copyright */}
+          <div className="mt-6 pt-6 border-t border-white/5 text-center">
+            <p className="text-xs text-white/40">
+              © {new Date().getFullYear()} Rem. All rights reserved.
+            </p>
+          </div>
         </div>
       </footer>
     </div>
