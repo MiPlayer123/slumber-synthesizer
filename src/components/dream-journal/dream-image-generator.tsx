@@ -1,56 +1,59 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Sparkles, RefreshCw } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function DreamImageGenerator() {
   const dreamText =
     "I found myself running across a bridge made of glass, " +
-    "chasing a glowing fox that whispered secrets only I could hear."
+    "chasing a glowing fox that whispered secrets only I could hear.";
 
-  type Phase = "typing" | "generating" | "show"
-  const [phase, setPhase]         = useState<Phase>("typing")
-  const [typingText, setTypingText] = useState("")
-  const [showCursor, setShowCursor] = useState(true)
+  type Phase = "typing" | "generating" | "show";
+  const [phase, setPhase] = useState<Phase>("typing");
+  const [typingText, setTypingText] = useState("");
+  const [showCursor, setShowCursor] = useState(true);
 
   // 1) Blink the cursor while typing
   useEffect(() => {
-    const iv = setInterval(() => setShowCursor((v) => !v), 500)
-    return () => clearInterval(iv)
-  }, [])
+    const iv = setInterval(() => setShowCursor((v) => !v), 500);
+    return () => clearInterval(iv);
+  }, []);
 
   // 2) When we enter "typing", start a simple character interval
   useEffect(() => {
-    if (phase !== "typing") return
-    setTypingText("")
-    let i = 0
-    const interval = setInterval(() => {
-      i++
-      if (i <= dreamText.length) {
-        setTypingText(dreamText.slice(0, i))
-      } else {
-        clearInterval(interval)
-        setTimeout(() => setPhase("generating"), 800)
-      }
-    }, 40 + Math.random() * 30)
-    return () => clearInterval(interval)
-  }, [phase])
+    if (phase !== "typing") return;
+    setTypingText("");
+    let i = 0;
+    const interval = setInterval(
+      () => {
+        i++;
+        if (i <= dreamText.length) {
+          setTypingText(dreamText.slice(0, i));
+        } else {
+          clearInterval(interval);
+          setTimeout(() => setPhase("generating"), 800);
+        }
+      },
+      40 + Math.random() * 30,
+    );
+    return () => clearInterval(interval);
+  }, [phase]);
 
   // 3) When we enter "generating", fake an API call
   useEffect(() => {
-    if (phase !== "generating") return
-    const t = setTimeout(() => setPhase("show"), 2000)
-    return () => clearTimeout(t)
-  }, [phase])
+    if (phase !== "generating") return;
+    const t = setTimeout(() => setPhase("show"), 2000);
+    return () => clearTimeout(t);
+  }, [phase]);
 
   // 4) When we enter "show", show for 5s and then loop back
   useEffect(() => {
-    if (phase !== "show") return
-    const t = setTimeout(() => setPhase("typing"), 5000)
-    return () => clearTimeout(t)
-  }, [phase])
+    if (phase !== "show") return;
+    const t = setTimeout(() => setPhase("typing"), 5000);
+    return () => clearTimeout(t);
+  }, [phase]);
 
   return (
     <motion.div
@@ -59,7 +62,7 @@ export function DreamImageGenerator() {
       className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden relative"
     >
       {/* Removed Auto Demo indicator for cleaner UI */}
-      
+
       <div className="p-6">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
@@ -71,7 +74,9 @@ export function DreamImageGenerator() {
 
         {/* Typing area */}
         <div className="mb-6">
-          <label className="block text-sm text-white/70 mb-2">Dream Description</label>
+          <label className="block text-sm text-white/70 mb-2">
+            Dream Description
+          </label>
           <div className="min-h-[72px] bg-white/5 border border-white/10 rounded-lg p-3 text-white">
             {typingText}
             {phase === "typing" && showCursor && (
@@ -82,14 +87,16 @@ export function DreamImageGenerator() {
 
         {/* Style buttons */}
         <div className="flex flex-wrap gap-2 mb-6">
-          {["Surreal", "Mystical", "Dark", "Vibrant", "Abstract"].map((style) => (
-            <button
-              key={style}
-              className={`px-3 py-1.5 ${style === "Mystical" ? "bg-white/20" : "bg-white/10"} rounded-full text-sm transition-colors`}
-            >
-              {style}
-            </button>
-          ))}
+          {["Surreal", "Mystical", "Dark", "Vibrant", "Abstract"].map(
+            (style) => (
+              <button
+                key={style}
+                className={`px-3 py-1.5 ${style === "Mystical" ? "bg-white/20" : "bg-white/10"} rounded-full text-sm transition-colors`}
+              >
+                {style}
+              </button>
+            ),
+          )}
         </div>
 
         {/* Generate button */}
@@ -133,9 +140,9 @@ export function DreamImageGenerator() {
                     className="w-full h-full object-cover"
                   />
                 </motion.div>
-                
+
                 {/* Overlay with shimmering effect */}
-                <motion.div 
+                <motion.div
                   className="absolute inset-0 bg-gradient-to-r from-purple-500/30 to-blue-500/30"
                   initial={{ opacity: 0.8 }}
                   animate={{ opacity: 0 }}
@@ -144,16 +151,44 @@ export function DreamImageGenerator() {
               </div>
 
               <div className="flex gap-2">
-                <Button variant="outline" className="flex-1 border-white/10 text-white hover:bg-white/10">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 border-white/10 text-white hover:bg-white/10"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="mr-2"
+                  >
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                     <polyline points="7 10 12 15 17 10"></polyline>
                     <line x1="12" y1="15" x2="12" y2="3"></line>
                   </svg>
                   Save
                 </Button>
-                <Button variant="outline" className="flex-1 border-white/10 text-white hover:bg-white/10">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 border-white/10 text-white hover:bg-white/10"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="mr-2"
+                  >
                     <circle cx="18" cy="5" r="3"></circle>
                     <circle cx="6" cy="12" r="3"></circle>
                     <circle cx="18" cy="19" r="3"></circle>
@@ -168,5 +203,5 @@ export function DreamImageGenerator() {
         </AnimatePresence>
       </div>
     </motion.div>
-  )
+  );
 }

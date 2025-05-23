@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion } from "framer-motion"
+import { useState } from "react";
+import { motion } from "framer-motion";
 
 export function DreamCard({ dream, index }) {
-  const [isHovered, setIsHovered] = useState(false)
+  const [isHovered, setIsHovered] = useState(false);
 
   return (
     <motion.div
@@ -35,7 +35,10 @@ export function DreamCard({ dream, index }) {
           <p className="text-white/70 mb-6">{dream.excerpt}</p>
           <div className="flex flex-wrap gap-2">
             {dream.tags.map((tag, i) => (
-              <span key={i} className="text-xs px-2 py-1 rounded-full bg-white/10 text-white/70">
+              <span
+                key={i}
+                className="text-xs px-2 py-1 rounded-full bg-white/10 text-white/70"
+              >
                 #{tag}
               </span>
             ))}
@@ -62,5 +65,5 @@ export function DreamCard({ dream, index }) {
         </div>
       </motion.div>
     </motion.div>
-  )
+  );
 }

@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const testimonials = [
   {
@@ -25,17 +25,17 @@ const testimonials = [
     avatar: "M",
     color: "from-cyan-500 to-green-500",
   },
-]
+];
 
 export function TestimonialSlider() {
-  const [current, setCurrent] = useState(0)
+  const [current, setCurrent] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % testimonials.length)
-    }, 5000)
-    return () => clearInterval(interval)
-  }, [])
+      setCurrent((prev) => (prev + 1) % testimonials.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="relative max-w-3xl mx-auto">
@@ -93,7 +93,9 @@ export function TestimonialSlider() {
                   >
                     {testimonials[current].avatar}
                   </div>
-                  <span className="font-medium">{testimonials[current].author}</span>
+                  <span className="font-medium">
+                    {testimonials[current].author}
+                  </span>
                 </motion.div>
               </div>
             </div>
@@ -114,5 +116,5 @@ export function TestimonialSlider() {
         ))}
       </div>
     </div>
-  )
+  );
 }

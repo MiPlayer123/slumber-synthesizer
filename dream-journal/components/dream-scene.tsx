@@ -1,56 +1,75 @@
-"use client"
+"use client";
 
-import { useRef, useEffect } from "react"
-import { Canvas, useFrame, useThree } from "@react-three/fiber"
-import { Stars, Cloud, Float, Text, Environment } from "@react-three/drei"
-import { EffectComposer, Bloom } from "@react-three/postprocessing"
+import { useRef, useEffect } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Stars, Cloud, Float, Text, Environment } from "@react-three/drei";
+import { EffectComposer, Bloom } from "@react-three/postprocessing";
 
 function FloatingSymbol({ position, rotation, scale, color, speed = 1 }) {
-  const mesh = useRef(null)
+  const mesh = useRef(null);
 
   useFrame((state) => {
     if (mesh.current) {
-      mesh.current.rotation.x = Math.sin(state.clock.getElapsedTime() * 0.2 * speed) * 0.2
-      mesh.current.rotation.y = Math.sin(state.clock.getElapsedTime() * 0.1 * speed) * 0.2 + rotation[1]
-      mesh.current.position.y = position[1] + Math.sin(state.clock.getElapsedTime() * 0.3 * speed) * 0.2
+      mesh.current.rotation.x =
+        Math.sin(state.clock.getElapsedTime() * 0.2 * speed) * 0.2;
+      mesh.current.rotation.y =
+        Math.sin(state.clock.getElapsedTime() * 0.1 * speed) * 0.2 +
+        rotation[1];
+      mesh.current.position.y =
+        position[1] +
+        Math.sin(state.clock.getElapsedTime() * 0.3 * speed) * 0.2;
     }
-  })
+  });
 
   return (
     <mesh ref={mesh} position={position} rotation={rotation} scale={scale}>
       <torusKnotGeometry args={[0.4, 0.15, 128, 32]} />
-      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} roughness={0.5} metalness={0.8} />
+      <meshStandardMaterial
+        color={color}
+        emissive={color}
+        emissiveIntensity={0.5}
+        roughness={0.5}
+        metalness={0.8}
+      />
     </mesh>
-  )
+  );
 }
 
 function MovingStars({ count = 1000, scrollY }) {
-  const { camera } = useThree()
-  const group = useRef()
+  const { camera } = useThree();
+  const group = useRef();
 
   useEffect(() => {
     if (scrollY > 0) {
-      camera.position.y = scrollY * 0.005
-      camera.lookAt(0, 0, 0)
+      camera.position.y = scrollY * 0.005;
+      camera.lookAt(0, 0, 0);
     }
-  }, [scrollY, camera])
+  }, [scrollY, camera]);
 
   return (
     <group ref={group}>
-      <Stars radius={50} depth={50} count={count} factor={4} saturation={0} fade speed={1} />
+      <Stars
+        radius={50}
+        depth={50}
+        count={count}
+        factor={4}
+        saturation={0}
+        fade
+        speed={1}
+      />
     </group>
-  )
+  );
 }
 
 function CloudGroup({ scrollY }) {
-  const group = useRef()
+  const group = useRef();
 
   useFrame((state) => {
     if (group.current) {
-      group.current.rotation.y = state.clock.getElapsedTime() * 0.05
-      group.current.position.y = -5 - scrollY * 0.01
+      group.current.rotation.y = state.clock.getElapsedTime() * 0.05;
+      group.current.position.y = -5 - scrollY * 0.01;
     }
-  })
+  });
 
   return (
     <group ref={group}>
@@ -58,18 +77,18 @@ function CloudGroup({ scrollY }) {
       <Cloud position={[4, 2, -15]} speed={0.2} opacity={0.25} />
       <Cloud position={[0, 5, -10]} speed={0.2} opacity={0.3} />
     </group>
-  )
+  );
 }
 
 function FloatingText({ scrollY }) {
-  const textRef = useRef()
+  const textRef = useRef();
 
   useFrame((state) => {
     if (textRef.current) {
-      textRef.current.position.y = 2 - scrollY * 0.01
-      textRef.current.material.opacity = Math.max(0, 1 - scrollY * 0.003)
+      textRef.current.position.y = 2 - scrollY * 0.01;
+      textRef.current.material.opacity = Math.max(0, 1 - scrollY * 0.003);
     }
-  })
+  });
 
   return (
     <Float speed={2} rotationIntensity={0.2} floatIntensity={0.5}>
@@ -89,7 +108,7 @@ function FloatingText({ scrollY }) {
         Explore Your Dreams
       </Text>
     </Float>
-  )
+  );
 }
 
 export default function DreamScene({ scrollY = 0 }) {
@@ -106,15 +125,33 @@ export default function DreamScene({ scrollY = 0 }) {
       <CloudGroup scrollY={scrollY} />
 
       <Float speed={1.5} rotationIntensity={0.2} floatIntensity={0.5}>
-        <FloatingSymbol position={[-2, 0, -2]} rotation={[0, 0, 0]} scale={0.6} color="#8b5cf6" speed={1.2} />
+        <FloatingSymbol
+          position={[-2, 0, -2]}
+          rotation={[0, 0, 0]}
+          scale={0.6}
+          color="#8b5cf6"
+          speed={1.2}
+        />
       </Float>
 
       <Float speed={1.2} rotationIntensity={0.3} floatIntensity={0.4}>
-        <FloatingSymbol position={[2, -1, -3]} rotation={[0, Math.PI / 4, 0]} scale={0.8} color="#3b82f6" speed={0.8} />
+        <FloatingSymbol
+          position={[2, -1, -3]}
+          rotation={[0, Math.PI / 4, 0]}
+          scale={0.8}
+          color="#3b82f6"
+          speed={0.8}
+        />
       </Float>
 
       <Float speed={1} rotationIntensity={0.4} floatIntensity={0.3}>
-        <FloatingSymbol position={[0, 1, -4]} rotation={[0, Math.PI / 2, 0]} scale={1} color="#06b6d4" speed={1} />
+        <FloatingSymbol
+          position={[0, 1, -4]}
+          rotation={[0, Math.PI / 2, 0]}
+          scale={1}
+          color="#06b6d4"
+          speed={1}
+        />
       </Float>
 
       <FloatingText scrollY={scrollY} />
@@ -125,5 +162,5 @@ export default function DreamScene({ scrollY = 0 }) {
         <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.9} height={300} />
       </EffectComposer>
     </Canvas>
-  )
+  );
 }

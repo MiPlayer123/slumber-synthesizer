@@ -1,12 +1,18 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { Share2, Heart, MessageSquare, MoreHorizontal, Globe } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useState } from "react";
+import { motion } from "framer-motion";
+import {
+  Share2,
+  Heart,
+  MessageSquare,
+  MoreHorizontal,
+  Globe,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function DreamSharing() {
-  const [activeTab, setActiveTab] = useState("community")
+  const [activeTab, setActiveTab] = useState("community");
 
   const sharedDreams = [
     {
@@ -16,7 +22,8 @@ export function DreamSharing() {
         avatar: "A",
       },
       title: "Going on a hike with Steven",
-      excerpt: "I had a dream where Steven woke me up and then we went on a hike. That was it. I think...",
+      excerpt:
+        "I had a dream where Steven woke me up and then we went on a hike. That was it. I think...",
       tags: ["normal", "confusion"],
       likes: 1,
       comments: 1,
@@ -29,7 +36,8 @@ export function DreamSharing() {
         avatar: "D",
       },
       title: "Hawk in Harlem",
-      excerpt: "I was in a room filled with friends smoking weed. The room was filled with smoke. I felt...",
+      excerpt:
+        "I was in a room filled with friends smoking weed. The room was filled with smoke. I felt...",
       tags: ["lucid", "excitement"],
       likes: 2,
       comments: 1,
@@ -42,13 +50,14 @@ export function DreamSharing() {
         avatar: "D",
       },
       title: "Abandoned",
-      excerpt: "I was 15 when I was sent there... But in this dream I looked like a toddler. My new home...",
+      excerpt:
+        "I was 15 when I was sent there... But in this dream I looked like a toddler. My new home...",
       tags: ["lucid", "sadness"],
       likes: 2,
       comments: 0,
       image: "/placeholder.svg?height=300&width=400",
     },
-  ]
+  ];
 
   return (
     <motion.div
@@ -59,7 +68,10 @@ export function DreamSharing() {
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold">Dream Community</h2>
-          <Button size="sm" className="bg-gradient-to-r from-purple-500 to-blue-500 text-white">
+          <Button
+            size="sm"
+            className="bg-gradient-to-r from-purple-500 to-blue-500 text-white"
+          >
             <Share2 className="w-4 h-4 mr-2" />
             Share Dream
           </Button>
@@ -69,7 +81,9 @@ export function DreamSharing() {
           <button
             onClick={() => setActiveTab("community")}
             className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
-              activeTab === "community" ? "bg-white/10 text-white" : "text-white/60 hover:text-white/80"
+              activeTab === "community"
+                ? "bg-white/10 text-white"
+                : "text-white/60 hover:text-white/80"
             }`}
           >
             <Globe className="w-4 h-4" />
@@ -78,7 +92,9 @@ export function DreamSharing() {
           <button
             onClick={() => setActiveTab("following")}
             className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
-              activeTab === "following" ? "bg-white/10 text-white" : "text-white/60 hover:text-white/80"
+              activeTab === "following"
+                ? "bg-white/10 text-white"
+                : "text-white/60 hover:text-white/80"
             }`}
           >
             <Heart className="w-4 h-4" />
@@ -93,11 +109,11 @@ export function DreamSharing() {
         </div>
       </div>
     </motion.div>
-  )
+  );
 }
 
 function DreamCard({ dream, index }) {
-  const [liked, setLiked] = useState(false)
+  const [liked, setLiked] = useState(false);
 
   return (
     <motion.div
@@ -108,7 +124,11 @@ function DreamCard({ dream, index }) {
     >
       <div className="flex flex-col md:flex-row">
         <div className="md:w-1/3 h-48 md:h-auto relative">
-          <img src={dream.image || "/placeholder.svg"} alt={dream.title} className="w-full h-full object-cover" />
+          <img
+            src={dream.image || "/placeholder.svg"}
+            alt={dream.title}
+            className="w-full h-full object-cover"
+          />
         </div>
         <div className="p-4 md:w-2/3">
           <div className="flex items-center gap-2 mb-3">
@@ -123,7 +143,10 @@ function DreamCard({ dream, index }) {
 
           <div className="flex flex-wrap gap-2 mb-4">
             {dream.tags.map((tag, i) => (
-              <span key={i} className="text-xs px-2 py-1 rounded-full bg-white/10 text-white/70">
+              <span
+                key={i}
+                className="text-xs px-2 py-1 rounded-full bg-white/10 text-white/70"
+              >
                 #{tag}
               </span>
             ))}
@@ -134,7 +157,10 @@ function DreamCard({ dream, index }) {
               className={`flex items-center gap-1 text-sm ${liked ? "text-red-400" : "text-white/60 hover:text-white/80"}`}
               onClick={() => setLiked(!liked)}
             >
-              <Heart className="w-4 h-4" fill={liked ? "currentColor" : "none"} />
+              <Heart
+                className="w-4 h-4"
+                fill={liked ? "currentColor" : "none"}
+              />
               <span>{liked ? dream.likes + 1 : dream.likes}</span>
             </button>
             <button className="flex items-center gap-1 text-sm text-white/60 hover:text-white/80">
@@ -148,5 +174,5 @@ function DreamCard({ dream, index }) {
         </div>
       </div>
     </motion.div>
-  )
+  );
 }

@@ -1,34 +1,34 @@
-"use client"
+"use client";
 
-import { useRef, useState, useEffect } from "react"
-import Link from "next/link"
-import { ArrowRight, Moon } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { motion, AnimatePresence } from "framer-motion"
-import DreamScene from "@/components/dream-scene"
-import { DreamCard } from "@/components/dream-card"
-import { FeatureGrid } from "@/components/feature-grid"
-import { TestimonialSlider } from "@/components/testimonial-slider"
-import { FloatingNav } from "@/components/floating-nav"
-import { ParticleField } from "@/components/particle-field"
-import { DreamGlobe } from "@/components/dream-globe"
-import { DreamStatistics } from "@/components/dream-statistics"
-import { DreamImageGenerator } from "@/components/dream-image-generator"
-import { DreamSharing } from "@/components/dream-sharing"
-import { DreamAnalysis } from "@/components/dream-analysis"
-import { Brain, BarChart, Sparkles, Share2 } from "lucide-react"
+import { useRef, useState, useEffect } from "react";
+import Link from "next/link";
+import { ArrowRight, Moon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { motion, AnimatePresence } from "framer-motion";
+import DreamScene from "@/components/dream-scene";
+import { DreamCard } from "@/components/dream-card";
+import { FeatureGrid } from "@/components/feature-grid";
+import { TestimonialSlider } from "@/components/testimonial-slider";
+import { FloatingNav } from "@/components/floating-nav";
+import { ParticleField } from "@/components/particle-field";
+import { DreamGlobe } from "@/components/dream-globe";
+import { DreamStatistics } from "@/components/dream-statistics";
+import { DreamImageGenerator } from "@/components/dream-image-generator";
+import { DreamSharing } from "@/components/dream-sharing";
+import { DreamAnalysis } from "@/components/dream-analysis";
+import { Brain, BarChart, Sparkles, Share2 } from "lucide-react";
 
 // Define the interface for dream items
 interface DreamItem {
-  id: number
-  title: string
-  color: string
+  id: number;
+  title: string;
+  color: string;
 }
 
 export default function Home() {
-  const [scrollY, setScrollY] = useState(0)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const heroRef = useRef<HTMLDivElement>(null)
+  const [scrollY, setScrollY] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const heroRef = useRef<HTMLDivElement>(null);
 
   const sampleDreamData = [
     {
@@ -56,23 +56,23 @@ export default function Home() {
       title: "Floating in space",
       color: "#8b5cf6",
     },
-  ]
+  ];
 
-  const [selectedDream, setSelectedDream] = useState<DreamItem | null>(null)
+  const [selectedDream, setSelectedDream] = useState<DreamItem | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrollY(window.scrollY)
-    }
+      setScrollY(window.scrollY);
+    };
 
     // Check if window exists (for SSR compatibility)
     if (typeof window !== "undefined") {
-      window.addEventListener("scroll", handleScroll, { passive: true })
-      return () => window.removeEventListener("scroll", handleScroll)
+      window.addEventListener("scroll", handleScroll, { passive: true });
+      return () => window.removeEventListener("scroll", handleScroll);
     }
-  }, [])
+  }, []);
 
-  const parallaxOffset = scrollY * 0.5
+  const parallaxOffset = scrollY * 0.5;
 
   return (
     <div className="min-h-screen bg-background text-white overflow-x-hidden">
@@ -100,9 +100,16 @@ export default function Home() {
                   <div className="bg-gradient-to-r from-purple-500 to-blue-500 p-1.5 rounded-full">
                     <Moon size={18} className="text-black" />
                   </div>
-                  <span className="text-lg font-medium tracking-tight">Rem</span>
+                  <span className="text-lg font-medium tracking-tight">
+                    Rem
+                  </span>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)} className="text-white">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-white"
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="24"
@@ -171,7 +178,10 @@ export default function Home() {
 
       <main className="relative z-10">
         {/* Hero Section */}
-        <section ref={heroRef} className="relative min-h-screen flex items-center justify-center overflow-hidden">
+        <section
+          ref={heroRef}
+          className="relative min-h-screen flex items-center justify-center overflow-hidden"
+        >
           <div className="absolute inset-0 z-0">
             <DreamScene scrollY={scrollY} />
           </div>
@@ -187,8 +197,8 @@ export default function Home() {
                 Capture and share the ephemeral world of dreams
               </h1>
               <p className="text-lg text-white/70 max-w-2xl mx-auto">
-                Record your dreams, uncover hidden patterns, and connect with a community of dreamers in a beautiful,
-                secure space.
+                Record your dreams, uncover hidden patterns, and connect with a
+                community of dreamers in a beautiful, secure space.
               </p>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -214,7 +224,10 @@ export default function Home() {
           </div>
 
           <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 z-10">
-            <motion.div animate={{ y: [0, 10, 0] }} transition={{ repeat: Number.POSITIVE_INFINITY, duration: 2 }}>
+            <motion.div
+              animate={{ y: [0, 10, 0] }}
+              transition={{ repeat: Number.POSITIVE_INFINITY, duration: 2 }}
+            >
               <svg
                 width="24"
                 height="24"
@@ -242,7 +255,9 @@ export default function Home() {
               viewport={{ once: true }}
               className="text-center mb-16"
             >
-              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Your dream experience, evolved</h2>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+                Your dream experience, evolved
+              </h2>
               <div className="w-16 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 mx-auto mt-4"></div>
             </motion.div>
 
@@ -251,21 +266,24 @@ export default function Home() {
                 {
                   title: "Flying over mountains",
                   date: "Yesterday",
-                  excerpt: "I was soaring over snow-capped mountains, feeling the cold air against my face...",
+                  excerpt:
+                    "I was soaring over snow-capped mountains, feeling the cold air against my face...",
                   tags: ["flying", "mountains", "freedom"],
                   color: "from-purple-500/20 to-blue-500/20",
                 },
                 {
                   title: "Lost in a maze",
                   date: "3 days ago",
-                  excerpt: "The walls kept shifting around me, creating new pathways and dead ends...",
+                  excerpt:
+                    "The walls kept shifting around me, creating new pathways and dead ends...",
                   tags: ["maze", "confusion", "searching"],
                   color: "from-blue-500/20 to-cyan-500/20",
                 },
                 {
                   title: "Underwater city",
                   date: "Last week",
-                  excerpt: "I discovered a civilization living in transparent domes beneath the ocean...",
+                  excerpt:
+                    "I discovered a civilization living in transparent domes beneath the ocean...",
                   tags: ["underwater", "discovery", "city"],
                   color: "from-cyan-500/20 to-green-500/20",
                 },
@@ -286,14 +304,20 @@ export default function Home() {
               viewport={{ once: true }}
               className="text-center mb-16"
             >
-              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Explore the Dreamscape</h2>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+                Explore the Dreamscape
+              </h2>
               <p className="text-white/70 mt-2 max-w-2xl mx-auto">
-                Interact with our 3D dream globe to discover patterns and connections across the collective unconscious.
+                Interact with our 3D dream globe to discover patterns and
+                connections across the collective unconscious.
               </p>
               <div className="w-16 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 mx-auto mt-4"></div>
             </motion.div>
 
-            <DreamGlobe dreamData={sampleDreamData} onDreamSelect={(dream) => setSelectedDream(dream)} />
+            <DreamGlobe
+              dreamData={sampleDreamData}
+              onDreamSelect={(dream) => setSelectedDream(dream)}
+            />
 
             {selectedDream && (
               <motion.div
@@ -301,10 +325,12 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 className="mt-8 bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-6 max-w-lg mx-auto"
               >
-                <h3 className="text-xl font-medium mb-2">{selectedDream.title}</h3>
+                <h3 className="text-xl font-medium mb-2">
+                  {selectedDream.title}
+                </h3>
                 <p className="text-white/70">
-                  You've selected a dream node. In the full version, you would see details and connections to similar
-                  dreams.
+                  You've selected a dream node. In the full version, you would
+                  see details and connections to similar dreams.
                 </p>
               </motion.div>
             )}
@@ -330,7 +356,9 @@ export default function Home() {
                 <Brain className="w-4 h-4 text-purple-400" />
                 <span>AI-Powered Analysis</span>
               </div>
-              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Understand Your Dreams</h2>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+                Understand Your Dreams
+              </h2>
               <div className="w-16 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 mx-auto mt-4"></div>
             </motion.div>
 
@@ -352,7 +380,9 @@ export default function Home() {
                 <BarChart className="w-4 h-4 text-blue-400" />
                 <span>Dream Patterns</span>
               </div>
-              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Track Your Dream Patterns</h2>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+                Track Your Dream Patterns
+              </h2>
               <div className="w-16 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 mx-auto mt-4"></div>
             </motion.div>
 
@@ -374,7 +404,9 @@ export default function Home() {
                 <Sparkles className="w-4 h-4 text-green-400" />
                 <span>Dream Visualization</span>
               </div>
-              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Visualize Your Dreams</h2>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+                Visualize Your Dreams
+              </h2>
               <div className="w-16 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 mx-auto mt-4"></div>
             </motion.div>
 
@@ -398,7 +430,9 @@ export default function Home() {
                 <Share2 className="w-4 h-4 text-cyan-400" />
                 <span>Dream Community</span>
               </div>
-              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Share Your Dreams</h2>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+                Share Your Dreams
+              </h2>
               <div className="w-16 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 mx-auto mt-4"></div>
             </motion.div>
 
@@ -416,7 +450,9 @@ export default function Home() {
               viewport={{ once: true }}
               className="text-center mb-16"
             >
-              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Stories from the dreamscape</h2>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+                Stories from the dreamscape
+              </h2>
               <div className="w-16 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 mx-auto mt-4"></div>
             </motion.div>
 
@@ -434,9 +470,12 @@ export default function Home() {
               viewport={{ once: true }}
               className="max-w-2xl mx-auto text-center"
             >
-              <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-4">Begin your dream journey</h2>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-4">
+                Begin your dream journey
+              </h2>
               <p className="text-white/70 mb-8">
-                Join thousands exploring their subconscious mind and connecting through dreams.
+                Join thousands exploring their subconscious mind and connecting
+                through dreams.
               </p>
               <Button
                 size="lg"
@@ -460,7 +499,8 @@ export default function Home() {
                 <span className="text-lg font-medium tracking-tight">Rem</span>
               </div>
               <p className="text-sm text-white/50">
-                Explore the world of dreams with our innovative journaling platform.
+                Explore the world of dreams with our innovative journaling
+                platform.
               </p>
             </div>
             <div>
@@ -540,5 +580,5 @@ export default function Home() {
         </div>
       </footer>
     </div>
-  )
+  );
 }

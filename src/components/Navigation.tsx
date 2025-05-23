@@ -361,7 +361,10 @@ export const Navigation = () => {
                 )}
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className={`w-72 ${isLanding ? "bg-[#1a0b2e] border-[#1a0b2e]" : ""}`}>
+            <SheetContent
+              side="right"
+              className={`w-72 ${isLanding ? "bg-[#1a0b2e] border-[#1a0b2e]" : ""}`}
+            >
               <div className="py-4">
                 <div className="mb-8 flex items-center">
                   <span className="text-2xl font-bold text-dream-600">

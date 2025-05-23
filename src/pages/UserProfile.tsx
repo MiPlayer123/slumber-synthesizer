@@ -711,8 +711,10 @@ export const UserProfile = () => {
         >
           {/* Add accessible title and description for screen readers */}
           <DialogTitle className="sr-only">Dream Details</DialogTitle>
-          <DialogDescription className="sr-only">View dream details and comments</DialogDescription>
-          
+          <DialogDescription className="sr-only">
+            View dream details and comments
+          </DialogDescription>
+
           {selectedDream && (
             <div className="flex flex-col md:flex-row h-[90vh] md:h-auto overflow-hidden">
               <div

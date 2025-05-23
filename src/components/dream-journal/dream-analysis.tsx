@@ -1,11 +1,19 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Brain, Star, Hash, Sparkles, Lightbulb, MessageCircle, Layers } from "lucide-react"
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Brain,
+  Star,
+  Hash,
+  Sparkles,
+  Lightbulb,
+  MessageCircle,
+  Layers,
+} from "lucide-react";
 
 export function DreamAnalysis() {
-  const [activeTab, setActiveTab] = useState("analysis")
+  const [activeTab, setActiveTab] = useState("analysis");
 
   const dreamAnalysis = {
     summary:
@@ -17,16 +25,25 @@ export function DreamAnalysis() {
       { name: "academic pressure", rating: 5 },
     ],
     symbols: [
-      { name: "Library", description: "Represents knowledge, order, and academic expectations" },
-      { name: "Screen sharing", description: "Symbolizes unwanted exposure of private thoughts" },
-      { name: "Reddit", description: "Represents personal interests and online community" },
+      {
+        name: "Library",
+        description: "Represents knowledge, order, and academic expectations",
+      },
+      {
+        name: "Screen sharing",
+        description: "Symbolizes unwanted exposure of private thoughts",
+      },
+      {
+        name: "Reddit",
+        description: "Represents personal interests and online community",
+      },
     ],
     emotions: [
       { name: "embarrassment", intensity: 80 },
       { name: "anxiety", intensity: 65 },
       { name: "confusion", intensity: 40 },
     ],
-  }
+  };
 
   return (
     <motion.div
@@ -37,7 +54,9 @@ export function DreamAnalysis() {
     >
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-indigo-300 to-cyan-400">Dream Analysis</h2>
+          <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-indigo-300 to-cyan-400">
+            Dream Analysis
+          </h2>
           <div className="bg-gradient-to-r from-purple-500/20 to-cyan-500/20 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-inner shadow-white/5 border border-white/10">
             <Sparkles className="w-3.5 h-3.5 text-purple-300" />
             <span className="text-white/90">AI Powered</span>
@@ -48,8 +67,8 @@ export function DreamAnalysis() {
           <button
             onClick={() => setActiveTab("analysis")}
             className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-300 ${
-              activeTab === "analysis" 
-                ? "bg-gradient-to-r from-purple-500/30 to-blue-500/30 text-white shadow-md shadow-purple-500/10 border border-white/10" 
+              activeTab === "analysis"
+                ? "bg-gradient-to-r from-purple-500/30 to-blue-500/30 text-white shadow-md shadow-purple-500/10 border border-white/10"
                 : "text-white/60 hover:text-white/90 hover:bg-white/5"
             }`}
           >
@@ -59,8 +78,8 @@ export function DreamAnalysis() {
           <button
             onClick={() => setActiveTab("themes")}
             className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-300 ${
-              activeTab === "themes" 
-                ? "bg-gradient-to-r from-indigo-500/30 to-cyan-500/30 text-white shadow-md shadow-indigo-500/10 border border-white/10" 
+              activeTab === "themes"
+                ? "bg-gradient-to-r from-indigo-500/30 to-cyan-500/30 text-white shadow-md shadow-indigo-500/10 border border-white/10"
                 : "text-white/60 hover:text-white/90 hover:bg-white/5"
             }`}
           >
@@ -70,8 +89,8 @@ export function DreamAnalysis() {
           <button
             onClick={() => setActiveTab("emotions")}
             className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-300 ${
-              activeTab === "emotions" 
-                ? "bg-gradient-to-r from-blue-500/30 to-teal-500/30 text-white shadow-md shadow-blue-500/10 border border-white/10" 
+              activeTab === "emotions"
+                ? "bg-gradient-to-r from-blue-500/30 to-teal-500/30 text-white shadow-md shadow-blue-500/10 border border-white/10"
                 : "text-white/60 hover:text-white/90 hover:bg-white/5"
             }`}
           >
@@ -82,7 +101,7 @@ export function DreamAnalysis() {
 
         <AnimatePresence mode="wait">
           {activeTab === "analysis" && (
-            <motion.div 
+            <motion.div
               key="analysis"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -91,7 +110,9 @@ export function DreamAnalysis() {
               className="space-y-5"
             >
               <div className="bg-white/5 backdrop-blur-sm rounded-lg p-5 border border-white/10 shadow-inner shadow-white/5">
-                <p className="text-white/90 leading-relaxed text-sm md:text-base">{dreamAnalysis.summary}</p>
+                <p className="text-white/90 leading-relaxed text-sm md:text-base">
+                  {dreamAnalysis.summary}
+                </p>
               </div>
 
               <div className="mt-6">
@@ -100,7 +121,7 @@ export function DreamAnalysis() {
                   <span>Key Insights</span>
                 </h3>
                 <div className="space-y-3">
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 }}
@@ -110,11 +131,12 @@ export function DreamAnalysis() {
                       <Sparkles className="w-3.5 h-3.5 text-purple-300" />
                     </div>
                     <span className="text-white/90 text-sm md:text-base">
-                      Your feelings of embarrassment may be connected to deeper concerns about how others perceive you.
+                      Your feelings of embarrassment may be connected to deeper
+                      concerns about how others perceive you.
                     </span>
                   </motion.div>
-                  
-                  <motion.div 
+
+                  <motion.div
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.2 }}
@@ -124,11 +146,12 @@ export function DreamAnalysis() {
                       <Sparkles className="w-3.5 h-3.5 text-blue-300" />
                     </div>
                     <span className="text-white/90 text-sm md:text-base">
-                      The library setting suggests you value knowledge but feel pressure to meet academic standards.
+                      The library setting suggests you value knowledge but feel
+                      pressure to meet academic standards.
                     </span>
                   </motion.div>
-                  
-                  <motion.div 
+
+                  <motion.div
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 }}
@@ -138,7 +161,8 @@ export function DreamAnalysis() {
                       <Sparkles className="w-3.5 h-3.5 text-cyan-300" />
                     </div>
                     <span className="text-white/90 text-sm md:text-base">
-                      Consider how you balance personal interests with external expectations in your waking life.
+                      Consider how you balance personal interests with external
+                      expectations in your waking life.
                     </span>
                   </motion.div>
                 </div>
@@ -147,7 +171,7 @@ export function DreamAnalysis() {
           )}
 
           {activeTab === "themes" && (
-            <motion.div 
+            <motion.div
               key="themes"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -162,21 +186,25 @@ export function DreamAnalysis() {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {dreamAnalysis.themes.map((theme, i) => (
-                    <motion.div 
-                      key={i} 
+                    <motion.div
+                      key={i}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.1 }}
                       className="bg-gradient-to-br from-indigo-500/20 to-indigo-500/5 p-4 rounded-lg border border-indigo-500/20 backdrop-blur-sm"
                     >
                       <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-white/90">#{theme.name}</span>
+                        <span className="text-sm font-medium text-white/90">
+                          #{theme.name}
+                        </span>
                         <div className="flex">
                           {[...Array(5)].map((_, starIndex) => (
                             <Star
                               key={starIndex}
                               className={`w-4 h-4 ${
-                                starIndex < theme.rating ? "text-indigo-400 fill-indigo-400" : "text-white/20"
+                                starIndex < theme.rating
+                                  ? "text-indigo-400 fill-indigo-400"
+                                  : "text-white/20"
                               }`}
                             />
                           ))}
@@ -194,8 +222,8 @@ export function DreamAnalysis() {
                 </h3>
                 <div className="space-y-3">
                   {dreamAnalysis.symbols.map((symbol, i) => (
-                    <motion.div 
-                      key={i} 
+                    <motion.div
+                      key={i}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 + i * 0.1 }}
@@ -205,9 +233,13 @@ export function DreamAnalysis() {
                         <div className="bg-gradient-to-r from-cyan-500/30 to-teal-500/30 p-1.5 rounded-full">
                           <Hash className="w-3.5 h-3.5 text-white" />
                         </div>
-                        <span className="font-medium text-white/90">{symbol.name}</span>
+                        <span className="font-medium text-white/90">
+                          {symbol.name}
+                        </span>
                       </div>
-                      <p className="text-sm text-white/70 pl-7">{symbol.description}</p>
+                      <p className="text-sm text-white/70 pl-7">
+                        {symbol.description}
+                      </p>
                     </motion.div>
                   ))}
                 </div>
@@ -216,7 +248,7 @@ export function DreamAnalysis() {
           )}
 
           {activeTab === "emotions" && (
-            <motion.div 
+            <motion.div
               key="emotions"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -232,14 +264,22 @@ export function DreamAnalysis() {
                 {dreamAnalysis.emotions.map((emotion, i) => (
                   <motion.div key={i} className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="font-medium text-white/90 capitalize">{emotion.name}</span>
-                      <span className="text-white/70">{emotion.intensity}%</span>
+                      <span className="font-medium text-white/90 capitalize">
+                        {emotion.name}
+                      </span>
+                      <span className="text-white/70">
+                        {emotion.intensity}%
+                      </span>
                     </div>
                     <div className="h-3 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm p-0.5">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${emotion.intensity}%` }}
-                        transition={{ duration: 0.8, delay: i * 0.2, ease: "easeOut" }}
+                        transition={{
+                          duration: 0.8,
+                          delay: i * 0.2,
+                          ease: "easeOut",
+                        }}
                         className={`h-full rounded-full ${
                           emotion.name === "embarrassment"
                             ? "bg-gradient-to-r from-red-500 to-red-400"
@@ -253,7 +293,7 @@ export function DreamAnalysis() {
                 ))}
               </div>
 
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
@@ -266,9 +306,11 @@ export function DreamAnalysis() {
                   Emotional Insights
                 </h4>
                 <p className="text-sm text-white/80 leading-relaxed">
-                  Your dream reveals significant emotional intensity around embarrassment and anxiety. These emotions may
-                  be connected to real-life situations where you feel exposed or judged. Consider journaling about times
-                  when you've felt similar emotions in your waking life.
+                  Your dream reveals significant emotional intensity around
+                  embarrassment and anxiety. These emotions may be connected to
+                  real-life situations where you feel exposed or judged.
+                  Consider journaling about times when you've felt similar
+                  emotions in your waking life.
                 </p>
               </motion.div>
             </motion.div>
@@ -276,5 +318,5 @@ export function DreamAnalysis() {
         </AnimatePresence>
       </div>
     </motion.div>
-  )
+  );
 }

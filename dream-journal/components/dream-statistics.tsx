@@ -1,18 +1,30 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { BarChart, PieChart, Activity, Calendar } from "lucide-react"
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { BarChart, PieChart, Activity, Calendar } from "lucide-react";
 
 const tabs = [
   { id: "overview", label: "Overview", icon: <Activity className="w-4 h-4" /> },
-  { id: "patterns", label: "Patterns & Trends", icon: <BarChart className="w-4 h-4" /> },
-  { id: "themes", label: "Themes & Symbols", icon: <PieChart className="w-4 h-4" /> },
-  { id: "calendar", label: "Calendar View", icon: <Calendar className="w-4 h-4" /> },
-]
+  {
+    id: "patterns",
+    label: "Patterns & Trends",
+    icon: <BarChart className="w-4 h-4" />,
+  },
+  {
+    id: "themes",
+    label: "Themes & Symbols",
+    icon: <PieChart className="w-4 h-4" />,
+  },
+  {
+    id: "calendar",
+    label: "Calendar View",
+    icon: <Calendar className="w-4 h-4" />,
+  },
+];
 
 export function DreamStatistics({ stats = {} }) {
-  const [activeTab, setActiveTab] = useState("overview")
+  const [activeTab, setActiveTab] = useState("overview");
 
   const defaultStats = {
     totalDreams: 42,
@@ -34,7 +46,7 @@ export function DreamStatistics({ stats = {} }) {
       { name: "Confusion", percentage: 15 },
     ],
     ...stats,
-  }
+  };
 
   return (
     <motion.div
@@ -51,7 +63,9 @@ export function DreamStatistics({ stats = {} }) {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
-                activeTab === tab.id ? "bg-white/10 text-white" : "text-white/60 hover:text-white/80"
+                activeTab === tab.id
+                  ? "bg-white/10 text-white"
+                  : "text-white/60 hover:text-white/80"
               }`}
             >
               {tab.icon}
@@ -95,7 +109,10 @@ export function DreamStatistics({ stats = {} }) {
               <h3 className="text-lg font-medium mb-3">Dreams Over Time</h3>
               <div className="h-40 bg-white/5 rounded-lg flex items-end p-4">
                 {defaultStats.dreamsByMonth.map((count, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center justify-end">
+                  <div
+                    key={i}
+                    className="flex-1 flex flex-col items-center justify-end"
+                  >
                     <motion.div
                       initial={{ height: 0 }}
                       animate={{ height: `${(count / 12) * 100}%` }}
@@ -182,7 +199,7 @@ export function DreamStatistics({ stats = {} }) {
         )}
       </div>
     </motion.div>
-  )
+  );
 }
 
 function StatCard({ title, value, subtitle, color }) {
@@ -202,5 +219,5 @@ function StatCard({ title, value, subtitle, color }) {
         <div className="text-xs text-white/50">{subtitle}</div>
       </div>
     </motion.div>
-  )
+  );
 }

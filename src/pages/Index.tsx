@@ -223,6 +223,27 @@ export default function Index() {
           </div>
         </section>
 
+        {/* Mobile App Coming Soon - Brief */}
+        <section className="relative py-8 bg-gradient-to-r from-purple-900/10 to-blue-900/10">
+          <div className="container mx-auto px-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ duration: 0.6 }}
+              viewport={{ once: true }}
+              className="text-center"
+            >
+              <p className="text-white/70 text-lg">
+                📱{" "}
+                <span className="text-white font-large">
+                  Mobile app coming Q2 2025
+                </span>{" "}
+                - Record dreams on-the-go
+              </p>
+            </motion.div>
+          </div>
+        </section>
+
         {/* Features Grid */}
         <section id="features" className="relative pt-8 pb-16">
           <FeatureGrid />
