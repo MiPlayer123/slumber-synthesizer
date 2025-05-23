@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from "react";
 import { ArrowRight, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import DreamScene from "@/components/dream-journal/dream-scene";
+// import DreamScene from "@/components/dream-journal/dream-scene";
 import { FeatureGrid } from "@/components/dream-journal/feature-grid";
 import { TestimonialSlider } from "@/components/dream-journal/testimonial-slider";
 import { ParticleField } from "@/components/dream-journal/particle-field";
@@ -74,7 +74,9 @@ export default function Index() {
           className="relative min-h-[90vh] flex items-center justify-center overflow-hidden"
         >
           <div className="absolute inset-0 z-0">
-            <DreamScene scrollY={scrollY} />
+            {/* Temporarily disabled DreamScene */}
+            {/* <DreamScene scrollY={scrollY} /> */}
+            <div className="w-full h-full bg-gradient-to-br from-purple-900/20 to-blue-900/20" />
           </div>
 
           <div className="container mx-auto px-6 py-16 md:py-24 relative z-10">

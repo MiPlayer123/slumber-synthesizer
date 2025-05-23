@@ -29,12 +29,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { track } from "@vercel/analytics/react";
 
 export const Navigation = () => {
@@ -92,118 +86,70 @@ export const Navigation = () => {
           <span className="text-2xl font-bold text-dream-600">☾ REM</span>
         </Link>
 
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-6">
+        {/* Desktop Navigation - Now with text labels */}
+        <div className="hidden md:flex items-center space-x-1">
           {!user && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link to="/" onClick={() => handleNavigation("/")}>
-                    <Button variant="ghost" size="icon">
-                      <Home className="h-5 w-5" />
-                    </Button>
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Home</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Link to="/" onClick={() => handleNavigation("/")}>
+              <Button variant="ghost" className="flex items-center gap-2">
+                <Home className="h-4 w-4" />
+                <span>Home</span>
+              </Button>
+            </Link>
           )}
 
           {user ? (
             <>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/journal"
-                      onClick={() => handleNavigation("/journal")}
-                    >
-                      <Button variant="ghost" size="icon">
-                        <BookMarked className="h-5 w-5" />
-                      </Button>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Journal</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Link
+                to="/journal"
+                onClick={() => handleNavigation("/journal")}
+              >
+                <Button variant="ghost" className="flex items-center gap-2">
+                  <BookMarked className="h-4 w-4" />
+                  <span>Journal</span>
+                </Button>
+              </Link>
 
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/statistics"
-                      onClick={() => handleNavigation("/statistics")}
-                    >
-                      <Button variant="ghost" size="icon">
-                        <BarChart className="h-5 w-5" />
-                      </Button>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Statistics</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Link
+                to="/statistics"
+                onClick={() => handleNavigation("/statistics")}
+              >
+                <Button variant="ghost" className="flex items-center gap-2">
+                  <BarChart className="h-4 w-4" />
+                  <span>Statistics</span>
+                </Button>
+              </Link>
 
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/dream-wall"
-                      onClick={() => handleNavigation("/dream-wall")}
-                    >
-                      <Button variant="ghost" size="icon">
-                        <Grid className="h-5 w-5" />
-                      </Button>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Dream Wall</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Link
+                to="/dream-wall"
+                onClick={() => handleNavigation("/dream-wall")}
+              >
+                <Button variant="ghost" className="flex items-center gap-2">
+                  <Grid className="h-4 w-4" />
+                  <span>Dream Wall</span>
+                </Button>
+              </Link>
 
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/friends"
-                      onClick={() => handleNavigation("/friends")}
-                    >
-                      <Button variant="ghost" size="icon">
-                        <Users className="h-5 w-5" />
-                      </Button>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Friends' Feed</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Link
+                to="/friends"
+                onClick={() => handleNavigation("/friends")}
+              >
+                <Button variant="ghost" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  <span>Friends</span>
+                </Button>
+              </Link>
 
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/settings?tab=subscription"
-                      onClick={() =>
-                        handleNavigation("/settings?tab=subscription")
-                      }
-                    >
-                      <Button variant="ghost" size="icon">
-                        <CreditCard className="h-5 w-5" />
-                      </Button>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Subscription</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Link
+                to="/settings?tab=subscription"
+                onClick={() =>
+                  handleNavigation("/settings?tab=subscription")
+                }
+              >
+                <Button variant="ghost" className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  <span>Subscription</span>
+                </Button>
+              </Link>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -299,86 +245,8 @@ export const Navigation = () => {
           )}
         </div>
 
-        {/* Mobile Navigation */}
-        <div className="flex md:hidden items-center space-x-3">
-          {user && (
-            <>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/journal"
-                      onClick={() => handleNavigation("/journal")}
-                    >
-                      <Button variant="ghost" size="icon">
-                        <BookMarked className="h-5 w-5" />
-                      </Button>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Journal</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/statistics"
-                      onClick={() => handleNavigation("/statistics")}
-                    >
-                      <Button variant="ghost" size="icon">
-                        <BarChart className="h-5 w-5" />
-                      </Button>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Statistics</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/community"
-                      onClick={() => handleNavigation("/community")}
-                    >
-                      <Button variant="ghost" size="icon">
-                        <Users className="h-5 w-5" />
-                      </Button>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Dream Community</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/settings?tab=subscription"
-                      onClick={() =>
-                        handleNavigation("/settings?tab=subscription")
-                      }
-                    >
-                      <Button variant="ghost" size="icon">
-                        <CreditCard className="h-5 w-5" />
-                      </Button>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Subscription</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </>
-          )}
-
+        {/* Mobile Navigation - Clean hamburger menu only */}
+        <div className="flex md:hidden items-center">
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -432,27 +300,62 @@ export const Navigation = () => {
 
                     <div className="space-y-1">
                       <Link
+                        to="/journal"
+                        onClick={() => handleNavigation("/journal")}
+                        className={`flex items-center py-3 px-3 text-sm rounded-md hover:bg-accent transition-colors ${location.pathname === "/journal" ? "bg-accent" : ""}`}
+                      >
+                        <BookMarked className="mr-3 h-5 w-5" />
+                        <span>Journal</span>
+                      </Link>
+                      <Link
+                        to="/statistics"
+                        onClick={() => handleNavigation("/statistics")}
+                        className={`flex items-center py-3 px-3 text-sm rounded-md hover:bg-accent transition-colors ${location.pathname === "/statistics" ? "bg-accent" : ""}`}
+                      >
+                        <BarChart className="mr-3 h-5 w-5" />
+                        <span>Statistics</span>
+                      </Link>
+                      <Link
+                        to="/dream-wall"
+                        onClick={() => handleNavigation("/dream-wall")}
+                        className={`flex items-center py-3 px-3 text-sm rounded-md hover:bg-accent transition-colors ${location.pathname === "/dream-wall" ? "bg-accent" : ""}`}
+                      >
+                        <Grid className="mr-3 h-5 w-5" />
+                        <span>Dream Wall</span>
+                      </Link>
+                      <Link
+                        to="/friends"
+                        onClick={() => handleNavigation("/friends")}
+                        className={`flex items-center py-3 px-3 text-sm rounded-md hover:bg-accent transition-colors ${location.pathname === "/friends" ? "bg-accent" : ""}`}
+                      >
+                        <Users className="mr-3 h-5 w-5" />
+                        <span>Friends' Feed</span>
+                      </Link>
+                      
+                      <div className="border-t border-border my-4"></div>
+                      
+                      <Link
                         to="/profile"
                         onClick={() => handleNavigation("/profile")}
-                        className={`flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent ${location.pathname === "/profile" ? "bg-accent" : ""}`}
+                        className={`flex items-center py-3 px-3 text-sm rounded-md hover:bg-accent transition-colors ${location.pathname === "/profile" ? "bg-accent" : ""}`}
                       >
-                        <UserIcon className="mr-2 h-4 w-4" />
+                        <UserIcon className="mr-3 h-5 w-5" />
                         <span>My Profile</span>
                       </Link>
                       <Link
                         to="/settings"
                         onClick={() => handleNavigation("/settings")}
-                        className={`flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent ${location.pathname === "/settings" ? "bg-accent" : ""}`}
+                        className={`flex items-center py-3 px-3 text-sm rounded-md hover:bg-accent transition-colors ${location.pathname === "/settings" ? "bg-accent" : ""}`}
                       >
-                        <Settings className="mr-2 h-4 w-4" />
+                        <Settings className="mr-3 h-5 w-5" />
                         <span>Settings</span>
                       </Link>
                       <Link
                         to="/manage-friends"
                         onClick={() => handleNavigation("/manage-friends")}
-                        className={`flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent ${location.pathname === "/manage-friends" ? "bg-accent" : ""}`}
+                        className={`flex items-center py-3 px-3 text-sm rounded-md hover:bg-accent transition-colors ${location.pathname === "/manage-friends" ? "bg-accent" : ""}`}
                       >
-                        <Users className="mr-2 h-4 w-4" />
+                        <Users className="mr-3 h-5 w-5" />
                         <span>Manage Friends</span>
                       </Link>
                       <Link
@@ -460,40 +363,49 @@ export const Navigation = () => {
                         onClick={() =>
                           handleNavigation("/settings?tab=subscription")
                         }
-                        className="flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent"
+                        className="flex items-center py-3 px-3 text-sm rounded-md hover:bg-accent transition-colors"
                       >
-                        <CreditCard className="mr-2 h-4 w-4" />
+                        <CreditCard className="mr-3 h-5 w-5" />
                         <span>Subscription</span>
                       </Link>
+                      
+                      <div className="border-t border-border my-4"></div>
+                      
                       <button
                         onClick={() =>
                           setTheme(theme === "dark" ? "light" : "dark")
                         }
-                        className="w-full flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent"
+                        className="w-full flex items-center py-3 px-3 text-sm rounded-md hover:bg-accent transition-colors"
                       >
                         {theme === "dark" ? (
                           <>
-                            <Sun className="mr-2 h-4 w-4" />
+                            <Sun className="mr-3 h-5 w-5" />
                             <span>Light Mode</span>
                           </>
                         ) : (
                           <>
-                            <Moon className="mr-2 h-4 w-4" />
+                            <Moon className="mr-3 h-5 w-5" />
                             <span>Dark Mode</span>
                           </>
                         )}
                       </button>
                       <button
                         onClick={handleSignOut}
-                        className="w-full flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent"
+                        className="w-full flex items-center py-3 px-3 text-sm rounded-md hover:bg-accent transition-colors text-red-600 hover:text-red-700"
                       >
-                        <LogOut className="mr-2 h-4 w-4" />
+                        <LogOut className="mr-3 h-5 w-5" />
                         <span>Log out</span>
                       </button>
                     </div>
                   </>
                 ) : (
                   <div className="flex flex-col space-y-4">
+                    <Link to="/" onClick={() => handleNavigation("/")}>
+                      <div className="flex items-center py-3 px-3 text-sm rounded-md hover:bg-accent transition-colors">
+                        <Home className="mr-3 h-5 w-5" />
+                        <span>Home</span>
+                      </div>
+                    </Link>
                     <Link to="/auth" onClick={() => handleNavigation("/auth")}>
                       <Button className="w-full">Sign In</Button>
                     </Link>
@@ -501,16 +413,16 @@ export const Navigation = () => {
                       onClick={() =>
                         setTheme(theme === "dark" ? "light" : "dark")
                       }
-                      className="flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent"
+                      className="flex items-center py-3 px-3 text-sm rounded-md hover:bg-accent transition-colors"
                     >
                       {theme === "dark" ? (
                         <>
-                          <Sun className="mr-2 h-4 w-4" />
+                          <Sun className="mr-3 h-5 w-5" />
                           <span>Light Mode</span>
                         </>
                       ) : (
                         <>
-                          <Moon className="mr-2 h-4 w-4" />
+                          <Moon className="mr-3 h-5 w-5" />
                           <span>Dark Mode</span>
                         </>
                       )}
