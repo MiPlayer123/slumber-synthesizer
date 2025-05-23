@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Sparkles, Share, X, Wand2, Users } from "lucide-react";
+import { Loader2, Share, X, Wand2, Users } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -66,7 +66,7 @@ export default function FriendsFeed() {
       // Also, potentially refresh the friends feed query if likes affect its data directly
       // queryClient.invalidateQueries({ queryKey: ['friendsDreams', user?.id] });
     },
-    [queryClient, user?.id],
+    [queryClient],
   );
 
   useEffect(() => {

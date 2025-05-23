@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useCommunityDreams, useFriendsDreams } from "@/hooks/use-dreams";
 import { ProfileHoverCard } from "@/components/ui/profile-hover-card";
-import { DreamTile } from "@/components/dreams/DreamTile";
 
 import { useAuth } from "@/hooks/useAuth";
 
@@ -710,7 +709,6 @@ interface FriendDreamCardProps {
 }
 
 function FriendDreamCard({ dream }: FriendDreamCardProps) {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
