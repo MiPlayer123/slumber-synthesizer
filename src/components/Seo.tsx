@@ -1,4 +1,4 @@
-import { Helmet } from 'react-helmet-async';
+import { Helmet } from "react-helmet-async";
 
 interface SeoProps {
   title?: string;
@@ -9,16 +9,16 @@ interface SeoProps {
 }
 
 export const Seo = ({
-  title = 'Rem',
-  description = 'Track your sleep patterns, record dreams and improve your sleep quality with REM sleep tracker and dream journal.',
-  canonical = '',
-  ogImage = '/images/preview_image.png',
+  title = "Rem",
+  description = "Track your sleep patterns, record dreams and improve your sleep quality with REM sleep tracker and dream journal.",
+  canonical = "",
+  ogImage = "/images/preview_image.png",
   noIndex = false,
 }: SeoProps) => {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://lucidrem.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://lucidrem.com";
   const fullUrl = canonical ? `${siteUrl}${canonical}` : siteUrl;
-  const fullTitle = title.includes('REM') ? title : `${title} | REM`;
-  
+  const fullTitle = title.includes("REM") ? title : `${title} | REM`;
+
   return (
     <Helmet>
       {/* Primary Meta Tags */}
@@ -27,9 +27,12 @@ export const Seo = ({
       <meta name="description" content={description} />
       {noIndex && <meta name="robots" content="noindex" />}
       <link rel="canonical" href={fullUrl} />
-      
+
       {/* Content Security Policy */}
-      <meta httpEquiv="Content-Security-Policy" content="style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:;" />
+      <meta
+        httpEquiv="Content-Security-Policy"
+        content="style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:;"
+      />
 
       {/* Open Graph / Facebook */}
       <meta property="og:type" content="website" />

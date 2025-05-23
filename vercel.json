@@ -1,19 +1,19 @@
 {
   "rewrites": [
-    { 
-      "source": "/api/functions/v1/:path*", 
-      "destination": "https://api.lucidrem.com/functions/v1/:path*" 
+    {
+      "source": "/api/functions/v1/:path*",
+      "destination": "https://api.lucidrem.com/functions/v1/:path*"
     },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "redirects": [
-    { 
-      "source": "/checkout-complete&success=true", 
+    {
+      "source": "/checkout-complete&success=true",
       "destination": "/checkout-complete?success=true",
       "permanent": false
     },
-    { 
-      "source": "/checkout-complete&canceled=true", 
+    {
+      "source": "/checkout-complete&canceled=true",
       "destination": "/checkout-complete?canceled=true",
       "permanent": false
     }

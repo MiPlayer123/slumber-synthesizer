@@ -130,7 +130,6 @@ export default function Index() {
               <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Visualize Your Dreams</h2>
               <div className="w-16 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 mx-auto mt-4" />
             </motion.div>
-
             <div className="max-w-2xl mx-auto">
               <DreamImageGenerator />
             </div>

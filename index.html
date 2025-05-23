@@ -1,47 +1,74 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://js.stripe.com https://*.stripe.com; font-src 'self' https://fonts.gstatic.com data:; script-src 'self' https://cdn.gpteng.co https://js.stripe.com https://*.stripe.com https://*.vercel-scripts.com https://va.vercel-scripts.com 'unsafe-inline' 'unsafe-eval';">
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://js.stripe.com https://*.stripe.com; font-src 'self' https://fonts.gstatic.com data:; script-src 'self' https://cdn.gpteng.co https://js.stripe.com https://*.stripe.com https://*.vercel-scripts.com https://va.vercel-scripts.com 'unsafe-inline' 'unsafe-eval';"
+    />
     <title>Rem</title>
-    <meta name="description" content="Record your dreams, uncover hidden patterns, and connect with a community of dreamers in a beautiful, secure space." />
+    <meta
+      name="description"
+      content="Record your dreams, uncover hidden patterns, and connect with a community of dreamers in a beautiful, secure space."
+    />
     <meta name="author" content="Mikul Saravanan & Samay Lakhani" />
-    <meta name="keywords" content="dream journal, dream analysis, sleep tracking, lucid dreaming, dream patterns, dream community" />
-    
+    <meta
+      name="keywords"
+      content="dream journal, dream analysis, sleep tracking, lucid dreaming, dream patterns, dream community"
+    />
+
     <!-- Google Fonts - Dreamy Serif Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
-    
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&display=swap"
+      rel="stylesheet"
+    />
+
     <!-- Canonical URL -->
     <link rel="canonical" href="https://lucidrem.com" />
-    
+
     <!-- Open Graph tags for social media sharing -->
     <meta property="og:title" content="Rem" />
-    <meta property="og:description" content="Record your dreams, uncover hidden patterns, and connect with a community of dreamers in a beautiful, secure space." />
-    <meta property="og:image" content="https://lucidrem.com/preview_image.png" />
+    <meta
+      property="og:description"
+      content="Record your dreams, uncover hidden patterns, and connect with a community of dreamers in a beautiful, secure space."
+    />
+    <meta
+      property="og:image"
+      content="https://lucidrem.com/preview_image.png"
+    />
     <meta property="og:url" content="https://lucidrem.com" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="REM" />
-    
+
     <!-- Twitter Card tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Rem" />
-    <meta name="twitter:description" content="Record your dreams, uncover hidden patterns, and connect with a community of dreamers." />
-    <meta name="twitter:image" content="https://lucidrem.com/preview_image.png" />
-    
+    <meta
+      name="twitter:description"
+      content="Record your dreams, uncover hidden patterns, and connect with a community of dreamers."
+    />
+    <meta
+      name="twitter:image"
+      content="https://lucidrem.com/preview_image.png"
+    />
+
     <!-- Apple-specific meta tags -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
     <meta name="apple-mobile-web-app-title" content="REM" />
-    
+
     <!-- App icons for iOS -->
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    
+
     <!-- Splash screens for iOS -->
     <!-- <link rel="apple-touch-startup-image" href="/splashscreens/apple-splash-2048-2732.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
     <link rel="apple-touch-startup-image" href="/splashscreens/apple-splash-1668-2388.png" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
@@ -49,32 +76,32 @@
     <link rel="apple-touch-startup-image" href="/splashscreens/apple-splash-1125-2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
     <link rel="apple-touch-startup-image" href="/splashscreens/apple-splash-750-1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
      -->
-    
+
     <!-- Performance optimization -->
     <link rel="preconnect" href="https://cdn.gpteng.co" crossorigin />
     <link rel="dns-prefetch" href="https://cdn.gpteng.co" />
-    
+
     <!-- Web App Manifest -->
     <link rel="manifest" href="/manifest.json" />
-    
+
     <!-- Theme color -->
     <meta name="theme-color" content="#000000" />
-    
+
     <!-- Structured data for rich results -->
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "REM",
-      "description": "Record your dreams, uncover hidden patterns, and connect with a community of dreamers in a beautiful, secure space.",
-      "url": "https://yourdomain.com",
-      "applicationCategory": "HealthApplication",
-      "offers": {
-        "@type": "Offer",
-        "price": "0.00",
-        "priceCurrency": "USD"
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "REM",
+        "description": "Record your dreams, uncover hidden patterns, and connect with a community of dreamers in a beautiful, secure space.",
+        "url": "https://yourdomain.com",
+        "applicationCategory": "HealthApplication",
+        "offers": {
+          "@type": "Offer",
+          "price": "0.00",
+          "priceCurrency": "USD"
+        }
       }
-    }
     </script>
   </head>
 

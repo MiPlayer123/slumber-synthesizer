@@ -1,8 +1,22 @@
 import { Link, useLocation } from "react-router-dom";
-import { Moon, Sun, BookMarked, Home, Users, LogOut, User, BarChart, Settings, Grid, Menu, X, CreditCard } from "lucide-react";
+import {
+  Moon,
+  Sun,
+  BookMarked,
+  Home,
+  Users,
+  LogOut,
+  User as UserIcon,
+  BarChart,
+  Settings,
+  Grid,
+  Menu,
+  X,
+  CreditCard,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useTheme } from "@/hooks/use-theme";
-import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/hooks/useTheme";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState } from "react";
@@ -14,18 +28,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { track } from '@vercel/analytics/react';
+import { track } from "@vercel/analytics/react";
 
 export const Navigation = () => {
   const { theme, setTheme } = useTheme();
@@ -37,10 +47,10 @@ export const Navigation = () => {
   const handleSignOut = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     try {
       await signOut();
-      
+
       toast({
         title: "Signed out",
         description: "You have been successfully signed out.",
@@ -50,15 +60,16 @@ export const Navigation = () => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to sign out",
+        description:
+          error instanceof Error ? error.message : "Failed to sign out",
       });
     }
   };
 
   const handleNavigation = (path: string) => {
-    track('navigation_click', { 
+    track("navigation_click", {
       path,
-      is_mobile: window.innerWidth < 768
+      is_mobile: window.innerWidth < 768,
     });
     setIsOpen(false);
   };
@@ -74,17 +85,20 @@ export const Navigation = () => {
       }`}
     >
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to={user ? "/journal" : "/"} className="flex items-center space-x-2">
+        <Link
+          to={user ? "/journal" : "/"}
+          className="flex items-center space-x-2"
+        >
           <span className="text-2xl font-bold text-dream-600">☾ REM</span>
         </Link>
-        
+
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-6">
           {!user && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Link to="/" onClick={() => handleNavigation('/')}>
+                  <Link to="/" onClick={() => handleNavigation("/")}>
                     <Button variant="ghost" size="icon">
                       <Home className="h-5 w-5" />
                     </Button>
@@ -96,13 +110,16 @@ export const Navigation = () => {
               </Tooltip>
             </TooltipProvider>
           )}
-          
+
           {user ? (
             <>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link to="/journal" onClick={() => handleNavigation('/journal')}>
+                    <Link
+                      to="/journal"
+                      onClick={() => handleNavigation("/journal")}
+                    >
                       <Button variant="ghost" size="icon">
                         <BookMarked className="h-5 w-5" />
                       </Button>
@@ -113,11 +130,14 @@ export const Navigation = () => {
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              
+
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link to="/statistics" onClick={() => handleNavigation('/statistics')}>
+                    <Link
+                      to="/statistics"
+                      onClick={() => handleNavigation("/statistics")}
+                    >
                       <Button variant="ghost" size="icon">
                         <BarChart className="h-5 w-5" />
                       </Button>
@@ -128,11 +148,14 @@ export const Navigation = () => {
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              
+
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link to="/dream-wall" onClick={() => handleNavigation('/dream-wall')}>
+                    <Link
+                      to="/dream-wall"
+                      onClick={() => handleNavigation("/dream-wall")}
+                    >
                       <Button variant="ghost" size="icon">
                         <Grid className="h-5 w-5" />
                       </Button>
@@ -143,11 +166,16 @@ export const Navigation = () => {
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              
+
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link to="/settings?tab=subscription" onClick={() => handleNavigation('/settings?tab=subscription')}>
+                    <Link
+                      to="/settings?tab=subscription"
+                      onClick={() =>
+                        handleNavigation("/settings?tab=subscription")
+                      }
+                    >
                       <Button variant="ghost" size="icon">
                         <CreditCard className="h-5 w-5" />
                       </Button>
@@ -158,15 +186,20 @@ export const Navigation = () => {
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full">
                     <Avatar className="h-8 w-8">
                       {user.user_metadata?.avatar_url ? (
-                        <AvatarImage src={user.user_metadata.avatar_url} alt={user.user_metadata?.name || user.email || "User"} />
+                        <AvatarImage
+                          src={user.user_metadata.avatar_url}
+                          alt={user.user_metadata?.name || user.email || "User"}
+                        />
                       ) : (
-                        <AvatarFallback>{(user.email?.charAt(0) || "U").toUpperCase()}</AvatarFallback>
+                        <AvatarFallback>
+                          {(user.email?.charAt(0) || "U").toUpperCase()}
+                        </AvatarFallback>
                       )}
                     </Avatar>
                   </Button>
@@ -178,7 +211,7 @@ export const Navigation = () => {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link to="/profile">
-                      <User className="mr-2 h-4 w-4" />
+                      <UserIcon className="mr-2 h-4 w-4" />
                       <span>My Profile</span>
                     </Link>
                   </DropdownMenuItem>
@@ -189,19 +222,33 @@ export const Navigation = () => {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/settings" onClick={() => handleNavigation('/settings')} className="flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent">
+                    <Link
+                      to="/settings"
+                      onClick={() => handleNavigation("/settings")}
+                      className="flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent"
+                    >
                       <Settings className="mr-2 h-4 w-4" />
                       <span>Settings</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/settings?tab=subscription" onClick={() => handleNavigation('/settings?tab=subscription')} className="flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent">
+                    <Link
+                      to="/settings?tab=subscription"
+                      onClick={() =>
+                        handleNavigation("/settings?tab=subscription")
+                      }
+                      className="flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent"
+                    >
                       <CreditCard className="mr-2 h-4 w-4" />
                       <span>Subscription</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      setTheme(theme === "dark" ? "light" : "dark")
+                    }
+                  >
                     {theme === "dark" ? (
                       <Sun className="mr-2 h-4 w-4" />
                     ) : (
@@ -218,13 +265,8 @@ export const Navigation = () => {
               </DropdownMenu>
             </>
           ) : (
-            <Link to="/auth" onClick={() => handleNavigation('/auth')}>
-              <Button 
-                variant={isLanding ? "outline" : "default"}
-                className={`w-full ${isLanding ? "border-white/20 text-white hover:bg-white/10" : ""}`}
-              >
-                Sign In
-              </Button>
+            <Link to="/auth" onClick={() => handleNavigation("/auth")}>
+              <Button variant="default">Sign In</Button>
             </Link>
           )}
         </div>
@@ -236,7 +278,10 @@ export const Navigation = () => {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link to="/journal" onClick={() => handleNavigation('/journal')}>
+                    <Link
+                      to="/journal"
+                      onClick={() => handleNavigation("/journal")}
+                    >
                       <Button variant="ghost" size="icon">
                         <BookMarked className="h-5 w-5" />
                       </Button>
@@ -247,11 +292,14 @@ export const Navigation = () => {
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              
+
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link to="/statistics" onClick={() => handleNavigation('/statistics')}>
+                    <Link
+                      to="/statistics"
+                      onClick={() => handleNavigation("/statistics")}
+                    >
                       <Button variant="ghost" size="icon">
                         <BarChart className="h-5 w-5" />
                       </Button>
@@ -262,11 +310,14 @@ export const Navigation = () => {
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              
+
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link to="/community" onClick={() => handleNavigation('/community')}>
+                    <Link
+                      to="/community"
+                      onClick={() => handleNavigation("/community")}
+                    >
                       <Button variant="ghost" size="icon">
                         <Users className="h-5 w-5" />
                       </Button>
@@ -277,11 +328,16 @@ export const Navigation = () => {
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              
+
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link to="/settings?tab=subscription" onClick={() => handleNavigation('/settings?tab=subscription')}>
+                    <Link
+                      to="/settings?tab=subscription"
+                      onClick={() =>
+                        handleNavigation("/settings?tab=subscription")
+                      }
+                    >
                       <Button variant="ghost" size="icon">
                         <CreditCard className="h-5 w-5" />
                       </Button>
@@ -294,62 +350,86 @@ export const Navigation = () => {
               </TooltipProvider>
             </>
           )}
-          
+
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
-                {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                {isOpen ? (
+                  <X className="h-5 w-5" />
+                ) : (
+                  <Menu className="h-5 w-5" />
+                )}
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className={`w-72 ${isLanding ? "bg-[#1a0b2e] border-[#1a0b2e]" : ""}`}>
               <div className="py-4">
                 <div className="mb-8 flex items-center">
-                  <span className="text-2xl font-bold text-dream-600">☾ REM</span>
+                  <span className="text-2xl font-bold text-dream-600">
+                    ☾ REM
+                  </span>
                 </div>
-                
+
                 {user ? (
                   <>
                     <div className="flex items-center space-x-3 mb-6">
                       <Avatar className="h-10 w-10">
                         {user.user_metadata?.avatar_url ? (
-                          <AvatarImage src={user.user_metadata.avatar_url} alt={user.user_metadata?.name || user.email || "User"} />
+                          <AvatarImage
+                            src={user.user_metadata.avatar_url}
+                            alt={
+                              user.user_metadata?.name || user.email || "User"
+                            }
+                          />
                         ) : (
-                          <AvatarFallback>{(user.email?.charAt(0) || "U").toUpperCase()}</AvatarFallback>
+                          <AvatarFallback>
+                            {(user.email?.charAt(0) || "U").toUpperCase()}
+                          </AvatarFallback>
                         )}
                       </Avatar>
                       <div>
-                        <p className="text-sm font-medium">{user.user_metadata?.name || user.user_metadata?.username || user.email || "User"}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                        <p className="text-sm font-medium">
+                          {user.user_metadata?.name ||
+                            user.user_metadata?.username ||
+                            user.email ||
+                            "User"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {user.email}
+                        </p>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-1">
-                      <Link 
-                        to="/profile" 
-                        onClick={() => handleNavigation('/profile')}
-                        className={`flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent ${location.pathname === '/profile' ? 'bg-accent' : ''}`}
+                      <Link
+                        to="/profile"
+                        onClick={() => handleNavigation("/profile")}
+                        className={`flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent ${location.pathname === "/profile" ? "bg-accent" : ""}`}
                       >
-                        <User className="mr-2 h-4 w-4" />
+                        <UserIcon className="mr-2 h-4 w-4" />
                         <span>My Profile</span>
                       </Link>
-                      <Link 
-                        to="/settings" 
-                        onClick={() => handleNavigation('/settings')}
+                      <Link
+                        to="/settings"
+                        onClick={() => handleNavigation("/settings")}
                         className="flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent"
                       >
                         <Settings className="mr-2 h-4 w-4" />
                         <span>Settings</span>
                       </Link>
-                      <Link 
-                        to="/settings?tab=subscription" 
-                        onClick={() => handleNavigation('/settings?tab=subscription')}
+                      <Link
+                        to="/settings?tab=subscription"
+                        onClick={() =>
+                          handleNavigation("/settings?tab=subscription")
+                        }
                         className="flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent"
                       >
                         <CreditCard className="mr-2 h-4 w-4" />
                         <span>Subscription</span>
                       </Link>
                       <button
-                        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                        onClick={() =>
+                          setTheme(theme === "dark" ? "light" : "dark")
+                        }
                         className="w-full flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent"
                       >
                         {theme === "dark" ? (
@@ -375,16 +455,13 @@ export const Navigation = () => {
                   </>
                 ) : (
                   <div className="flex flex-col space-y-4">
-                    <Link to="/auth" onClick={() => handleNavigation('/auth')}>
-                      <Button 
-                        variant={isLanding ? "outline" : "default"}
-                        className={`w-full ${isLanding ? "border-white/20 text-white hover:bg-white/10" : ""}`}
-                      >
-                        Sign In
-                      </Button>
+                    <Link to="/auth" onClick={() => handleNavigation("/auth")}>
+                      <Button className="w-full">Sign In</Button>
                     </Link>
                     <button
-                      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                      onClick={() =>
+                        setTheme(theme === "dark" ? "light" : "dark")
+                      }
                       className="flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent"
                     >
                       {theme === "dark" ? (
