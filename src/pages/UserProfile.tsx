@@ -44,7 +44,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UserPlus, CheckCircle, Clock as ClockIcon } from 'lucide-react'; // Renamed Clock to ClockIcon to avoid conflict
+import { UserPlus, CheckCircle, Clock as ClockIcon } from "lucide-react"; // Renamed Clock to ClockIcon to avoid conflict
 import { toast as sonnerToast } from "sonner"; // Using sonner for toasts as per existing useToast hook likely uses it or similar
 
 // Extend the Dream type to include our additional properties
@@ -64,9 +64,15 @@ export const UserProfile = () => {
   const [dreamsLoading, setDreamsLoading] = useState(true);
   const [profile, setProfile] = useState<ProfileType | null>(null);
   const [friendshipStatus, setFriendshipStatus] = useState<
-    "not_friends" | "pending_sent" | "pending_received" | "friends" | "loading" | "self"
+    | "not_friends"
+    | "pending_sent"
+    | "pending_received"
+    | "friends"
+    | "loading"
+    | "self"
   >("loading");
-  const [isFriendshipActionLoading, setIsFriendshipActionLoading] = useState(false);
+  const [isFriendshipActionLoading, setIsFriendshipActionLoading] =
+    useState(false);
   const [dreams, setDreams] = useState<ExtendedDream[]>([]);
   const [selectedDream, setSelectedDream] = useState<ExtendedDream | null>(
     null,
@@ -116,10 +122,10 @@ export const UserProfile = () => {
       setFriendshipStatus("loading");
       try {
         const { data, error } = await supabase
-          .from("friends")
+          .from("friendship")
           .select("*")
           .or(
-            `and(user_id.eq.${user.id},friend_id.eq.${profile.id}),and(user_id.eq.${profile.id},friend_id.eq.${user.id})`,
+            `and(user_id.eq.${user.id},friend_user_id.eq.${profile.id}),and(user_id.eq.${profile.id},friend_user_id.eq.${user.id})`,
           )
           .maybeSingle(); // Use maybeSingle if you expect 0 or 1 row
 
@@ -150,9 +156,9 @@ export const UserProfile = () => {
     if (!user || !profile) return;
     setIsFriendshipActionLoading(true);
     try {
-      const { error } = await supabase.from("friends").insert({
+      const { error } = await supabase.from("friendship").insert({
         user_id: user.id,
-        friend_id: profile.id,
+        friend_user_id: profile.id,
         status: "pending",
       });
       if (error) throw error;
@@ -171,10 +177,10 @@ export const UserProfile = () => {
     setIsFriendshipActionLoading(true);
     try {
       const { error } = await supabase
-        .from("friends")
+        .from("friendship")
         .update({ status: "accepted" })
         .eq("user_id", profile.id) // The other user sent the request
-        .eq("friend_id", user.id); // To the current user
+        .eq("friend_user_id", user.id); // To the current user
       if (error) throw error;
       setFriendshipStatus("friends");
       sonnerToast.success(`You are now friends with ${profile.username}`);
@@ -191,10 +197,10 @@ export const UserProfile = () => {
     setIsFriendshipActionLoading(true);
     try {
       const { error } = await supabase
-        .from("friends")
+        .from("friendship")
         .delete()
         .or(
-          `and(user_id.eq.${user.id},friend_id.eq.${profile.id}),and(user_id.eq.${profile.id},friend_id.eq.${user.id})`,
+          `and(user_id.eq.${user.id},friend_user_id.eq.${profile.id}),and(user_id.eq.${profile.id},friend_user_id.eq.${user.id})`,
         );
       if (error) throw error;
       setFriendshipStatus("not_friends");
@@ -675,44 +681,52 @@ export const UserProfile = () => {
 
                 <h2 className="text-xl font-bold mb-2">{profile.username}</h2>
                 {/* Friendship Button */}
-                {friendshipStatus !== "self" && friendshipStatus !== "loading" && (
-                  <div className="mt-2 mb-4">
-                    {friendshipStatus === "not_friends" && (
-                      <Button
-                        onClick={handleAddFriend}
-                        disabled={isFriendshipActionLoading}
-                        size="sm"
-                      >
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        Add Friend
-                      </Button>
-                    )}
-                    {friendshipStatus === "pending_sent" && (
-                      <Button disabled variant="outline" size="sm">
-                        <ClockIcon className="mr-2 h-4 w-4" />
-                        Request Sent
-                      </Button>
-                    )}
-                    {friendshipStatus === "pending_received" && (
-                      <Button
-                        onClick={handleAcceptFriendRequest}
-                        disabled={isFriendshipActionLoading}
-                        size="sm"
-                      >
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        Accept Request
-                      </Button>
-                    )}
-                    {friendshipStatus === "friends" && (
-                      <Button variant="outline" size="sm" onClick={handleRemoveFriend} disabled={isFriendshipActionLoading}>
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        Friends
-                        {/* Consider adding a dropdown for Remove Friend here */}
-                      </Button>
-                    )}
-                    {isFriendshipActionLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                  </div>
-                )}
+                {friendshipStatus !== "self" &&
+                  friendshipStatus !== "loading" && (
+                    <div className="mt-2 mb-4">
+                      {friendshipStatus === "not_friends" && (
+                        <Button
+                          onClick={handleAddFriend}
+                          disabled={isFriendshipActionLoading}
+                          size="sm"
+                        >
+                          <UserPlus className="mr-2 h-4 w-4" />
+                          Add Friend
+                        </Button>
+                      )}
+                      {friendshipStatus === "pending_sent" && (
+                        <Button disabled variant="outline" size="sm">
+                          <ClockIcon className="mr-2 h-4 w-4" />
+                          Request Sent
+                        </Button>
+                      )}
+                      {friendshipStatus === "pending_received" && (
+                        <Button
+                          onClick={handleAcceptFriendRequest}
+                          disabled={isFriendshipActionLoading}
+                          size="sm"
+                        >
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          Accept Request
+                        </Button>
+                      )}
+                      {friendshipStatus === "friends" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleRemoveFriend}
+                          disabled={isFriendshipActionLoading}
+                        >
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          Friends
+                          {/* Consider adding a dropdown for Remove Friend here */}
+                        </Button>
+                      )}
+                      {isFriendshipActionLoading && (
+                        <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                      )}
+                    </div>
+                  )}
               </div>
 
               <div className="space-y-4 md:space-y-6">

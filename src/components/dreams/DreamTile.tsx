@@ -69,7 +69,7 @@ export const DreamTile: React.FC<DreamTileProps> = ({
     //   }
     // }, 100);
   };
-  
+
   const profile = dream.profiles; // Extracted for convenience
 
   return (

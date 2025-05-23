@@ -139,7 +139,7 @@ export const Navigation = () => {
                       onClick={() => handleNavigation("/friends")}
                     >
                       <Button variant="ghost" size="icon">
-                        <Users className="h-5 w-5" /> 
+                        <Users className="h-5 w-5" />
                       </Button>
                     </Link>
                   </TooltipTrigger>
@@ -166,7 +166,7 @@ export const Navigation = () => {
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              
+
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -175,7 +175,7 @@ export const Navigation = () => {
                       onClick={() => handleNavigation("/friends")}
                     >
                       <Button variant="ghost" size="icon">
-                         {/* Using Users icon again, but could be different if desired */}
+                        {/* Using Users icon again, but could be different if desired */}
                         <Users className="h-5 w-5" />
                       </Button>
                     </Link>

@@ -22,7 +22,9 @@ import { ProfileHoverCard } from "@/components/ui/profile-hover-card";
 import { Skeleton } from "@/components/ui/skeleton"; // For loading state
 
 // Define the Dream type as expected by DreamTile, including optional 'profiles'
-type DisplayDream = Dream & { profiles?: Pick<Profile, "id" | "username" | "avatar_url"> };
+type DisplayDream = Dream & {
+  profiles?: Pick<Profile, "id" | "username" | "avatar_url">;
+};
 
 export default function FriendsFeed() {
   const { user } = useAuth();
@@ -54,7 +56,9 @@ export default function FriendsFeed() {
   const refreshLikes = useCallback(
     (dreamId?: string) => {
       if (dreamId) {
-        queryClient.invalidateQueries({ queryKey: ["dream-likes-count", dreamId] });
+        queryClient.invalidateQueries({
+          queryKey: ["dream-likes-count", dreamId],
+        });
       } else {
         queryClient.invalidateQueries({ queryKey: ["dream-likes-count"] });
       }
@@ -71,7 +75,9 @@ export default function FriendsFeed() {
         fetchNextPage();
       }
     };
-    const observer = new IntersectionObserver(observerCallback, { threshold: 0.1 });
+    const observer = new IntersectionObserver(observerCallback, {
+      threshold: 0.1,
+    });
     if (loadMoreRef.current) observer.observe(loadMoreRef.current);
     return () => {
       if (observer) observer.disconnect();
@@ -92,7 +98,11 @@ export default function FriendsFeed() {
         setComments(data || []);
       } catch (err) {
         console.error("Error fetching comments:", err);
-        toast({ variant: "destructive", title: "Error", description: "Failed to load comments" });
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load comments",
+        });
       } finally {
         setIsLoadingComments(false);
       }
@@ -108,7 +118,8 @@ export default function FriendsFeed() {
 
   const handlePostComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !selectedDream || !newComment.trim() || isPostingComment) return;
+    if (!user || !selectedDream || !newComment.trim() || isPostingComment)
+      return;
     setIsPostingComment(true);
     try {
       const { error: postError } = await supabase.from("comments").insert({
@@ -119,11 +130,20 @@ export default function FriendsFeed() {
       if (postError) throw postError;
       setNewComment("");
       fetchComments(selectedDream.id); // Refresh comments
-      queryClient.invalidateQueries({ queryKey: ["dream-comments-count", selectedDream.id] });
-      toast({ title: "Comment posted", description: "Your comment has been added." });
+      queryClient.invalidateQueries({
+        queryKey: ["dream-comments-count", selectedDream.id],
+      });
+      toast({
+        title: "Comment posted",
+        description: "Your comment has been added.",
+      });
     } catch (err) {
       console.error("Error posting comment:", err);
-      toast({ variant: "destructive", title: "Error", description: "Failed to post comment." });
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to post comment.",
+      });
     } finally {
       setIsPostingComment(false);
     }
@@ -132,7 +152,10 @@ export default function FriendsFeed() {
   const handleShareDream = (dreamId: string) => {
     const shareUrl = `${window.location.origin}/dream/${dreamId}`;
     navigator.clipboard.writeText(shareUrl).then(() => {
-      toast({ title: "Link copied", description: "Dream link copied to clipboard!" });
+      toast({
+        title: "Link copied",
+        description: "Dream link copied to clipboard!",
+      });
     });
   };
 
@@ -171,9 +194,19 @@ export default function FriendsFeed() {
         <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-8 text-center text-purple-600">
           Friends' Activity
         </h1>
-        <p className="text-destructive text-lg">Error loading friends' dreams.</p>
+        <p className="text-destructive text-lg">
+          Error loading friends' dreams.
+        </p>
         <p className="text-muted-foreground">{error.message}</p>
-        <Button variant="outline" className="mt-4" onClick={() => queryClient.refetchQueries({ queryKey: ['friendsDreams', user?.id] })}>
+        <Button
+          variant="outline"
+          className="mt-4"
+          onClick={() =>
+            queryClient.refetchQueries({
+              queryKey: ["friendsDreams", user?.id],
+            })
+          }
+        >
           Try Again
         </Button>
       </div>
@@ -187,11 +220,16 @@ export default function FriendsFeed() {
           Friends' Activity
         </h1>
         <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-        <h2 className="text-xl font-semibold mb-2">No Dreams from Friends Yet</h2>
+        <h2 className="text-xl font-semibold mb-2">
+          No Dreams from Friends Yet
+        </h2>
         <p className="text-muted-foreground mb-4">
-          It looks like your friends haven't shared any dreams, or you haven't added any friends yet.
+          It looks like your friends haven't shared any dreams, or you haven't
+          added any friends yet.
         </p>
-        <Button onClick={() => navigate("/community")}>Explore Community Dreams</Button>
+        <Button onClick={() => navigate("/community")}>
+          Explore Community Dreams
+        </Button>
       </div>
     );
   }
@@ -222,7 +260,9 @@ export default function FriendsFeed() {
         ) : hasNextPage ? (
           <span className="text-muted-foreground">Scroll to load more</span>
         ) : (
-          <span className="text-muted-foreground">You've seen all dreams from your friends.</span>
+          <span className="text-muted-foreground">
+            You've seen all dreams from your friends.
+          </span>
         )}
       </div>
 
@@ -234,16 +274,26 @@ export default function FriendsFeed() {
             backdropFilter: "blur(8px)",
             WebkitBackdropFilter: "blur(8px)",
             transform: "translate3d(-50%, -50%, 0)",
-            boxShadow: "0 0 0 1px rgba(0,0,0,0.1), 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)",
+            boxShadow:
+              "0 0 0 1px rgba(0,0,0,0.1), 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)",
           }}
         >
           <DialogTitle className="sr-only">Dream Details</DialogTitle>
-          <DialogDescription className="sr-only">View and interact with dream details</DialogDescription>
+          <DialogDescription className="sr-only">
+            View and interact with dream details
+          </DialogDescription>
           {selectedDream && (
             <div className="flex flex-col md:flex-row h-[90vh] md:h-auto overflow-hidden">
-              <div className="md:w-3/5 bg-black flex items-center justify-center" style={{ willChange: "contents", transform: "translateZ(0)" }}>
+              <div
+                className="md:w-3/5 bg-black flex items-center justify-center"
+                style={{ willChange: "contents", transform: "translateZ(0)" }}
+              >
                 {selectedDream.image_url ? (
-                  <img src={selectedDream.image_url} alt={selectedDream.title} className="max-h-[350px] md:max-h-[600px] w-full object-contain" />
+                  <img
+                    src={selectedDream.image_url}
+                    alt={selectedDream.title}
+                    className="max-h-[350px] md:max-h-[600px] w-full object-contain"
+                  />
                 ) : (
                   <div className="w-full h-[350px] md:h-[600px] flex items-center justify-center">
                     <Wand2 className="h-16 w-16 text-muted-foreground opacity-30" />
@@ -255,39 +305,82 @@ export default function FriendsFeed() {
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       {selectedDream.profiles?.username && (
-                        <ProfileHoverCard username={selectedDream.profiles.username}>
-                          <div onClick={() => handleProfileNavigation(selectedDream.profiles?.username)} className="cursor-pointer">
+                        <ProfileHoverCard
+                          username={selectedDream.profiles.username}
+                        >
+                          <div
+                            onClick={() =>
+                              handleProfileNavigation(
+                                selectedDream.profiles?.username,
+                              )
+                            }
+                            className="cursor-pointer"
+                          >
                             <Avatar className="h-8 w-8 transition-opacity hover:opacity-70">
-                              <AvatarImage src={selectedDream.profiles?.avatar_url || ""} />
-                              <AvatarFallback>{selectedDream.profiles?.username?.charAt(0)?.toUpperCase() || "U"}</AvatarFallback>
+                              <AvatarImage
+                                src={selectedDream.profiles?.avatar_url || ""}
+                              />
+                              <AvatarFallback>
+                                {selectedDream.profiles?.username
+                                  ?.charAt(0)
+                                  ?.toUpperCase() || "U"}
+                              </AvatarFallback>
                             </Avatar>
                           </div>
                         </ProfileHoverCard>
                       )}
                       {selectedDream.profiles?.username && (
-                         <ProfileHoverCard username={selectedDream.profiles.username}>
-                          <span onClick={() => handleProfileNavigation(selectedDream.profiles?.username)} className="font-medium cursor-pointer transition-colors hover:text-muted-foreground">
+                        <ProfileHoverCard
+                          username={selectedDream.profiles.username}
+                        >
+                          <span
+                            onClick={() =>
+                              handleProfileNavigation(
+                                selectedDream.profiles?.username,
+                              )
+                            }
+                            className="font-medium cursor-pointer transition-colors hover:text-muted-foreground"
+                          >
                             {selectedDream.profiles?.username || "Anonymous"}
                           </span>
                         </ProfileHoverCard>
                       )}
                     </div>
-                    <Button variant="ghost" size="sm" className="p-1 h-8 w-8 rounded-full md:hidden" onClick={() => setSelectedDream(null)}>
-                      <X className="h-4 w-4" /><span className="sr-only">Close</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="p-1 h-8 w-8 rounded-full md:hidden"
+                      onClick={() => setSelectedDream(null)}
+                    >
+                      <X className="h-4 w-4" />
+                      <span className="sr-only">Close</span>
                     </Button>
                   </div>
                 </div>
                 <div className="p-4 overflow-y-auto flex-grow">
-                  <h1 className="text-xl font-bold mb-2">{selectedDream.title}</h1>
-                  <p className="text-muted-foreground mb-4">{selectedDream.description}</p>
+                  <h1 className="text-xl font-bold mb-2">
+                    {selectedDream.title}
+                  </h1>
+                  <p className="text-muted-foreground mb-4">
+                    {selectedDream.description}
+                  </p>
                   <div className="flex flex-wrap gap-2 mb-2">
-                    {selectedDream.category && <Badge variant="outline">{selectedDream.category}</Badge>}
-                    {selectedDream.emotion && <Badge variant="outline">{selectedDream.emotion}</Badge>}
+                    {selectedDream.category && (
+                      <Badge variant="outline">{selectedDream.category}</Badge>
+                    )}
+                    {selectedDream.emotion && (
+                      <Badge variant="outline">{selectedDream.emotion}</Badge>
+                    )}
                   </div>
-                  <p className="text-xs text-muted-foreground">{format(new Date(selectedDream.created_at), "MMMM d, yyyy")}</p>
-                  
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(selectedDream.created_at), "MMMM d, yyyy")}
+                  </p>
+
                   {/* Comments Section */}
-                  <div className="mt-4 border-t pt-4" id="comments-section-in-dialog">
+                  <div
+                    className="mt-4 border-t pt-4"
+                    id="comments-section-in-dialog"
+                  >
                     <h3 className="text-lg font-semibold mb-3">Comments</h3>
                     {isLoadingComments ? (
                       <div className="space-y-3">
@@ -302,17 +395,37 @@ export default function FriendsFeed() {
                         ))}
                       </div>
                     ) : comments.length === 0 ? (
-                      <p className="text-muted-foreground text-sm text-center py-2">No comments yet.</p>
+                      <p className="text-muted-foreground text-sm text-center py-2">
+                        No comments yet.
+                      </p>
                     ) : (
                       <div className="space-y-3">
                         {comments.map((comment) => (
-                          <div key={comment.id} className="flex gap-2 items-start">
+                          <div
+                            key={comment.id}
+                            className="flex gap-2 items-start"
+                          >
                             {comment.profiles?.username && (
-                              <ProfileHoverCard username={comment.profiles.username}>
-                                <div onClick={() => handleProfileNavigation(comment.profiles?.username)} className="cursor-pointer">
+                              <ProfileHoverCard
+                                username={comment.profiles.username}
+                              >
+                                <div
+                                  onClick={() =>
+                                    handleProfileNavigation(
+                                      comment.profiles?.username,
+                                    )
+                                  }
+                                  className="cursor-pointer"
+                                >
                                   <Avatar className="h-7 w-7 flex-shrink-0 transition-opacity hover:opacity-70">
-                                    <AvatarImage src={comment.profiles?.avatar_url || ""} />
-                                    <AvatarFallback>{comment.profiles?.username?.charAt(0)?.toUpperCase() || "U"}</AvatarFallback>
+                                    <AvatarImage
+                                      src={comment.profiles?.avatar_url || ""}
+                                    />
+                                    <AvatarFallback>
+                                      {comment.profiles?.username
+                                        ?.charAt(0)
+                                        ?.toUpperCase() || "U"}
+                                    </AvatarFallback>
                                   </Avatar>
                                 </div>
                               </ProfileHoverCard>
@@ -320,15 +433,32 @@ export default function FriendsFeed() {
                             <div>
                               <div className="flex items-baseline gap-1">
                                 {comment.profiles?.username && (
-                                  <ProfileHoverCard username={comment.profiles.username}>
-                                    <span onClick={() => handleProfileNavigation(comment.profiles?.username)} className="font-medium text-sm cursor-pointer hover:text-muted-foreground">
-                                      {comment.profiles?.username || "Anonymous"}
+                                  <ProfileHoverCard
+                                    username={comment.profiles.username}
+                                  >
+                                    <span
+                                      onClick={() =>
+                                        handleProfileNavigation(
+                                          comment.profiles?.username,
+                                        )
+                                      }
+                                      className="font-medium text-sm cursor-pointer hover:text-muted-foreground"
+                                    >
+                                      {comment.profiles?.username ||
+                                        "Anonymous"}
                                     </span>
                                   </ProfileHoverCard>
                                 )}
-                                <p className="text-sm text-foreground">{comment.content}</p>
+                                <p className="text-sm text-foreground">
+                                  {comment.content}
+                                </p>
                               </div>
-                              <span className="text-xs text-muted-foreground">{format(new Date(comment.created_at), "MMM d, HH:mm")}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {format(
+                                  new Date(comment.created_at),
+                                  "MMM d, HH:mm",
+                                )}
+                              </span>
                             </div>
                           </div>
                         ))}
@@ -338,13 +468,25 @@ export default function FriendsFeed() {
                 </div>
                 <div className="p-4 border-t bg-background">
                   <div className="flex items-center space-x-4 mb-2">
-                    <DreamLikeButton dreamId={selectedDream.id} onSuccess={() => refreshLikes(selectedDream.id)} />
-                    <Button variant="ghost" size="sm" className="p-0" onClick={() => handleShareDream(selectedDream.id)}>
-                      <Share className="h-5 w-5" /> <span className="sr-only">Share</span>
+                    <DreamLikeButton
+                      dreamId={selectedDream.id}
+                      onSuccess={() => refreshLikes(selectedDream.id)}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="p-0"
+                      onClick={() => handleShareDream(selectedDream.id)}
+                    >
+                      <Share className="h-5 w-5" />{" "}
+                      <span className="sr-only">Share</span>
                     </Button>
                   </div>
                   {user && (
-                    <form onSubmit={handlePostComment} className="flex gap-2 mt-3">
+                    <form
+                      onSubmit={handlePostComment}
+                      className="flex gap-2 mt-3"
+                    >
                       <input
                         type="text"
                         placeholder="Add a comment..."
@@ -353,8 +495,16 @@ export default function FriendsFeed() {
                         className="flex-1 bg-background text-sm rounded-md border border-input px-3 py-2 focus:ring-1 focus:ring-primary"
                         style={{ fontSize: "16px" }}
                       />
-                      <Button type="submit" disabled={!newComment.trim() || isPostingComment} size="sm">
-                        {isPostingComment ? <Loader2 className="h-4 w-4 animate-spin" /> : "Post"}
+                      <Button
+                        type="submit"
+                        disabled={!newComment.trim() || isPostingComment}
+                        size="sm"
+                      >
+                        {isPostingComment ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          "Post"
+                        )}
                       </Button>
                     </form>
                   )}

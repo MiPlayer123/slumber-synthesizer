@@ -44,7 +44,9 @@ export const useDreams = (userId: string | undefined) => {
 
 // Hook for paginated friends' dreams
 interface PaginatedFriendsDreamsResult {
-  dreams: (Dream & { profiles: Pick<Profile, "id" | "username" | "avatar_url"> })[];
+  dreams: (Dream & {
+    profiles: Pick<Profile, "id" | "username" | "avatar_url">;
+  })[];
   nextPage: number | undefined;
   page: number;
 }
@@ -78,22 +80,22 @@ export const useFriendsDreams = (
       let friendIds: string[] = [];
       try {
         const { data: part1, error: error1 } = await supabase
-          .from("friends")
-          .select("friend_id")
+          .from("friendship")
+          .select("friend_user_id")
           .eq("user_id", userId)
           .eq("status", "accepted");
 
         if (error1) throw error1;
 
         const { data: part2, error: error2 } = await supabase
-          .from("friends")
+          .from("friendship")
           .select("user_id")
-          .eq("friend_id", userId)
+          .eq("friend_user_id", userId)
           .eq("status", "accepted");
 
         if (error2) throw error2;
 
-        const friendIds1 = part1 ? part1.map((f) => f.friend_id) : [];
+        const friendIds1 = part1 ? part1.map((f) => f.friend_user_id) : [];
         const friendIds2 = part2 ? part2.map((f) => f.user_id) : [];
         friendIds = [...new Set([...friendIds1, ...friendIds2])];
 
