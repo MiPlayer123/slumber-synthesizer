@@ -99,10 +99,7 @@ export const Navigation = () => {
 
           {user ? (
             <>
-              <Link
-                to="/journal"
-                onClick={() => handleNavigation("/journal")}
-              >
+              <Link to="/journal" onClick={() => handleNavigation("/journal")}>
                 <Button variant="ghost" className="flex items-center gap-2">
                   <BookMarked className="h-4 w-4" />
                   <span>Journal</span>
@@ -129,10 +126,7 @@ export const Navigation = () => {
                 </Button>
               </Link>
 
-              <Link
-                to="/friends"
-                onClick={() => handleNavigation("/friends")}
-              >
+              <Link to="/friends" onClick={() => handleNavigation("/friends")}>
                 <Button variant="ghost" className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
                   <span>Friends</span>
@@ -141,9 +135,7 @@ export const Navigation = () => {
 
               <Link
                 to="/settings?tab=subscription"
-                onClick={() =>
-                  handleNavigation("/settings?tab=subscription")
-                }
+                onClick={() => handleNavigation("/settings?tab=subscription")}
               >
                 <Button variant="ghost" className="flex items-center gap-2">
                   <CreditCard className="h-4 w-4" />
@@ -331,9 +323,9 @@ export const Navigation = () => {
                         <Users className="mr-3 h-5 w-5" />
                         <span>Friends' Feed</span>
                       </Link>
-                      
+
                       <div className="border-t border-border my-4"></div>
-                      
+
                       <Link
                         to="/profile"
                         onClick={() => handleNavigation("/profile")}
@@ -368,9 +360,9 @@ export const Navigation = () => {
                         <CreditCard className="mr-3 h-5 w-5" />
                         <span>Subscription</span>
                       </Link>
-                      
+
                       <div className="border-t border-border my-4"></div>
-                      
+
                       <button
                         onClick={() =>
                           setTheme(theme === "dark" ? "light" : "dark")
