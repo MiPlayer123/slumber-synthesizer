@@ -197,6 +197,16 @@ const Auth = () => {
     }
   }, [needsProfileCompletion]);
 
+  // Check for sign-up mode from landing page
+  useEffect(() => {
+    const authMode = sessionStorage.getItem("auth-mode");
+    if (authMode === "signup") {
+      setIsSignUp(true);
+      // Clear the flag so it doesn't persist
+      sessionStorage.removeItem("auth-mode");
+    }
+  }, []);
+
   if (user && !needsProfileCompletion) {
     console.log(
       "Auth component: User authenticated and profile complete, redirecting to journal",

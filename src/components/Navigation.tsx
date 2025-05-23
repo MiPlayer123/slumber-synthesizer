@@ -74,8 +74,16 @@ export const Navigation = () => {
     setIsOpen(false);
   };
 
+  const isLanding = location.pathname === "/";
+
   return (
-    <nav className="fixed top-0 w-full bg-background/80 dark:bg-background/25 backdrop-blur-lg border-b z-50 animate-fade-in">
+    <nav
+      className={`fixed top-0 w-full z-50 animate-fade-in transition-colors duration-300 ${
+        isLanding
+          ? "bg-[#1a0b2e] border-[#1a0b2e]"
+          : "bg-background/80 dark:bg-background/25 backdrop-blur-lg border-b"
+      }`}
+    >
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link
           to={user ? "/journal" : "/"}
@@ -353,7 +361,10 @@ export const Navigation = () => {
                 )}
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-72">
+            <SheetContent
+              side="right"
+              className={`w-72 ${isLanding ? "bg-[#1a0b2e] border-[#1a0b2e]" : ""}`}
+            >
               <div className="py-4">
                 <div className="mb-8 flex items-center">
                   <span className="text-2xl font-bold text-dream-600">
