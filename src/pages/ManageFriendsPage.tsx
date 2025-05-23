@@ -444,7 +444,7 @@ export default function ManageFriendsPage() {
     if (searchResults.length === 0) {
       return (
         <p className="text-muted-foreground text-center py-10">
-          No users found matching "{searchQuery}"
+          Hit enter to search for "{searchQuery}"
         </p>
       );
     }

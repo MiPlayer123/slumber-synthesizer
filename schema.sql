@@ -153,6 +153,32 @@ CREATE TABLE public.friendship (
     CONSTRAINT friendship_status_check CHECK (status IN ('pending', 'accepted', 'blocked'))
 );
 
+-- Enable RLS for friendship table
+ALTER TABLE public.friendship ENABLE ROW LEVEL SECURITY;
+
+-- Policies for friendship table
+CREATE POLICY "Users can view their own friendships"
+    ON public.friendship FOR SELECT
+    USING (
+        auth.uid()::text = user_id::text OR 
+        auth.uid()::text = friend_user_id::text
+    );
+
+CREATE POLICY "Users can create friendship requests"
+    ON public.friendship FOR INSERT
+    WITH CHECK (auth.uid()::text = user_id::text);
+
+CREATE POLICY "Users can update friendship status for requests they received"
+    ON public.friendship FOR UPDATE
+    USING (auth.uid()::text = friend_user_id::text);
+
+CREATE POLICY "Users can delete their own friendship records"
+    ON public.friendship FOR DELETE
+    USING (
+        auth.uid()::text = user_id::text OR 
+        auth.uid()::text = friend_user_id::text
+    );
+
 -- Usage logs table for tracking free tier usage
 CREATE TABLE public.usage_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
