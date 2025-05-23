@@ -1,8 +1,8 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef } from "react";
 import { ArrowRight, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import DreamScene from "@/components/dream-journal/dream-scene";
+// import DreamScene from "@/components/dream-journal/dream-scene";
 import { FeatureGrid } from "@/components/dream-journal/feature-grid";
 import { TestimonialSlider } from "@/components/dream-journal/testimonial-slider";
 import { ParticleField } from "@/components/dream-journal/particle-field";
@@ -18,17 +18,10 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Index() {
-  const [scrollY, setScrollY] = useState(0);
   const heroRef = useRef<HTMLDivElement>(null);
   const { signInWithGoogle, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   // Handle "Sign Up Free" - navigate to auth page in sign-up mode
   const handleSignUpFree = () => {
@@ -74,7 +67,9 @@ export default function Index() {
           className="relative min-h-[90vh] flex items-center justify-center overflow-hidden"
         >
           <div className="absolute inset-0 z-0">
-            <DreamScene scrollY={scrollY} />
+            {/* Temporarily disabled DreamScene */}
+            {/* <DreamScene scrollY={scrollY} /> */}
+            <div className="w-full h-full bg-gradient-to-br from-purple-900/20 to-blue-900/20" />
           </div>
 
           <div className="container mx-auto px-6 py-16 md:py-24 relative z-10">
