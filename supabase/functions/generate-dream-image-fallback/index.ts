@@ -2,7 +2,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 import { decode as base64Decode } from "https://deno.land/std@0.208.0/encoding/base64.ts";
 import { corsHeaders } from "../_shared/cors.ts";
-import { createErrorResponse } from "../_shared/errors.ts";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -207,7 +206,7 @@ serve(async (req) => {
     const blob = new Blob([imageBytes], { type: "image/png" });
 
     // Upload image to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from("dream-images")
       .upload(fileName, blob, {
         upsert: false,

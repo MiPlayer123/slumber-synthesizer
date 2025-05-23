@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import Link from "next/link";
 import { ArrowRight, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -61,18 +60,15 @@ export default function Home() {
   const [selectedDream, setSelectedDream] = useState<DreamItem | null>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
-    };
-
-    // Check if window exists (for SSR compatibility)
     if (typeof window !== "undefined") {
+      const handleScroll = () => {
+        setScrollY(window.scrollY);
+      };
+
       window.addEventListener("scroll", handleScroll, { passive: true });
       return () => window.removeEventListener("scroll", handleScroll);
     }
   }, []);
-
-  const parallaxOffset = scrollY * 0.5;
 
   return (
     <div className="min-h-screen bg-background text-white overflow-x-hidden">
@@ -127,34 +123,34 @@ export default function Home() {
                 </Button>
               </div>
               <nav className="flex flex-col gap-6 text-lg">
-                <Link
+                <a
                   href="#features"
                   className="py-2 hover:text-purple-400 transition-colors"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Features
-                </Link>
-                <Link
+                </a>
+                <a
                   href="#testimonials"
                   className="py-2 hover:text-purple-400 transition-colors"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Testimonials
-                </Link>
-                <Link
+                </a>
+                <a
                   href="#"
                   className="py-2 hover:text-purple-400 transition-colors"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   About
-                </Link>
-                <Link
+                </a>
+                <a
                   href="#"
                   className="py-2 hover:text-purple-400 transition-colors"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Blog
-                </Link>
+                </a>
               </nav>
               <div className="mt-auto space-y-4">
                 <Button
@@ -507,24 +503,24 @@ export default function Home() {
               <h3 className="text-sm font-medium mb-4">Features</h3>
               <ul className="space-y-2 text-sm text-white/50">
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <a href="#" className="hover:text-white transition-colors">
                     Dream Journal
-                  </Link>
+                  </a>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <a href="#" className="hover:text-white transition-colors">
                     AI Analysis
-                  </Link>
+                  </a>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <a href="#" className="hover:text-white transition-colors">
                     Community
-                  </Link>
+                  </a>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <a href="#" className="hover:text-white transition-colors">
                     Privacy
-                  </Link>
+                  </a>
                 </li>
               </ul>
             </div>
@@ -532,24 +528,24 @@ export default function Home() {
               <h3 className="text-sm font-medium mb-4">Company</h3>
               <ul className="space-y-2 text-sm text-white/50">
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <a href="#" className="hover:text-white transition-colors">
                     About Us
-                  </Link>
+                  </a>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <a href="#" className="hover:text-white transition-colors">
                     Blog
-                  </Link>
+                  </a>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <a href="#" className="hover:text-white transition-colors">
                     Careers
-                  </Link>
+                  </a>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <a href="#" className="hover:text-white transition-colors">
                     Contact
-                  </Link>
+                  </a>
                 </li>
               </ul>
             </div>
@@ -557,19 +553,19 @@ export default function Home() {
               <h3 className="text-sm font-medium mb-4">Legal</h3>
               <ul className="space-y-2 text-sm text-white/50">
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <a href="#" className="hover:text-white transition-colors">
                     Terms
-                  </Link>
+                  </a>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <a href="#" className="hover:text-white transition-colors">
                     Privacy
-                  </Link>
+                  </a>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <a href="#" className="hover:text-white transition-colors">
                     Cookies
-                  </Link>
+                  </a>
                 </li>
               </ul>
             </div>

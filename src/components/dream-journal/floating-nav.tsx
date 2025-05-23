@@ -7,7 +7,6 @@ import { Moon, Menu } from "lucide-react";
 
 export function FloatingNav() {
   const [scrolled, setScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -79,12 +78,7 @@ export function FloatingNav() {
           </div>
         </nav>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="md:hidden"
-          onClick={() => setMobileMenuOpen(true)}
-        >
+        <Button variant="ghost" size="icon" className="md:hidden">
           <Menu className="h-5 w-5" />
         </Button>
       </div>

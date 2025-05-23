@@ -90,6 +90,7 @@ function CloudGroup({ scrollY }) {
 function FloatingText({ scrollY }) {
   const textRef = useRef<THREE.Mesh>(null);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   useFrame((state) => {
     if (textRef.current) {
       textRef.current.position.y = 2 - scrollY * 0.01;

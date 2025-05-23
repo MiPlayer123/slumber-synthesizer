@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  BarChart3,
   CalendarDays,
   Hash,
   LineChart,

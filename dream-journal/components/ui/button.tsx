@@ -42,7 +42,10 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  (
+    { className, variant, size, asChild = false, onTouchStart, ...props },
+    ref,
+  ) => {
     const Comp = asChild ? Slot : "button";
 
     // Add touchStart event handling for mobile devices
@@ -52,9 +55,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         e.preventDefault();
 
         // Call the original onTouchStart if provided
-        props.onTouchStart?.(e);
+        onTouchStart?.(e);
       },
-      [props.onTouchStart],
+      [onTouchStart],
     );
 
     return (
@@ -69,4 +72,5 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 );
 Button.displayName = "Button";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export { Button, buttonVariants };

@@ -3,15 +3,10 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Sphere, Text, Line, useGLTF } from "@react-three/drei";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { MousePointer } from "lucide-react";
-import {
-  Mesh,
-  Vector3,
-  CubicBezierCurve3,
-  Group,
-} from "@/node_modules/@types/three";
-import * as THREE from "@/node_modules/@types/three";
+import { Mesh, Vector3, CubicBezierCurve3, Group } from "three";
+import * as THREE from "three";
 
 // Preload the brain model
 useGLTF.preload("/models/human-brain.glb");
@@ -190,7 +185,7 @@ function DreamPoint({
 
 // Special component to help with better touch detection
 function TouchDetector({ onInteraction }: { onInteraction: () => void }) {
-  const { gl, camera } = useThree();
+  const { gl } = useThree();
 
   useEffect(() => {
     const canvas = gl.domElement;
@@ -322,7 +317,7 @@ function GlobeObject({
     // Find the dreamPoints index with the smallest Y
     let minY = Infinity;
     let idx = -1;
-    dreamPoints.forEach(([x, y, z], i) => {
+    dreamPoints.forEach(([, y], i) => {
       if (y < minY) {
         minY = y;
         idx = i;
@@ -420,7 +415,7 @@ function GlobeObject({
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [validIndices.length]); // Only depend on the length of validIndices, not the entire array
+  }, [validIndices, dreamData, dreamPointVectors]); // Fixed dependencies
 
   // Animate line progress for "shooting" effect and rotate brain
   useFrame((_, delta) => {
@@ -624,7 +619,7 @@ function GlobeObject({
   );
 }
 
-function DragHint({ onInteraction }: { onInteraction: () => void }) {
+function DragHint() {
   const [showHint, setShowHint] = useState(true);
 
   useEffect(() => {
@@ -667,8 +662,6 @@ export function DreamGlobe({
   dreamData = [],
   onDreamSelect = () => {},
 }: DreamGlobeProps) {
-  const [isRotating, setIsRotating] = useState(true);
-  const [isDragging, setIsDragging] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const interactionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -677,7 +670,6 @@ export function DreamGlobe({
   }, []);
 
   const handleDragStart = useCallback(() => {
-    setIsDragging(true);
     handleInteraction();
 
     // Clear any existing timeout
@@ -693,7 +685,7 @@ export function DreamGlobe({
     }
 
     interactionTimeoutRef.current = setTimeout(() => {
-      setIsDragging(false);
+      // No need to set anything here since we removed isDragging
     }, 50);
   }, []);
 
@@ -732,7 +724,7 @@ export function DreamGlobe({
         <GlobeObject dreamData={dreamData} onDreamSelect={onDreamSelect} />
       </Canvas>
 
-      {!hasInteracted && <DragHint onInteraction={handleInteraction} />}
+      {!hasInteracted && <DragHint />}
     </div>
   );
 }

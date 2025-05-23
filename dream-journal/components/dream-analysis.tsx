@@ -8,7 +8,6 @@ import {
   Hash,
   Sparkles,
   ChevronRight,
-  BarChart3,
   HeartPulse,
 } from "lucide-react";
 

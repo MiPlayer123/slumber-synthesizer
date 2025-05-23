@@ -39,7 +39,7 @@ export function DreamImageGenerator() {
       40 + Math.random() * 30,
     );
     return () => clearInterval(interval);
-  }, [phase]);
+  }, [phase, dreamText]);
 
   // 3) When we enter "generating", fake an API call
   useEffect(() => {

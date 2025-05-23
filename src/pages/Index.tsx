@@ -17,12 +17,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
-interface DreamItem {
-  id: number;
-  title: string;
-  color: string;
-}
-
 export default function Index() {
   const [scrollY, setScrollY] = useState(0);
   const heroRef = useRef<HTMLDivElement>(null);

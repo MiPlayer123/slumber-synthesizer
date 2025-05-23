@@ -2,6 +2,7 @@ import type React from "react";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const metadata = {
   title: "Rem - Dream Journal & Analysis",
   description:

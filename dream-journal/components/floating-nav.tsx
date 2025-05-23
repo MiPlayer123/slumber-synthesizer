@@ -1,14 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Moon, Menu } from "lucide-react";
 
 export function FloatingNav() {
   const [scrolled, setScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -48,12 +46,12 @@ export function FloatingNav() {
               whileHover={{ y: -2 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
-              <Link
+              <a
                 href={`#${item.toLowerCase()}`}
                 className="text-sm text-white/70 hover:text-white transition-colors"
               >
                 {item}
-              </Link>
+              </a>
             </motion.div>
           ))}
 
@@ -80,12 +78,7 @@ export function FloatingNav() {
           </div>
         </nav>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="md:hidden"
-          onClick={() => setMobileMenuOpen(true)}
-        >
+        <Button variant="ghost" size="icon" className="md:hidden">
           <Menu className="h-5 w-5" />
         </Button>
       </div>
