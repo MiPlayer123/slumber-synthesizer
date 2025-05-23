@@ -5,6 +5,7 @@ import { Dream, Profile } from "@/lib/types";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Sparkles, Share, X, Wand2, Users } from "lucide-react";
 import {
@@ -227,9 +228,17 @@ export default function FriendsFeed() {
           It looks like your friends haven't shared any dreams, or you haven't
           added any friends yet.
         </p>
-        <Button onClick={() => navigate("/community")}>
-          Explore Community Dreams
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
+          <Button
+            onClick={() => navigate("/manage-friends")}
+            className="bg-purple-600 hover:bg-purple-700"
+          >
+            Manage Friends
+          </Button>
+          <Button variant="outline" onClick={() => navigate("/community")}>
+            Explore Community Dreams
+          </Button>
+        </div>
       </div>
     );
   }

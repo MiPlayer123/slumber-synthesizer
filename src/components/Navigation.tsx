@@ -135,24 +135,6 @@ export const Navigation = () => {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Link
-                      to="/friends"
-                      onClick={() => handleNavigation("/friends")}
-                    >
-                      <Button variant="ghost" size="icon">
-                        <Users className="h-5 w-5" />
-                      </Button>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Friends' Feed</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
                       to="/statistics"
                       onClick={() => handleNavigation("/statistics")}
                     >
@@ -171,25 +153,6 @@ export const Navigation = () => {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Link
-                      to="/friends"
-                      onClick={() => handleNavigation("/friends")}
-                    >
-                      <Button variant="ghost" size="icon">
-                        {/* Using Users icon again, but could be different if desired */}
-                        <Users className="h-5 w-5" />
-                      </Button>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Friends' Feed</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
                       to="/dream-wall"
                       onClick={() => handleNavigation("/dream-wall")}
                     >
@@ -200,6 +163,24 @@ export const Navigation = () => {
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Dream Wall</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/friends"
+                      onClick={() => handleNavigation("/friends")}
+                    >
+                      <Button variant="ghost" size="icon">
+                        <Users className="h-5 w-5" />
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Friends' Feed</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
