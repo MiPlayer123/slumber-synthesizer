@@ -156,6 +156,50 @@ export const WellnessScoreCard = ({
             </div>
           </div>
         </div>
+
+        {/* Explanation Section */}
+        <div className="mt-4 p-3 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg border border-gray-200/50 dark:border-gray-600/30">
+          <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
+            <div className="font-medium text-gray-800 dark:text-gray-200 mb-2">
+              How Your Wellness Score is Calculated:
+            </div>
+
+            <div>
+              <span className="font-medium text-purple-600 dark:text-purple-400">
+                Emotional (40%):
+              </span>
+              <span className="ml-1">
+                Balance of positive emotions and emotional intensity in your
+                dreams
+              </span>
+            </div>
+
+            <div>
+              <span className="font-medium text-blue-600 dark:text-blue-400">
+                Consistency (30%):
+              </span>
+              <span className="ml-1">
+                Regular dream journaling habits and sleep pattern stability
+              </span>
+            </div>
+
+            <div>
+              <span className="font-medium text-green-600 dark:text-green-400">
+                Quality (30%):
+              </span>
+              <span className="ml-1">
+                Dream recall, detail richness, and lucidity experiences
+              </span>
+            </div>
+
+            <div className="mt-3 pt-2 border-t border-gray-200/50 dark:border-gray-600/30">
+              <div className="text-xs text-gray-500 dark:text-gray-500">
+                <strong>Score Ranges:</strong> 80+ Excellent • 60-79 Good •
+                40-59 Fair • Below 40 Needs Attention
+              </div>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

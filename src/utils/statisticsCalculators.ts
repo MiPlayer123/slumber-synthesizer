@@ -1,14 +1,11 @@
 import {
   Brain,
-  Calendar,
   Star,
   Tag,
   Heart,
   Flame,
-  TrendingUp,
   Activity,
   BarChart3,
-  Zap,
 } from "lucide-react";
 import React from "react";
 import type { Dream, DreamAnalysis } from "@/lib/types";
@@ -119,6 +116,68 @@ export const calculateAchievements = (
   dreams: Dream[],
   analyses: DreamAnalysis[],
 ): Achievement[] => {
+  // Helper function to find when an achievement was likely unlocked
+  const findUnlockDate = (
+    condition: () => boolean,
+    checkType: "dream" | "analysis" | "streak",
+    targetCount?: number,
+  ): string | undefined => {
+    if (!condition()) return undefined;
+
+    if (checkType === "dream" && targetCount) {
+      // Sort dreams by date and find when we hit the target
+      const sortedDreams = [...dreams].sort(
+        (a, b) =>
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      );
+      return sortedDreams[Math.min(targetCount - 1, sortedDreams.length - 1)]
+        ?.created_at;
+    } else if (checkType === "analysis" && targetCount) {
+      // Sort analyses by dream creation date
+      const sortedAnalyses = [...analyses]
+        .map((analysis) => {
+          const dream = dreams.find((d) => d.id === analysis.dream_id);
+          return { ...analysis, dreamDate: dream?.created_at };
+        })
+        .filter((a) => a.dreamDate)
+        .sort(
+          (a, b) =>
+            new Date(a.dreamDate!).getTime() - new Date(b.dreamDate!).getTime(),
+        );
+
+      return sortedAnalyses[
+        Math.min(targetCount - 1, sortedAnalyses.length - 1)
+      ]?.dreamDate;
+    } else if (checkType === "streak") {
+      // For streaks, return the most recent dream date if we have a current streak
+      const sortedDreams = [...dreams].sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+      return sortedDreams[0]?.created_at;
+    }
+
+    // Fallback: return the earliest dream date
+    const sortedDreams = [...dreams].sort(
+      (a, b) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    );
+    return sortedDreams[0]?.created_at;
+  };
+
+  // Calculate achievement data
+  const lucidCount = dreams.filter((d) => d.category === "lucid").length;
+  const currentStreak = calculateStreakDays(dreams);
+  const uniqueSymbolsCount = getUniqueSymbols(analyses).length;
+  const nightmareCount = dreams.filter(
+    (d) => d.category === "nightmare",
+  ).length;
+  const propheticCount = dreams.filter(
+    (d) => d.category === "prophetic",
+  ).length;
+  const highRatingAnalyses = analyses.filter((a) => a.rating >= 4).length;
+  const uniqueEmotions = [...new Set(dreams.map((d) => d.emotion))].length;
+
   const achievements: Achievement[] = [
     {
       id: "first_dream",
@@ -126,22 +185,36 @@ export const calculateAchievements = (
       description: "Record your first dream",
       icon: "🌙",
       unlocked: dreams.length > 0,
-      unlockedAt: dreams.length > 0 ? dreams[0]?.created_at : undefined,
+      unlockedAt: findUnlockDate(() => dreams.length > 0, "dream", 1),
     },
     {
       id: "week_streak",
       title: "Dream Warrior",
       description: "Record dreams for 7 consecutive days",
       icon: "🔥",
-      unlocked: calculateStreakDays(dreams) >= 7,
+      unlocked: currentStreak >= 7,
+      unlockedAt: findUnlockDate(() => currentStreak >= 7, "streak"),
+      progress: currentStreak,
+      maxProgress: 7,
+    },
+    {
+      id: "month_streak",
+      title: "Dream Master",
+      description: "Record dreams for 30 consecutive days",
+      icon: "🏆",
+      unlocked: currentStreak >= 30,
+      unlockedAt: findUnlockDate(() => currentStreak >= 30, "streak"),
+      progress: currentStreak,
+      maxProgress: 30,
     },
     {
       id: "lucid_explorer",
       title: "Lucid Explorer",
       description: "Record 5 lucid dreams",
       icon: "✨",
-      unlocked: dreams.filter((d) => d.category === "lucid").length >= 5,
-      progress: dreams.filter((d) => d.category === "lucid").length,
+      unlocked: lucidCount >= 5,
+      unlockedAt: findUnlockDate(() => lucidCount >= 5, "dream", 5),
+      progress: lucidCount,
       maxProgress: 5,
     },
     {
@@ -150,6 +223,7 @@ export const calculateAchievements = (
       description: "Get 10 dream analyses",
       icon: "🧠",
       unlocked: analyses.length >= 10,
+      unlockedAt: findUnlockDate(() => analyses.length >= 10, "analysis", 10),
       progress: analyses.length,
       maxProgress: 10,
     },
@@ -158,9 +232,54 @@ export const calculateAchievements = (
       title: "Symbol Seeker",
       description: "Discover 20 unique symbols",
       icon: "🔍",
-      unlocked: getUniqueSymbols(analyses).length >= 20,
-      progress: getUniqueSymbols(analyses).length,
+      unlocked: uniqueSymbolsCount >= 20,
+      unlockedAt: findUnlockDate(
+        () => uniqueSymbolsCount >= 20,
+        "analysis",
+        20,
+      ),
+      progress: uniqueSymbolsCount,
       maxProgress: 20,
+    },
+    {
+      id: "quality_analyst",
+      title: "Quality Analyst",
+      description: "Get 5 high-quality dream analyses (4+ stars)",
+      icon: "⭐",
+      unlocked: highRatingAnalyses >= 5,
+      unlockedAt: findUnlockDate(() => highRatingAnalyses >= 5, "analysis", 5),
+      progress: highRatingAnalyses,
+      maxProgress: 5,
+    },
+    {
+      id: "emotion_explorer",
+      title: "Emotion Explorer",
+      description: "Experience 5 different emotions in dreams",
+      icon: "❤️",
+      unlocked: uniqueEmotions >= 5,
+      unlockedAt: findUnlockDate(() => uniqueEmotions >= 5, "dream"),
+      progress: uniqueEmotions,
+      maxProgress: 5,
+    },
+    {
+      id: "nightmare_survivor",
+      title: "Nightmare Survivor",
+      description: "Face and record 3 nightmares",
+      icon: "👹",
+      unlocked: nightmareCount >= 3,
+      unlockedAt: findUnlockDate(() => nightmareCount >= 3, "dream"),
+      progress: nightmareCount,
+      maxProgress: 3,
+    },
+    {
+      id: "prophet_dreamer",
+      title: "Prophet Dreamer",
+      description: "Record 2 prophetic dreams",
+      icon: "🔮",
+      unlocked: propheticCount >= 2,
+      unlockedAt: findUnlockDate(() => propheticCount >= 2, "dream"),
+      progress: propheticCount,
+      maxProgress: 2,
     },
   ];
 
