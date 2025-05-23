@@ -10,6 +10,7 @@ import { DreamStatistics } from "@/components/dream-journal/dream-statistics";
 import { DreamImageGenerator } from "@/components/dream-journal/dream-image-generator";
 import { DreamSharing } from "@/components/dream-journal/dream-sharing";
 import { DreamAnalysis } from "@/components/dream-journal/dream-analysis";
+import { HeroAppPreview } from "@/components/dream-journal/hero-app-preview";
 import { Brain, BarChart, Sparkles, Share2 } from "lucide-react";
 import { Navigation } from "@/components/Navigation";
 import { useAuth } from "@/hooks/useAuth";
@@ -76,135 +77,151 @@ export default function Index() {
         {/* Hero Section */}
         <section
           ref={heroRef}
-          className="relative min-h-[80vh] flex items-center justify-center overflow-hidden pb-12"
+          className="relative min-h-[90vh] flex items-center justify-center overflow-hidden"
         >
           <div className="absolute inset-0 z-0">
             <DreamScene scrollY={scrollY} />
           </div>
 
           <div className="container mx-auto px-6 py-16 md:py-24 relative z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="max-w-4xl mx-auto text-center space-y-8"
-            >
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-300 via-blue-400 to-cyan-400 drop-shadow-lg">
-                Track Your Dreams,
-                <br />
-                Transform Your Mind
-              </h1>
-              <p className="text-xl md:text-2xl text-white/80 max-w-3xl mx-auto leading-relaxed">
-                Join hundreds using AI-powered dream analysis to unlock insights
-                into their subconscious mind and improve mental wellness.
-              </p>
-
-              {/* Social Proof */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.3 }}
-                className="flex items-center justify-center gap-6 text-sm text-white/60 mb-8"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  <span>Free to start</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                  <span>Exploe the community</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                  <span>AI-powered insights</span>
-                </div>
-              </motion.div>
-
-              {/* Bold CTAs */}
+            <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[70vh]">
+              {/* Left side - Value proposition and CTAs */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.4 }}
-                className="flex flex-col sm:flex-row justify-center gap-4 pt-6"
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="space-y-8 text-center lg:text-left"
               >
-                {/* Primary CTA - Sign Up Free */}
-                <Button
-                  onClick={handleSignUpFree}
-                  disabled={loading}
-                  size="lg"
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold text-lg px-8 py-6 h-auto rounded-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/25 border-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <span className="flex items-center gap-3">
-                    {loading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                        Signing Up...
-                      </>
-                    ) : (
-                      <>
-                        Sign Up Free
-                        <ArrowRight className="w-5 h-5" />
-                      </>
-                    )}
-                  </span>
-                </Button>
+                <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-300 via-blue-400 to-cyan-400 drop-shadow-lg">
+                  Track Your Dreams,
+                  <br />
+                  Transform Your Mind
+                </h1>
+                <p className="text-base md:text-lg text-white/80 leading-relaxed max-w-2xl mx-auto lg:mx-0">
+                  Join hundreds using AI-powered dream analysis to unlock
+                  insights into their subconscious mind and improve mental
+                  wellness.
+                </p>
 
-                {/* Secondary CTA - Sign Up with Google */}
-                <Button
-                  onClick={handleGoogleSignUp}
-                  disabled={loading}
-                  size="lg"
-                  variant="outline"
-                  className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 hover:border-white/30 font-semibold text-lg px-8 py-6 h-auto rounded-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                {/* Social Proof */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.3 }}
+                  className="flex items-center justify-center lg:justify-start gap-4 text-xs text-white/60"
                 >
-                  <span className="flex items-center gap-3">
-                    {loading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                        Connecting...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-5 h-5" viewBox="0 0 24 24">
-                          <path
-                            fill="currentColor"
-                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                          />
-                          <path
-                            fill="currentColor"
-                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                          />
-                          <path
-                            fill="currentColor"
-                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                          />
-                          <path
-                            fill="currentColor"
-                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                          />
-                        </svg>
-                        Sign Up with Google
-                      </>
-                    )}
-                  </span>
-                </Button>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 bg-green-400 rounded-full"></div>
+                    <span>Free to start</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                    <span>Explore the community</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
+                    <span>AI insights</span>
+                  </div>
+                </motion.div>
+
+                {/* Bold CTAs */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.4 }}
+                  className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4"
+                >
+                  {/* Primary CTA - Sign Up Free */}
+                  <Button
+                    onClick={handleSignUpFree}
+                    disabled={loading}
+                    size="lg"
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold text-lg px-8 py-6 h-auto rounded-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/25 border-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="flex items-center gap-3">
+                      {loading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                          Signing Up...
+                        </>
+                      ) : (
+                        <>
+                          Sign Up Free
+                          <ArrowRight className="w-5 h-5" />
+                        </>
+                      )}
+                    </span>
+                  </Button>
+
+                  {/* Secondary CTA - Sign Up with Google */}
+                  <Button
+                    onClick={handleGoogleSignUp}
+                    disabled={loading}
+                    size="lg"
+                    variant="outline"
+                    className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 hover:border-white/30 font-semibold text-lg px-8 py-6 h-auto rounded-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="flex items-center gap-3">
+                      {loading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                          Connecting...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-5 h-5" viewBox="0 0 24 24">
+                            <path
+                              fill="currentColor"
+                              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                            />
+                            <path
+                              fill="currentColor"
+                              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                            />
+                            <path
+                              fill="currentColor"
+                              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                            />
+                            <path
+                              fill="currentColor"
+                              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                            />
+                          </svg>
+                          Sign Up with Google
+                        </>
+                      )}
+                    </span>
+                  </Button>
+                </motion.div>
+
+                {/* Trust indicators */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.6, delay: 0.6 }}
+                  className="text-sm text-white/50"
+                >
+                  Free forever. No credit card required. Cancel anytime.
+                </motion.div>
               </motion.div>
 
-              {/* Trust indicators */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.6, delay: 0.6 }}
-                className="text-xs text-white/50 max-w-md mx-auto pt-4"
-              >
-                Free forever. No credit card required. Cancel anytime.
-              </motion.div>
+              {/* Right side - App Preview */}
+              <div className="relative lg:block hidden">
+                <HeroAppPreview />
+              </div>
+            </div>
+
+            {/* Mobile app preview - shown below on mobile */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.8 }}
+              className="lg:hidden mt-12"
+            >
+              <HeroAppPreview />
             </motion.div>
           </div>
         </section>
-
-        {/* Dream Cards Section */}
-        {/* Dream Cards Section removed; statistics below already show patterns and trends */}
 
         {/* Features Grid */}
         <section id="features" className="relative pt-8 pb-16">
@@ -212,7 +229,7 @@ export default function Index() {
         </section>
 
         {/* Dream Analysis Section */}
-        <section className="relative py-24 overflow-hidden">
+        <section className="relative py-24 overflow-hidden bg-gradient-to-l from-slate-900/20 to-gray-800/20">
           <div className="container mx-auto px-6">
             <motion.div
               initial={{ opacity: 0 }}
@@ -260,7 +277,7 @@ export default function Index() {
         </section>
 
         {/* Dream Image Generator Section */}
-        <section className="relative py-24 overflow-hidden">
+        <section className="relative py-24 overflow-hidden bg-gradient-to-r from-emerald-900/20 to-green-900/20">
           <div className="container mx-auto px-6">
             <motion.div
               initial={{ opacity: 0 }}
@@ -309,7 +326,10 @@ export default function Index() {
         </section>
 
         {/* Testimonials */}
-        <section id="testimonials" className="relative py-24">
+        <section
+          id="testimonials"
+          className="relative py-24 bg-gradient-to-l from-slate-900/20 to-gray-900/20"
+        >
           <div className="container mx-auto px-6">
             <motion.div
               initial={{ opacity: 0 }}
@@ -347,6 +367,7 @@ export default function Index() {
               </p>
 
               {/* Social proof numbers */}
+              {/*
               <div className="flex items-center justify-center gap-8 mb-10 text-sm">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-white">10,000+</div>
@@ -361,6 +382,7 @@ export default function Index() {
                   <div className="text-white/60">User rating</div>
                 </div>
               </div>
+              */}
 
               {/* Bold CTA buttons */}
               <div className="flex flex-col sm:flex-row justify-center gap-4 mb-6">
