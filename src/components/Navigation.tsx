@@ -308,12 +308,12 @@ export const Navigation = () => {
                         <span>Statistics</span>
                       </Link>
                       <Link
-                        to="/dream-wall"
-                        onClick={() => handleNavigation("/dream-wall")}
-                        className={`flex items-center py-3 px-3 text-sm rounded-md hover:bg-accent transition-colors ${location.pathname === "/dream-wall" ? "bg-accent" : ""}`}
+                        to="/community"
+                        onClick={() => handleNavigation("/community")}
+                        className={`flex items-center py-3 px-3 text-sm rounded-md hover:bg-accent transition-colors ${location.pathname === "/community" ? "bg-accent" : ""}`}
                       >
                         <Grid className="mr-3 h-5 w-5" />
-                        <span>Dream Wall</span>
+                        <span>Community</span>
                       </Link>
                       <Link
                         to="/friends"
