@@ -135,6 +135,24 @@ export const Navigation = () => {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Link
+                      to="/friends"
+                      onClick={() => handleNavigation("/friends")}
+                    >
+                      <Button variant="ghost" size="icon">
+                        <Users className="h-5 w-5" /> 
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Friends' Feed</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
                       to="/statistics"
                       onClick={() => handleNavigation("/statistics")}
                     >
@@ -145,6 +163,25 @@ export const Navigation = () => {
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Statistics</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/friends"
+                      onClick={() => handleNavigation("/friends")}
+                    >
+                      <Button variant="ghost" size="icon">
+                         {/* Using Users icon again, but could be different if desired */}
+                        <Users className="h-5 w-5" />
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Friends' Feed</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -241,6 +278,16 @@ export const Navigation = () => {
                     >
                       <CreditCard className="mr-2 h-4 w-4" />
                       <span>Subscription</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      to="/manage-friends"
+                      onClick={() => handleNavigation("/manage-friends")}
+                      className="flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent"
+                    >
+                      <Users className="mr-2 h-4 w-4" />
+                      <span>Manage Friends</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -414,10 +461,18 @@ export const Navigation = () => {
                       <Link
                         to="/settings"
                         onClick={() => handleNavigation("/settings")}
-                        className="flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent"
+                        className={`flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent ${location.pathname === "/settings" ? "bg-accent" : ""}`}
                       >
                         <Settings className="mr-2 h-4 w-4" />
                         <span>Settings</span>
+                      </Link>
+                      <Link
+                        to="/manage-friends"
+                        onClick={() => handleNavigation("/manage-friends")}
+                        className={`flex items-center py-2 px-3 text-sm rounded-md hover:bg-accent ${location.pathname === "/manage-friends" ? "bg-accent" : ""}`}
+                      >
+                        <Users className="mr-2 h-4 w-4" />
+                        <span>Manage Friends</span>
                       </Link>
                       <Link
                         to="/settings?tab=subscription"

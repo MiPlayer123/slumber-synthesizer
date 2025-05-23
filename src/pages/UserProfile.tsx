@@ -44,6 +44,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { UserPlus, CheckCircle, Clock as ClockIcon } from 'lucide-react'; // Renamed Clock to ClockIcon to avoid conflict
+import { toast as sonnerToast } from "sonner"; // Using sonner for toasts as per existing useToast hook likely uses it or similar
 
 // Extend the Dream type to include our additional properties
 interface ExtendedDream extends BaseDream {
@@ -61,6 +63,10 @@ export const UserProfile = () => {
   const [loading, setLoading] = useState(true);
   const [dreamsLoading, setDreamsLoading] = useState(true);
   const [profile, setProfile] = useState<ProfileType | null>(null);
+  const [friendshipStatus, setFriendshipStatus] = useState<
+    "not_friends" | "pending_sent" | "pending_received" | "friends" | "loading" | "self"
+  >("loading");
+  const [isFriendshipActionLoading, setIsFriendshipActionLoading] = useState(false);
   const [dreams, setDreams] = useState<ExtendedDream[]>([]);
   const [selectedDream, setSelectedDream] = useState<ExtendedDream | null>(
     null,
@@ -94,6 +100,112 @@ export const UserProfile = () => {
       sessionStorage.removeItem(`scroll_${username}`);
     }
   }, [username, loading, dreamsLoading]);
+
+  useEffect(() => {
+    if (!profile || !user) {
+      setFriendshipStatus("loading");
+      return;
+    }
+
+    if (profile.id === user.id) {
+      setFriendshipStatus("self");
+      return;
+    }
+
+    const fetchFriendshipStatus = async () => {
+      setFriendshipStatus("loading");
+      try {
+        const { data, error } = await supabase
+          .from("friends")
+          .select("*")
+          .or(
+            `and(user_id.eq.${user.id},friend_id.eq.${profile.id}),and(user_id.eq.${profile.id},friend_id.eq.${user.id})`,
+          )
+          .maybeSingle(); // Use maybeSingle if you expect 0 or 1 row
+
+        if (error) throw error;
+
+        if (!data) {
+          setFriendshipStatus("not_friends");
+        } else if (data.status === "pending") {
+          if (data.user_id === user.id) {
+            setFriendshipStatus("pending_sent");
+          } else {
+            setFriendshipStatus("pending_received");
+          }
+        } else if (data.status === "accepted") {
+          setFriendshipStatus("friends");
+        }
+      } catch (err) {
+        console.error("Error fetching friendship status:", err);
+        sonnerToast.error("Failed to load friendship status.");
+        setFriendshipStatus("not_friends"); // Fallback status
+      }
+    };
+
+    fetchFriendshipStatus();
+  }, [profile, user]);
+
+  const handleAddFriend = async () => {
+    if (!user || !profile) return;
+    setIsFriendshipActionLoading(true);
+    try {
+      const { error } = await supabase.from("friends").insert({
+        user_id: user.id,
+        friend_id: profile.id,
+        status: "pending",
+      });
+      if (error) throw error;
+      setFriendshipStatus("pending_sent");
+      sonnerToast.success(`Friend request sent to ${profile.username}`);
+    } catch (err) {
+      console.error("Error sending friend request:", err);
+      sonnerToast.error("Failed to send friend request. Please try again.");
+    } finally {
+      setIsFriendshipActionLoading(false);
+    }
+  };
+
+  const handleAcceptFriendRequest = async () => {
+    if (!user || !profile) return;
+    setIsFriendshipActionLoading(true);
+    try {
+      const { error } = await supabase
+        .from("friends")
+        .update({ status: "accepted" })
+        .eq("user_id", profile.id) // The other user sent the request
+        .eq("friend_id", user.id); // To the current user
+      if (error) throw error;
+      setFriendshipStatus("friends");
+      sonnerToast.success(`You are now friends with ${profile.username}`);
+    } catch (err) {
+      console.error("Error accepting friend request:", err);
+      sonnerToast.error("Failed to accept friend request. Please try again.");
+    } finally {
+      setIsFriendshipActionLoading(false);
+    }
+  };
+
+  const handleRemoveFriend = async () => {
+    if (!user || !profile) return;
+    setIsFriendshipActionLoading(true);
+    try {
+      const { error } = await supabase
+        .from("friends")
+        .delete()
+        .or(
+          `and(user_id.eq.${user.id},friend_id.eq.${profile.id}),and(user_id.eq.${profile.id},friend_id.eq.${user.id})`,
+        );
+      if (error) throw error;
+      setFriendshipStatus("not_friends");
+      sonnerToast.success(`You are no longer friends with ${profile.username}`);
+    } catch (err) {
+      console.error("Error removing friend:", err);
+      sonnerToast.error("Failed to remove friend. Please try again.");
+    } finally {
+      setIsFriendshipActionLoading(false);
+    }
+  };
 
   // Fetch public dreams from the user
   const fetchPublicDreams = useCallback(
@@ -561,7 +673,46 @@ export const UserProfile = () => {
                   </Avatar>
                 </div>
 
-                <h2 className="text-xl font-bold">{profile.username}</h2>
+                <h2 className="text-xl font-bold mb-2">{profile.username}</h2>
+                {/* Friendship Button */}
+                {friendshipStatus !== "self" && friendshipStatus !== "loading" && (
+                  <div className="mt-2 mb-4">
+                    {friendshipStatus === "not_friends" && (
+                      <Button
+                        onClick={handleAddFriend}
+                        disabled={isFriendshipActionLoading}
+                        size="sm"
+                      >
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        Add Friend
+                      </Button>
+                    )}
+                    {friendshipStatus === "pending_sent" && (
+                      <Button disabled variant="outline" size="sm">
+                        <ClockIcon className="mr-2 h-4 w-4" />
+                        Request Sent
+                      </Button>
+                    )}
+                    {friendshipStatus === "pending_received" && (
+                      <Button
+                        onClick={handleAcceptFriendRequest}
+                        disabled={isFriendshipActionLoading}
+                        size="sm"
+                      >
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Accept Request
+                      </Button>
+                    )}
+                    {friendshipStatus === "friends" && (
+                      <Button variant="outline" size="sm" onClick={handleRemoveFriend} disabled={isFriendshipActionLoading}>
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Friends
+                        {/* Consider adding a dropdown for Remove Friend here */}
+                      </Button>
+                    )}
+                    {isFriendshipActionLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4 md:space-y-6">

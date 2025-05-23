@@ -38,6 +38,8 @@ const Statistics = lazy(() => import("@/pages/Statistics"));
 const DreamWall = lazy(() => import("@/pages/DreamWall"));
 const DreamDetail = lazy(() => import("@/pages/DreamDetail"));
 const Settings = lazy(() => import("@/pages/Settings"));
+const FriendsFeed = lazy(() => import("@/pages/FriendsFeed")); // Added FriendsFeed
+const ManageFriendsPage = lazy(() => import("@/pages/ManageFriendsPage")); // Added ManageFriendsPage
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -293,6 +295,22 @@ function AppRoutes() {
             <Suspense fallback={<LoadingSpinner />}>
               <DreamDetail />
             </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/friends"
+        element={
+          <ProtectedRoute>
+            <FriendsFeed />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manage-friends"
+        element={
+          <ProtectedRoute>
+            <ManageFriendsPage />
           </ProtectedRoute>
         }
       />
