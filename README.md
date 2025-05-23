@@ -2,8 +2,7 @@
 
 A modern web application for recording, analyzing, and sharing dreams with AI-enhanced features and community interaction.
 
-Website: <https://slumber-synthesizer.lovable.app/>
-Demo Video: <https://youtu.be/E1teSDidmEI>
+Website: <https://lucidrem.com/>
 
 ## Features
 
