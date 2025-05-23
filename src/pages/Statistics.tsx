@@ -73,7 +73,6 @@ import {
   Sparkles,
   Lightbulb,
   Star,
-  Zap,
 } from "lucide-react";
 
 const COLORS = [
@@ -289,64 +288,6 @@ const Statistics = () => {
       value,
       percentage: ((value / allSymbols.length) * 100).toFixed(1),
     }));
-
-  // Correlation between emotions and categories
-  const emotionCategoryMatrix: Record<string, Record<string, number>> = {};
-
-  dreams?.forEach((dream) => {
-    if (!emotionCategoryMatrix[dream.emotion]) {
-      emotionCategoryMatrix[dream.emotion] = {};
-    }
-    emotionCategoryMatrix[dream.emotion][dream.category] =
-      (emotionCategoryMatrix[dream.emotion][dream.category] || 0) + 1;
-  });
-
-  const emotionCategoryCorrelation = Object.entries(
-    emotionCategoryMatrix,
-  ).flatMap(([emotion, categories]) =>
-    Object.entries(categories).map(([category, count]) => ({
-      emotion,
-      category,
-      count,
-    })),
-  );
-
-  // Dream ratings distribution
-  const ratingsDistribution = analyses?.reduce(
-    (acc, analysis) => {
-      acc[analysis.rating] = (acc[analysis.rating] || 0) + 1;
-      return acc;
-    },
-    {} as Record<number, number>,
-  );
-
-  const ratingsData = Object.entries(ratingsDistribution || {})
-    .map(([rating, count]) => ({ rating: Number(rating), count }))
-    .sort((a, b) => a.rating - b.rating);
-
-  // Time patterns - what time of day are dreams recorded
-  const timePatterns = dreams?.reduce(
-    (acc, dream) => {
-      const hour = new Date(dream.created_at).getHours();
-      let timeOfDay = "morning";
-
-      if (hour >= 12 && hour < 17) timeOfDay = "afternoon";
-      else if (hour >= 17 && hour < 21) timeOfDay = "evening";
-      else if (hour >= 21 || hour < 6) timeOfDay = "night";
-
-      acc[timeOfDay] = (acc[timeOfDay] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
-
-  const timePatternsData = Object.entries(timePatterns || {}).map(
-    ([name, value]) => ({
-      name,
-      value,
-      percentage: ((value / totalDreams) * 100).toFixed(1),
-    }),
-  );
 
   if (isLoading) {
     return (
