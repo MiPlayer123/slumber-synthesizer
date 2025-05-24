@@ -30,15 +30,9 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
   Radar,
-  ScatterChart,
-  Scatter,
-  ZAxis,
   CartesianGrid,
 } from "recharts";
 
-import { CloudIcon, MoonIcon, StarIcon, BrainIcon } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Dream, DreamAnalysis } from "@/lib/types";
 import {
   Select,
@@ -47,7 +41,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+
+// Import new modular components
+import { WellnessScoreCard } from "@/components/statistics/WellnessScoreCard";
+import { AchievementsGrid } from "@/components/statistics/AchievementsGrid";
+import { KPIGrid } from "@/components/statistics/KPIGrid";
+import { DreamCalendarHeatmap } from "@/components/statistics/DreamCalendarHeatmap";
+import { PatternInsights } from "@/components/statistics/PatternInsights";
+
+// Import new advanced components
+import { SymbolNetworkGraph } from "@/components/statistics/SymbolNetworkGraph";
+import { AdvancedInsights } from "@/components/statistics/AdvancedInsights";
+
+// Import calculation utilities
+import {
+  calculateWellnessScore,
+  calculateAchievements,
+  calculateKPIs,
+  generateDreamCalendar,
+  generatePatternInsights,
+} from "@/utils/statisticsCalculators";
+
+import { motion } from "framer-motion";
+import {
+  TrendingUp,
+  Calendar,
+  Target,
+  Hash,
+  Heart,
+  Sparkles,
+  Lightbulb,
+  Star,
+} from "lucide-react";
 
 const COLORS = [
   "#FF6B6B",
@@ -65,7 +91,7 @@ const Statistics = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Fetch dreams
+  // Fetch dreams - moved before early return
   const { data: dreams, isLoading: dreamsLoading } = useQuery({
     queryKey: ["dreams", user?.id],
     queryFn: async () => {
@@ -73,7 +99,8 @@ const Statistics = () => {
       const { data, error } = await supabase
         .from("dreams")
         .select("*")
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data as Dream[];
@@ -81,7 +108,7 @@ const Statistics = () => {
     enabled: !!user?.id,
   });
 
-  // Fetch dream analyses
+  // Fetch dream analyses - moved before early return
   const { data: analyses, isLoading: analysesLoading } = useQuery({
     queryKey: ["dream-analyses", user?.id, dreams?.map((d) => d.id)],
     queryFn: async () => {
@@ -98,6 +125,39 @@ const Statistics = () => {
     enabled: !!user?.id && !!dreams && dreams.length > 0,
   });
 
+  // Calculate enhanced statistics using utility functions - moved before early return
+  const statisticsData = useMemo(() => {
+    if (!dreams || !analyses) {
+      return {
+        wellness: {
+          overall: 0,
+          emotional: 0,
+          consistency: 0,
+          quality: 0,
+          trends: { weekly: 0, monthly: 0 },
+        },
+        achievements: [],
+        kpis: [],
+        insights: [],
+        calendar: [],
+      };
+    }
+
+    const wellness = calculateWellnessScore(dreams, analyses);
+    const achievements = calculateAchievements(dreams, analyses);
+    const kpis = calculateKPIs(dreams, analyses, wellness);
+    const calendar = generateDreamCalendar(dreams);
+    const insights = generatePatternInsights(dreams, analyses);
+
+    return {
+      wellness,
+      achievements,
+      kpis,
+      insights,
+      calendar,
+    };
+  }, [dreams, analyses]);
+
   // Redirect if not authenticated
   if (!user) {
     toast({
@@ -110,19 +170,8 @@ const Statistics = () => {
 
   const isLoading = dreamsLoading || analysesLoading;
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-12">
-        <p className="text-center text-muted-foreground">
-          Loading statistics...
-        </p>
-      </div>
-    );
-  }
-
-  // Calculate statistics
+  // Legacy calculations for existing charts (keeping your original logic)
   const totalDreams = dreams?.length || 0;
-  const totalAnalyses = analyses?.length || 0;
 
   // Category distribution
   const categoryData = dreams?.reduce(
@@ -240,68 +289,23 @@ const Statistics = () => {
       percentage: ((value / allSymbols.length) * 100).toFixed(1),
     }));
 
-  // Correlation between emotions and categories
-  const emotionCategoryMatrix: Record<string, Record<string, number>> = {};
-
-  dreams?.forEach((dream) => {
-    if (!emotionCategoryMatrix[dream.emotion]) {
-      emotionCategoryMatrix[dream.emotion] = {};
-    }
-    emotionCategoryMatrix[dream.emotion][dream.category] =
-      (emotionCategoryMatrix[dream.emotion][dream.category] || 0) + 1;
-  });
-
-  const emotionCategoryCorrelation = Object.entries(
-    emotionCategoryMatrix,
-  ).flatMap(([emotion, categories]) =>
-    Object.entries(categories).map(([category, count]) => ({
-      emotion,
-      category,
-      count,
-    })),
-  );
-
-  // Dream ratings distribution
-  const ratingsDistribution = analyses?.reduce(
-    (acc, analysis) => {
-      acc[analysis.rating] = (acc[analysis.rating] || 0) + 1;
-      return acc;
-    },
-    {} as Record<number, number>,
-  );
-
-  const ratingsData = Object.entries(ratingsDistribution || {})
-    .map(([rating, count]) => ({ rating: Number(rating), count }))
-    .sort((a, b) => a.rating - b.rating);
-
-  // Time patterns - what time of day are dreams recorded
-  const timePatterns = dreams?.reduce(
-    (acc, dream) => {
-      const hour = new Date(dream.created_at).getHours();
-      let timeOfDay = "morning";
-
-      if (hour >= 12 && hour < 17) timeOfDay = "afternoon";
-      else if (hour >= 17 && hour < 21) timeOfDay = "evening";
-      else if (hour >= 21 || hour < 6) timeOfDay = "night";
-
-      acc[timeOfDay] = (acc[timeOfDay] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
-
-  const timePatternsData = Object.entries(timePatterns || {}).map(
-    ([name, value]) => ({
-      name,
-      value,
-      percentage: ((value / totalDreams) * 100).toFixed(1),
-    }),
-  );
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">
+            Loading your dream analytics...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-6">
-      <h1 className="text-3xl md:text-4xl font-bold mb-6 text-purple-600">
-        Dream Statistics
+      <h1 className="text-3xl md:text-4xl font-bold mb-6 text-purple-600 dark:text-purple-400">
+        Dream Analytics Dashboard
       </h1>
 
       {/* Tab navigation for desktop, hidden on mobile */}
@@ -318,34 +322,34 @@ const Statistics = () => {
             Overview
           </button>
           <button
-            onClick={() => setActiveTab("patterns")}
+            onClick={() => setActiveTab("wellness")}
             className={`flex-1 rounded-sm py-2 text-sm font-medium transition-all ${
-              activeTab === "patterns"
+              activeTab === "wellness"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Patterns & Trends
+            Wellness & Insights
           </button>
           <button
-            onClick={() => setActiveTab("themes")}
+            onClick={() => setActiveTab("insights")}
             className={`flex-1 rounded-sm py-2 text-sm font-medium transition-all ${
-              activeTab === "themes"
+              activeTab === "insights"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Themes & Symbols
+            Patterns & Insights
           </button>
           <button
-            onClick={() => setActiveTab("emotions")}
+            onClick={() => setActiveTab("calendar")}
             className={`flex-1 rounded-sm py-2 text-sm font-medium transition-all ${
-              activeTab === "emotions"
+              activeTab === "calendar"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Emotions
+            Calendar View
           </button>
           <button
             onClick={() => setActiveTab("advanced")}
@@ -355,7 +359,7 @@ const Statistics = () => {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Advanced Analysis
+            Advanced AI
           </button>
         </div>
       </div>
@@ -368,82 +372,22 @@ const Statistics = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="overview">Overview</SelectItem>
-            <SelectItem value="patterns">Patterns & Trends</SelectItem>
-            <SelectItem value="themes">Themes & Symbols</SelectItem>
-            <SelectItem value="emotions">Emotions</SelectItem>
-            <SelectItem value="advanced">Advanced Analysis</SelectItem>
+            <SelectItem value="wellness">Wellness & Insights</SelectItem>
+            <SelectItem value="insights">Patterns & Insights</SelectItem>
+            <SelectItem value="calendar">Calendar View</SelectItem>
+            <SelectItem value="advanced">Advanced AI</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      {/* OVERVIEW TAB */}
+      {/* OVERVIEW TAB - Enhanced with new components */}
       {activeTab === "overview" && (
         <div className="space-y-6">
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            <Card>
-              <CardHeader className="pb-2 px-3 md:px-6">
-                <CardTitle className="flex items-center gap-2 text-sm md:text-base">
-                  <CloudIcon className="w-4 h-4" /> Total Dreams
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="px-3 md:px-6">
-                <p className="text-2xl md:text-3xl font-bold">{totalDreams}</p>
-                <p className="text-muted-foreground text-xs md:text-sm">
-                  dreams recorded
-                </p>
-              </CardContent>
-            </Card>
+          {/* KPI Grid */}
+          <KPIGrid kpis={statisticsData.kpis} />
 
-            <Card>
-              <CardHeader className="pb-2 px-3 md:px-6">
-                <CardTitle className="flex items-center gap-2 text-sm md:text-base">
-                  <MoonIcon className="w-4 h-4" /> Analyzed Dreams
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="px-3 md:px-6">
-                <p className="text-2xl md:text-3xl font-bold">
-                  {totalAnalyses}
-                </p>
-                <p className="text-muted-foreground text-xs md:text-sm">
-                  dreams analyzed
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2 px-3 md:px-6">
-                <CardTitle className="flex items-center gap-2 text-sm md:text-base">
-                  <StarIcon className="w-4 h-4" /> Most Common Category
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="px-3 md:px-6">
-                <p className="text-2xl md:text-3xl font-bold capitalize">
-                  {categoryChartData[0]?.name || "N/A"}
-                </p>
-                <p className="text-muted-foreground text-xs md:text-sm">
-                  {categoryChartData[0]?.percentage || 0}% of dreams
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2 px-3 md:px-6">
-                <CardTitle className="flex items-center gap-2 text-sm md:text-base">
-                  <BrainIcon className="w-4 h-4" /> Dominant Emotion
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="px-3 md:px-6">
-                <p className="text-2xl md:text-3xl font-bold capitalize">
-                  {emotionChartData[0]?.name || "N/A"}
-                </p>
-                <p className="text-muted-foreground text-xs md:text-sm">
-                  {emotionChartData[0]?.percentage || 0}% of dreams
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Main Overview Cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader className="px-3 md:px-6 py-4 md:py-6">
                 <CardTitle className="text-base md:text-lg">
@@ -476,14 +420,18 @@ const Statistics = () => {
                     </defs>
                     <XAxis
                       dataKey="displayDate"
-                      tick={{ fontSize: 10 }}
+                      tick={{ fontSize: 10, fill: "currentColor" }}
                       interval="preserveStartEnd"
                     />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 10, fill: "currentColor" }}
+                    />
                     <CartesianGrid
                       strokeDasharray="3 3"
                       vertical={false}
                       opacity={0.3}
+                      className="stroke-gray-300 dark:stroke-gray-600"
                     />
                     <Tooltip
                       labelFormatter={(value) => `Date: ${value}`}
@@ -491,6 +439,12 @@ const Statistics = () => {
                         `${value} dreams`,
                         "Count",
                       ]}
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "6px",
+                        color: "hsl(var(--foreground))",
+                      }}
                     />
                     <Area
                       type="monotone"
@@ -537,214 +491,20 @@ const Statistics = () => {
                         `${value} dreams (${categoryChartData.find((item) => item.name === name)?.percentage || 0}%)`,
                         name,
                       ]}
-                    />
-                    <Legend wrapperStyle={{ fontSize: "10px" }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
-
-      {/* PATTERNS & TRENDS TAB */}
-      {activeTab === "patterns" && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader className="px-3 md:px-6 py-4 md:py-6">
-                <CardTitle className="text-base md:text-lg">
-                  Dream Categories Over Time
-                </CardTitle>
-                <CardDescription>
-                  How different dream types change over time
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-[300px] md:h-[350px] px-0 md:px-6">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={categoriesOverTime}
-                    margin={{ left: 0, right: 10 }}
-                  >
-                    <XAxis
-                      dataKey="date"
-                      tick={{ fontSize: 10 }}
-                      interval="preserveStartEnd"
-                      tickFormatter={(value) =>
-                        new Date(value).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                        })
-                      }
-                    />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      vertical={false}
-                      opacity={0.3}
-                    />
-                    <Tooltip
-                      labelFormatter={(value) =>
-                        new Date(value).toLocaleDateString()
-                      }
-                      formatter={(value: number, name: string) => [
-                        `${value} dreams`,
-                        name,
-                      ]}
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "6px",
+                        color: "hsl(var(--foreground))",
+                      }}
                     />
                     <Legend
-                      verticalAlign="top"
-                      height={36}
-                      wrapperStyle={{ fontSize: "10px" }}
+                      wrapperStyle={{
+                        fontSize: "10px",
+                        color: "currentColor",
+                      }}
                     />
-                    <Line
-                      type="monotone"
-                      dataKey="nightmare"
-                      stroke="#FF6B6B"
-                      dot={false}
-                      strokeWidth={2}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="lucid"
-                      stroke="#4ECDC4"
-                      dot={false}
-                      strokeWidth={2}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="recurring"
-                      stroke="#45B7D1"
-                      dot={false}
-                      strokeWidth={2}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="prophetic"
-                      stroke="#D4A5A5"
-                      dot={false}
-                      strokeWidth={2}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="normal"
-                      stroke="#9A8C98"
-                      dot={false}
-                      strokeWidth={2}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="px-3 md:px-6 py-4 md:py-6">
-                <CardTitle className="text-base md:text-lg">
-                  Time of Recording
-                </CardTitle>
-                <CardDescription>
-                  When you usually record your dreams
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-[300px] md:h-[350px] px-0 md:px-6">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={timePatternsData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={70}
-                      label={({ name, percent }) =>
-                        `${name} ${(percent * 100).toFixed(0)}%`
-                      }
-                    >
-                      {timePatternsData.map((_, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value, name) => [
-                        `${value} dreams (${timePatternsData.find((item) => item.name === name)?.percentage || 0}%)`,
-                        name,
-                      ]}
-                    />
-                    <Legend wrapperStyle={{ fontSize: "10px" }} />
                   </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="px-3 md:px-6 py-4 md:py-6">
-                <CardTitle className="text-base md:text-lg">
-                  Dream Rating Distribution
-                </CardTitle>
-                <CardDescription>How you rate your dreams</CardDescription>
-              </CardHeader>
-              <CardContent className="h-[300px] md:h-[350px] px-0 md:px-6">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={ratingsData} margin={{ left: 0, right: 0 }}>
-                    <XAxis dataKey="rating" tick={{ fontSize: 10 }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      vertical={false}
-                      opacity={0.3}
-                    />
-                    <Tooltip
-                      formatter={(value: number) => [
-                        `${value} dreams`,
-                        "Count",
-                      ]}
-                    />
-                    <Bar dataKey="count" fill="#45B7D1" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="px-3 md:px-6 py-4 md:py-6">
-                <CardTitle className="text-base md:text-lg">
-                  Emotion-Category Correlation
-                </CardTitle>
-                <CardDescription>
-                  How emotions correlate with dream types
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-[300px] md:h-[350px] px-0 md:px-6">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart
-                    margin={{ left: 0, right: 10, top: 10, bottom: 0 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="emotion"
-                      name="Emotion"
-                      allowDuplicatedCategory={false}
-                      tick={{ fontSize: 10 }}
-                    />
-                    <YAxis
-                      dataKey="category"
-                      name="Category"
-                      allowDuplicatedCategory={false}
-                      tick={{ fontSize: 10 }}
-                    />
-                    <ZAxis dataKey="count" range={[20, 500]} name="Frequency" />
-                    <Tooltip
-                      cursor={{ strokeDasharray: "3 3" }}
-                      formatter={(value, name) => [
-                        name === "Frequency" ? `${value} dreams` : value,
-                        name,
-                      ]}
-                    />
-                    <Scatter data={emotionCategoryCorrelation} fill="#8884d8" />
-                  </ScatterChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
@@ -752,277 +512,570 @@ const Statistics = () => {
         </div>
       )}
 
-      {/* THEMES & SYMBOLS TAB */}
-      {activeTab === "themes" && (
+      {/* WELLNESS & INSIGHTS TAB - New enhanced tab */}
+      {activeTab === "wellness" && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader className="px-3 md:px-6 py-4 md:py-6">
-                <CardTitle className="text-base md:text-lg">
-                  Top Recurring Themes
-                </CardTitle>
-                <CardDescription>
-                  Most common themes in your dreams
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-[300px] md:h-[350px] px-0 md:px-6">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={topThemes}
-                    layout="vertical"
-                    margin={{ left: 80, right: 10, top: 10, bottom: 0 }}
-                  >
-                    <XAxis type="number" tick={{ fontSize: 10 }} />
-                    <YAxis
-                      type="category"
-                      dataKey="name"
-                      tick={{ fontSize: 10 }}
-                      width={80}
-                    />
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      horizontal={false}
-                      opacity={0.3}
-                    />
-                    <Tooltip
-                      formatter={(value: number, name, props) => {
-                        const item = props.payload;
-                        return [
-                          `${value} occurrences (${item.percentage}%)`,
-                          "Frequency",
-                        ];
-                      }}
-                    />
-                    <Bar dataKey="value" fill="#4ECDC4" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Wellness Score - takes 1 column */}
+            <WellnessScoreCard wellness={statisticsData.wellness} />
 
-            <Card>
-              <CardHeader className="px-3 md:px-6 py-4 md:py-6">
-                <CardTitle className="text-base md:text-lg">
-                  Top Recurring Symbols
-                </CardTitle>
-                <CardDescription>
-                  Most common symbols in your dreams
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-[300px] md:h-[350px] px-0 md:px-6">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={topSymbols}
-                    layout="vertical"
-                    margin={{ left: 80, right: 10, top: 10, bottom: 0 }}
-                  >
-                    <XAxis type="number" tick={{ fontSize: 10 }} />
-                    <YAxis
-                      type="category"
-                      dataKey="name"
-                      tick={{ fontSize: 10 }}
-                      width={80}
-                    />
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      horizontal={false}
-                      opacity={0.3}
-                    />
-                    <Tooltip
-                      formatter={(value: number, name, props) => {
-                        const item = props.payload;
-                        return [
-                          `${value} occurrences (${item.percentage}%)`,
-                          "Frequency",
-                        ];
-                      }}
-                    />
-                    <Bar dataKey="value" fill="#FF6B6B" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+            {/* Achievements - takes 2 columns */}
+            <div className="lg:col-span-2">
+              <AchievementsGrid achievements={statisticsData.achievements} />
+            </div>
+          </div>
 
-            <Card className="md:col-span-2">
-              <CardHeader className="px-3 md:px-6 py-4 md:py-6">
-                <CardTitle className="text-base md:text-lg">
-                  Theme Tags Cloud
+          {/* Pattern Insights */}
+          <PatternInsights insights={statisticsData.insights} />
+        </div>
+      )}
+
+      {/* PATTERNS & INSIGHTS TAB */}
+      {activeTab === "insights" && (
+        <div className="space-y-6">
+          {/* Quick Insights Summary - moved to top */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card className="bg-gradient-to-br from-indigo-100/50 to-cyan-100/50 dark:from-indigo-900/20 dark:to-cyan-900/20 border-indigo-200/50 dark:border-indigo-500/20">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg text-gray-900 dark:text-white">
+                  <Lightbulb className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  Pattern Insights Summary
                 </CardTitle>
-                <CardDescription>
-                  Visual representation of recurring themes
+                <CardDescription className="text-gray-600 dark:text-gray-400">
+                  Key insights from your dream patterns
                 </CardDescription>
               </CardHeader>
-              <CardContent className="px-3 md:px-6">
-                <ScrollArea className="h-32">
-                  <div className="flex flex-wrap gap-2">
-                    {topThemes.map((theme, index) => (
-                      <Badge
-                        key={index}
-                        variant="secondary"
-                        className="text-xs md:text-sm py-1 px-2"
-                        style={{
-                          fontSize: `${Math.max(0.8, Math.min(1.5, (theme.value / (topThemes[0]?.value || 1)) * 1.5))}rem`,
-                          opacity: Math.max(
-                            0.6,
-                            theme.value / (topThemes[0]?.value || 1),
-                          ),
-                        }}
-                      >
-                        {theme.name} ({theme.value})
-                      </Badge>
-                    ))}
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 rounded-lg bg-gray-100/70 dark:bg-gray-800/30 border border-gray-200/50 dark:border-gray-600/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Star className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Most Active Theme
+                      </span>
+                    </div>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {topThemes[0]?.name || "N/A"}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {topThemes[0]?.value || 0} occurrences
+                    </p>
                   </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
 
-      {/* EMOTIONS TAB */}
-      {activeTab === "emotions" && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader className="px-3 md:px-6 py-4 md:py-6">
-                <CardTitle className="text-base md:text-lg">
-                  Emotions Distribution
-                </CardTitle>
-                <CardDescription>How your dreams make you feel</CardDescription>
-              </CardHeader>
-              <CardContent className="h-[300px] md:h-[350px] px-0 md:px-6">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={emotionChartData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={70}
-                      label={({ name, percent }) =>
-                        `${name} ${(percent * 100).toFixed(0)}%`
-                      }
-                    >
-                      {emotionChartData.map((_, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value, name) => [
-                        `${value} dreams (${emotionChartData.find((item) => item.name === name)?.percentage || 0}%)`,
-                        name,
-                      ]}
-                    />
-                    <Legend wrapperStyle={{ fontSize: "10px" }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+                  <div className="p-4 rounded-lg bg-gray-100/70 dark:bg-gray-800/30 border border-gray-200/50 dark:border-gray-600/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Dominant Symbol
+                      </span>
+                    </div>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {topSymbols[0]?.name || "N/A"}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {topSymbols[0]?.value || 0} appearances
+                    </p>
+                  </div>
 
-            <Card>
-              <CardHeader className="px-3 md:px-6 py-4 md:py-6">
-                <CardTitle className="text-base md:text-lg">
-                  Emotion Radar
-                </CardTitle>
-                <CardDescription>
-                  Distribution of emotions across dreams
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-[300px] md:h-[350px] px-0 md:px-6">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart outerRadius={70} data={emotionChartData}>
-                    <PolarGrid />
-                    <PolarAngleAxis dataKey="name" tick={{ fontSize: 10 }} />
-                    <PolarRadiusAxis
-                      angle={30}
-                      domain={[0, "auto"]}
-                      tick={{ fontSize: 10 }}
-                    />
-                    <Radar
-                      name="Emotions"
-                      dataKey="value"
-                      stroke="#FF6B6B"
-                      fill="#FF6B6B"
-                      fillOpacity={0.6}
-                    />
-                    <Tooltip
-                      formatter={(value: number, name, props) => {
-                        const item = props.payload;
-                        return [
-                          `${value} dreams (${item.percentage}%)`,
-                          item.name,
-                        ];
-                      }}
-                    />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
-
-      {/* ADVANCED ANALYSIS TAB */}
-      {activeTab === "advanced" && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader className="px-3 md:px-6 py-4 md:py-6">
-                <CardTitle className="text-base md:text-lg">
-                  Emotional Trends Over Time
-                </CardTitle>
-                <CardDescription>
-                  How your emotions evolve with time
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-[300px] md:h-[350px] px-0 md:px-6">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={dreamsOverTime}
-                    margin={{ left: 0, right: 10 }}
-                  >
-                    <XAxis
-                      dataKey="displayDate"
-                      tick={{ fontSize: 10 }}
-                      interval="preserveStartEnd"
-                    />
-                    <YAxis tick={{ fontSize: 10 }} />
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <Tooltip labelFormatter={(value) => `Date: ${value}`} />
-                    <Line
-                      type="monotone"
-                      dataKey="count"
-                      stroke="#8884d8"
-                      strokeWidth={2}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="px-3 md:px-6 py-4 md:py-6">
-                <CardTitle className="text-base md:text-lg">
-                  Dream-to-Dream Pattern Analysis
-                </CardTitle>
-                <CardDescription>
-                  See how your dream patterns evolve between entries
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-[300px] md:h-[350px] flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                  <p>Analysis in development</p>
-                  <p className="text-sm">
-                    We're working on advanced pattern recognition between
-                    dreams.
-                  </p>
+                  <div className="p-4 rounded-lg bg-gray-100/70 dark:bg-gray-800/30 border border-gray-200/50 dark:border-gray-600/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Heart className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Primary Emotion
+                      </span>
+                    </div>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {emotionChartData[0]?.name || "N/A"}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {emotionChartData[0]?.percentage || 0}% of dreams
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
+          </motion.div>
+
+          {/* Recurring Patterns Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="space-y-4"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <Target className="w-5 h-5 text-green-600 dark:text-green-400" />
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Recurring Patterns
+              </h2>
+            </div>
+
+            {/* Themes and Symbols Row */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
+              <Card className="bg-gradient-to-br from-green-50/80 to-emerald-50/80 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200/50 dark:border-green-500/20">
+                <CardHeader className="pb-3 px-3 md:px-6 py-3 md:py-4">
+                  <CardTitle className="flex items-center gap-2 text-base md:text-lg text-gray-900 dark:text-white">
+                    <Hash className="w-4 h-4 md:w-5 md:h-5 text-green-600 dark:text-green-400" />
+                    Top Recurring Themes
+                  </CardTitle>
+                  <CardDescription className="text-sm text-gray-600 dark:text-gray-400">
+                    Most frequent themes across your dreams
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="h-[250px] md:h-[300px] px-1 md:px-6">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={topThemes}
+                      layout="vertical"
+                      margin={{ left: 5, right: 10, top: 5, bottom: 5 }}
+                    >
+                      <XAxis
+                        type="number"
+                        tick={{ fontSize: 9, fill: "currentColor" }}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        tick={{ fontSize: 9, fill: "currentColor" }}
+                        width={100}
+                      />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        horizontal={false}
+                        opacity={0.3}
+                        className="stroke-gray-300 dark:stroke-gray-600"
+                      />
+                      <Tooltip
+                        formatter={(value: number, name, props) => {
+                          const item = props.payload;
+                          return [
+                            `${value} occurrences (${item.percentage}%)`,
+                            "Frequency",
+                          ];
+                        }}
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--background))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          color: "hsl(var(--foreground))",
+                        }}
+                      />
+                      <Bar
+                        dataKey="value"
+                        fill="#4ECDC4"
+                        radius={[0, 4, 4, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-purple-50/80 to-pink-50/80 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200/50 dark:border-purple-500/20">
+                <CardHeader className="pb-3 px-3 md:px-6 py-3 md:py-4">
+                  <CardTitle className="flex items-center gap-2 text-base md:text-lg text-gray-900 dark:text-white">
+                    <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-purple-600 dark:text-purple-400" />
+                    Top Recurring Symbols
+                  </CardTitle>
+                  <CardDescription className="text-sm text-gray-600 dark:text-gray-400">
+                    Most significant symbols in your dreams
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="h-[250px] md:h-[300px] px-1 md:px-6">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={topSymbols}
+                      layout="vertical"
+                      margin={{ left: 5, right: 10, top: 5, bottom: 5 }}
+                    >
+                      <XAxis
+                        type="number"
+                        tick={{ fontSize: 9, fill: "currentColor" }}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        tick={{ fontSize: 9, fill: "currentColor" }}
+                        width={100}
+                      />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        horizontal={false}
+                        opacity={0.3}
+                        className="stroke-gray-300 dark:stroke-gray-600"
+                      />
+                      <Tooltip
+                        formatter={(value: number, name, props) => {
+                          const item = props.payload;
+                          return [
+                            `${value} occurrences (${item.percentage}%)`,
+                            "Frequency",
+                          ];
+                        }}
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--background))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          color: "hsl(var(--foreground))",
+                        }}
+                      />
+                      <Bar
+                        dataKey="value"
+                        fill="#FF6B6B"
+                        radius={[0, 4, 4, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          </motion.div>
+
+          {/* Temporal Trends & Emotional Patterns Side-by-Side */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="space-y-4"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Trends & Emotional Patterns
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
+              {/* Temporal Trends */}
+              <Card className="bg-gradient-to-br from-blue-50/80 to-purple-50/80 dark:from-blue-900/20 dark:to-purple-900/20 border-blue-200/50 dark:border-blue-500/20">
+                <CardHeader className="pb-3 px-3 md:px-6 py-3 md:py-4">
+                  <CardTitle className="flex items-center gap-2 text-base md:text-lg text-gray-900 dark:text-white">
+                    <Calendar className="w-4 h-4 md:w-5 md:h-5 text-blue-600 dark:text-blue-400" />
+                    Dream Categories Over Time
+                  </CardTitle>
+                  <CardDescription className="text-sm text-gray-600 dark:text-gray-400">
+                    How different dream types evolve across time
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="h-[300px] md:h-[350px] px-1 md:px-6">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={categoriesOverTime}
+                      margin={{ left: 10, right: 10, top: 20, bottom: 5 }}
+                    >
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fontSize: 9, fill: "currentColor" }}
+                        interval="preserveStartEnd"
+                        tickFormatter={(value) =>
+                          new Date(value).toLocaleDateString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                          })
+                        }
+                      />
+                      <YAxis
+                        allowDecimals={false}
+                        tick={{ fontSize: 9, fill: "currentColor" }}
+                      />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        opacity={0.3}
+                        className="stroke-gray-300 dark:stroke-gray-600"
+                      />
+                      <Tooltip
+                        labelFormatter={(value) =>
+                          new Date(value).toLocaleDateString()
+                        }
+                        formatter={(value: number, name: string) => [
+                          `${value} dreams`,
+                          name,
+                        ]}
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--background))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          color: "hsl(var(--foreground))",
+                        }}
+                      />
+                      <Legend
+                        verticalAlign="top"
+                        height={20}
+                        wrapperStyle={{
+                          fontSize: "10px",
+                          color: "currentColor",
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="nightmare"
+                        stroke="#FF6B6B"
+                        dot={false}
+                        strokeWidth={2}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="lucid"
+                        stroke="#4ECDC4"
+                        dot={false}
+                        strokeWidth={2}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="recurring"
+                        stroke="#45B7D1"
+                        dot={false}
+                        strokeWidth={2}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="prophetic"
+                        stroke="#D4A5A5"
+                        dot={false}
+                        strokeWidth={2}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="normal"
+                        stroke="#9A8C98"
+                        dot={false}
+                        strokeWidth={2}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Emotion Radar Chart */}
+              <Card className="bg-gradient-to-br from-pink-50/80 to-rose-50/80 dark:from-pink-900/20 dark:to-rose-900/20 border-pink-200/50 dark:border-pink-500/20">
+                <CardHeader className="pb-3 px-3 md:px-6 py-3 md:py-4">
+                  <CardTitle className="flex items-center gap-2 text-base md:text-lg text-gray-900 dark:text-white">
+                    <Heart className="w-4 h-4 md:w-5 md:h-5 text-pink-600 dark:text-pink-400" />
+                    Emotion Distribution Radar
+                  </CardTitle>
+                  <CardDescription className="text-sm text-gray-600 dark:text-gray-400">
+                    Comprehensive view of your emotional patterns
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="h-[300px] md:h-[350px] px-1 md:px-6">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart outerRadius={100} data={emotionChartData}>
+                      <PolarGrid
+                        gridType="polygon"
+                        className="stroke-gray-300 dark:stroke-gray-600"
+                      />
+                      <PolarAngleAxis
+                        dataKey="name"
+                        tick={{ fontSize: 10, fill: "currentColor" }}
+                      />
+                      <PolarRadiusAxis
+                        angle={30}
+                        domain={[0, "auto"]}
+                        tick={{ fontSize: 8, fill: "currentColor" }}
+                      />
+                      <Radar
+                        name="Dreams"
+                        dataKey="value"
+                        stroke="#FF6B6B"
+                        fill="#FF6B6B"
+                        fillOpacity={0.3}
+                        strokeWidth={2}
+                      />
+                      <Tooltip
+                        formatter={(value: number, name, props) => {
+                          const item = props.payload;
+                          return [
+                            `${value} dreams (${item.percentage}%)`,
+                            item.name,
+                          ];
+                        }}
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--background))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          color: "hsl(var(--foreground))",
+                        }}
+                      />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* CALENDAR VIEW TAB - New enhanced calendar */}
+      {activeTab === "calendar" && (
+        <div className="space-y-6">
+          <DreamCalendarHeatmap data={statisticsData.calendar} />
+
+          {/* Additional calendar insights */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Weekly Patterns</CardTitle>
+                <CardDescription>
+                  Dream frequency by day of the week
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="h-[250px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={[
+                      {
+                        day: "Sun",
+                        count:
+                          dreams?.filter(
+                            (d) => new Date(d.created_at).getDay() === 0,
+                          ).length || 0,
+                      },
+                      {
+                        day: "Mon",
+                        count:
+                          dreams?.filter(
+                            (d) => new Date(d.created_at).getDay() === 1,
+                          ).length || 0,
+                      },
+                      {
+                        day: "Tue",
+                        count:
+                          dreams?.filter(
+                            (d) => new Date(d.created_at).getDay() === 2,
+                          ).length || 0,
+                      },
+                      {
+                        day: "Wed",
+                        count:
+                          dreams?.filter(
+                            (d) => new Date(d.created_at).getDay() === 3,
+                          ).length || 0,
+                      },
+                      {
+                        day: "Thu",
+                        count:
+                          dreams?.filter(
+                            (d) => new Date(d.created_at).getDay() === 4,
+                          ).length || 0,
+                      },
+                      {
+                        day: "Fri",
+                        count:
+                          dreams?.filter(
+                            (d) => new Date(d.created_at).getDay() === 5,
+                          ).length || 0,
+                      },
+                      {
+                        day: "Sat",
+                        count:
+                          dreams?.filter(
+                            (d) => new Date(d.created_at).getDay() === 6,
+                          ).length || 0,
+                      },
+                    ]}
+                  >
+                    <XAxis
+                      dataKey="day"
+                      tick={{ fontSize: 10, fill: "currentColor" }}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 10, fill: "currentColor" }}
+                    />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      opacity={0.3}
+                      className="stroke-gray-300 dark:stroke-gray-600"
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "6px",
+                        color: "hsl(var(--foreground))",
+                      }}
+                    />
+                    <Bar dataKey="count" fill="#8884d8" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Monthly Trends</CardTitle>
+                <CardDescription>
+                  Dream activity over the past year
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="h-[250px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={Array.from({ length: 12 }, (_, i) => {
+                      const month = new Date();
+                      month.setMonth(month.getMonth() - (11 - i));
+                      const monthStr = month.toISOString().slice(0, 7);
+                      return {
+                        month: month.toLocaleDateString(undefined, {
+                          month: "short",
+                        }),
+                        count:
+                          dreams?.filter(
+                            (d) => d.created_at.slice(0, 7) === monthStr,
+                          ).length || 0,
+                      };
+                    })}
+                  >
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fontSize: 10, fill: "currentColor" }}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 10, fill: "currentColor" }}
+                    />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      opacity={0.3}
+                      className="stroke-gray-300 dark:stroke-gray-600"
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "6px",
+                        color: "hsl(var(--foreground))",
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#82ca9d"
+                      strokeWidth={2}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
           </div>
+        </div>
+      )}
+
+      {/* ADVANCED AI TAB - New impressive advanced features */}
+      {activeTab === "advanced" && (
+        <div className="space-y-6">
+          {/* Advanced AI Insights */}
+          <AdvancedInsights dreams={dreams || []} analyses={analyses || []} />
+
+          {/* Symbol Network Graph */}
+          <SymbolNetworkGraph analyses={analyses || []} />
         </div>
       )}
     </div>
