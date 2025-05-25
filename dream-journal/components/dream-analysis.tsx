@@ -75,7 +75,7 @@ export function DreamAnalysis() {
           <div className="flex overflow-x-auto gap-2 pb-4 mb-8 scrollbar-hide">
             <button
               onClick={() => setActiveTab("analysis")}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-full whitespace-nowrap transition-all ${
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-full whitespace-nowrap transition-all duration-300 focus:outline-none focus-visible:ring-0 focus:ring-0 outline-none ${
                 activeTab === "analysis"
                   ? "bg-gradient-to-r from-purple-500/20 to-blue-500/20 text-white shadow-lg border border-white/10"
                   : "text-white/60 hover:text-white hover:bg-white/5"
@@ -86,7 +86,7 @@ export function DreamAnalysis() {
             </button>
             <button
               onClick={() => setActiveTab("themes")}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-full whitespace-nowrap transition-all ${
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-full whitespace-nowrap transition-all duration-300 focus:outline-none focus-visible:ring-0 focus:ring-0 outline-none ${
                 activeTab === "themes"
                   ? "bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-white shadow-lg border border-white/10"
                   : "text-white/60 hover:text-white hover:bg-white/5"
@@ -97,7 +97,7 @@ export function DreamAnalysis() {
             </button>
             <button
               onClick={() => setActiveTab("emotions")}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-full whitespace-nowrap transition-all ${
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-full whitespace-nowrap transition-all duration-300 focus:outline-none focus-visible:ring-0 focus:ring-0 outline-none ${
                 activeTab === "emotions"
                   ? "bg-gradient-to-r from-cyan-500/20 to-green-500/20 text-white shadow-lg border border-white/10"
                   : "text-white/60 hover:text-white hover:bg-white/5"

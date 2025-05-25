@@ -313,7 +313,7 @@ const Statistics = () => {
         <div className="flex w-full rounded-md bg-muted p-1">
           <button
             onClick={() => setActiveTab("overview")}
-            className={`flex-1 rounded-sm py-2 text-sm font-medium transition-all ${
+            className={`flex-1 rounded-sm py-2 text-sm font-medium transition-all duration-300 focus:outline-none focus-visible:ring-0 focus:ring-0 outline-none ${
               activeTab === "overview"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
@@ -322,9 +322,9 @@ const Statistics = () => {
             Overview
           </button>
           <button
-            onClick={() => setActiveTab("wellness")}
-            className={`flex-1 rounded-sm py-2 text-sm font-medium transition-all ${
-              activeTab === "wellness"
+            onClick={() => setActiveTab("patterns")}
+            className={`flex-1 rounded-sm py-2 text-sm font-medium transition-all duration-300 focus:outline-none focus-visible:ring-0 focus:ring-0 outline-none ${
+              activeTab === "patterns"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
@@ -332,9 +332,9 @@ const Statistics = () => {
             Wellness & Insights
           </button>
           <button
-            onClick={() => setActiveTab("insights")}
-            className={`flex-1 rounded-sm py-2 text-sm font-medium transition-all ${
-              activeTab === "insights"
+            onClick={() => setActiveTab("themes")}
+            className={`flex-1 rounded-sm py-2 text-sm font-medium transition-all duration-300 focus:outline-none focus-visible:ring-0 focus:ring-0 outline-none ${
+              activeTab === "themes"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
@@ -342,9 +342,9 @@ const Statistics = () => {
             Patterns & Insights
           </button>
           <button
-            onClick={() => setActiveTab("calendar")}
-            className={`flex-1 rounded-sm py-2 text-sm font-medium transition-all ${
-              activeTab === "calendar"
+            onClick={() => setActiveTab("emotions")}
+            className={`flex-1 rounded-sm py-2 text-sm font-medium transition-all duration-300 focus:outline-none focus-visible:ring-0 focus:ring-0 outline-none ${
+              activeTab === "emotions"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
@@ -353,7 +353,7 @@ const Statistics = () => {
           </button>
           <button
             onClick={() => setActiveTab("advanced")}
-            className={`flex-1 rounded-sm py-2 text-sm font-medium transition-all ${
+            className={`flex-1 rounded-sm py-2 text-sm font-medium transition-all duration-300 focus:outline-none focus-visible:ring-0 focus:ring-0 outline-none ${
               activeTab === "advanced"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"

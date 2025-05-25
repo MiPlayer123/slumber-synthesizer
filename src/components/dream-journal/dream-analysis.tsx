@@ -17,154 +17,208 @@ export function DreamAnalysis() {
 
   const dreamAnalysis = {
     summary:
-      "This dream reflects a sense of vulnerability in a public space, symbolized by the library and the accidental sharing of your screen. The incident of being kicked out may represent your fear of not meeting expectations, especially in an academic setting. The use of technology indicates a clash between your personal interests (Reddit) and societal or institutional pressures. Overall, the dream may suggest an internal struggle between wanting to explore your interests freely while feeling constrained by external judgments.",
+      "You know that feeling when you're caught off guard in a place where you feel safe? Your dream captures something we all experience—the fear of being exposed when we least expect it. Libraries represent your personal growth space, somewhere you go to better yourself. But even in these safe spaces, you worry about judgment. The technology mishap shows how quickly our private world can become public. Your mind is working through the tension between wanting to grow and fearing that others might see you as inadequate. This dream reflects your very human need for both authenticity and acceptance.",
     themes: [
-      { name: "embarrassment", rating: 3 },
-      { name: "public scrutiny", rating: 4 },
-      { name: "technology and connectivity", rating: 3 },
-      { name: "academic pressure", rating: 5 },
+      { name: "vulnerability in safe spaces", rating: 5 },
+      { name: "fear of exposure", rating: 4 },
+      { name: "growth vs. judgment", rating: 4 },
+      { name: "public vs. private self", rating: 3 },
     ],
     symbols: [
       {
         name: "Library",
-        description: "Represents knowledge, order, and academic expectations",
+        description: "Your sanctuary for learning and self-improvement, where you expect to feel secure and focused",
       },
       {
-        name: "Screen sharing",
-        description: "Symbolizes unwanted exposure of private thoughts",
+        name: "Technology malfunction",
+        description: "The moment when your private thoughts or actions become visible to others unexpectedly",
       },
       {
-        name: "Reddit",
-        description: "Represents personal interests and online community",
+        name: "Being asked to leave",
+        description: "Your fear that you don't belong in spaces where you're trying to grow or improve yourself",
       },
     ],
     emotions: [
-      { name: "embarrassment", intensity: 80 },
-      { name: "anxiety", intensity: 65 },
-      { name: "confusion", intensity: 40 },
+      { name: "embarrassment", intensity: 85 },
+      { name: "vulnerability", intensity: 70 },
+      { name: "inadequacy", intensity: 60 },
     ],
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="bg-gradient-to-br from-black/70 to-black/40 backdrop-blur-md border border-white/15 rounded-xl overflow-hidden shadow-xl"
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      className="relative bg-gradient-to-br from-slate-900/95 via-purple-900/20 to-slate-900/95 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl"
     >
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-indigo-300 to-cyan-400">
-            Dream Analysis
-          </h2>
-          <div className="bg-gradient-to-r from-purple-500/20 to-cyan-500/20 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-inner shadow-white/5 border border-white/10">
-            <Sparkles className="w-3.5 h-3.5 text-purple-300" />
-            <span className="text-white/90">AI Powered</span>
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <motion.div
+          animate={{
+            scale: [1, 1.1, 1],
+            rotate: [0, 5, 0],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+          className="absolute -top-32 -right-32 w-96 h-96 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{
+            scale: [1, 1.2, 1],
+            rotate: [0, -3, 0],
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+          className="absolute -bottom-32 -left-32 w-80 h-80 bg-gradient-to-tr from-cyan-500/20 to-indigo-500/20 rounded-full blur-3xl"
+        />
+      </div>
+
+      <div className="relative z-10 p-4 sm:p-6 lg:p-8 xl:p-10">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="flex flex-col gap-4 mb-6 sm:mb-8"
+        >
+          {/* Title and Icon Row */}
+          <div className="flex items-center gap-3 sm:gap-4">
+            <motion.div
+              whileHover={{ scale: 1.05, rotate: 5 }}
+              className="bg-gradient-to-br from-purple-500/30 to-blue-500/30 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl backdrop-blur-sm border border-white/10"
+            >
+              <Brain className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-purple-300" />
+            </motion.div>
+            <div className="flex-1">
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-white via-purple-200 to-cyan-200 bg-clip-text text-transparent">
+                Dream Analysis
+              </h2>
+              <p className="text-white/60 text-xs sm:text-sm mt-0.5 sm:mt-1 leading-relaxed">AI-powered insights into your subconscious</p>
+            </div>
           </div>
-        </div>
+          
+          {/* AI Powered Badge */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            whileHover={{ scale: 1.05 }}
+            className="bg-gradient-to-r from-purple-500/20 to-cyan-500/20 px-4 py-2 rounded-2xl text-xs font-medium flex items-center gap-2 backdrop-blur-sm border border-white/10 w-fit"
+          >
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+            >
+              <Sparkles className="w-4 h-4 text-purple-300" />
+            </motion.div>
+            <span className="text-white/90">AI Powered</span>
+          </motion.div>
+        </motion.div>
 
-        <div className="flex overflow-x-auto gap-2 pb-4 mb-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-          <button
-            onClick={() => setActiveTab("analysis")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-300 ${
-              activeTab === "analysis"
-                ? "bg-gradient-to-r from-purple-500/30 to-blue-500/30 text-white shadow-md shadow-purple-500/10 border border-white/10"
-                : "text-white/60 hover:text-white/90 hover:bg-white/5"
-            }`}
-          >
-            <Brain className="w-4 h-4" />
-            <span>Analysis</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("themes")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-300 ${
-              activeTab === "themes"
-                ? "bg-gradient-to-r from-indigo-500/30 to-cyan-500/30 text-white shadow-md shadow-indigo-500/10 border border-white/10"
-                : "text-white/60 hover:text-white/90 hover:bg-white/5"
-            }`}
-          >
-            <Hash className="w-4 h-4" />
-            <span>Themes & Symbols</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("emotions")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-300 ${
-              activeTab === "emotions"
-                ? "bg-gradient-to-r from-blue-500/30 to-teal-500/30 text-white shadow-md shadow-blue-500/10 border border-white/10"
-                : "text-white/60 hover:text-white/90 hover:bg-white/5"
-            }`}
-          >
-            <Layers className="w-4 h-4" />
-            <span>Emotional Landscape</span>
-          </button>
-        </div>
+        {/* Navigation Tabs */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="flex gap-1 sm:gap-2 p-1.5 sm:p-2 bg-white/5 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-white/10 mb-6 sm:mb-8 overflow-x-auto"
+        >
+          {[
+            { id: "analysis", label: "Analysis", icon: Brain, gradient: "from-purple-500 to-blue-500" },
+            { id: "themes", label: "Themes", icon: Hash, gradient: "from-indigo-500 to-cyan-500" },
+            { id: "emotions", label: "Emotions", icon: Layers, gradient: "from-blue-500 to-teal-500" }
+          ].map((tab) => (
+            <motion.button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-3.5 rounded-lg sm:rounded-xl font-medium transition-all duration-300 flex-1 sm:flex-initial whitespace-nowrap text-sm sm:text-base ${
+                activeTab === tab.id
+                  ? `bg-gradient-to-r ${tab.gradient} text-white shadow-lg shadow-purple-500/20`
+                  : "text-white/60 hover:text-white/90 hover:bg-white/5"
+              }`}
+            >
+              <tab.icon className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span>{tab.label}</span>
+            </motion.button>
+          ))}
+        </motion.div>
 
+        {/* Content */}
         <AnimatePresence mode="wait">
           {activeTab === "analysis" && (
             <motion.div
               key="analysis"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-5"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="space-y-6"
             >
-              <div className="bg-white/5 backdrop-blur-sm rounded-lg p-5 border border-white/10 shadow-inner shadow-white/5">
-                <p className="text-white/90 leading-relaxed text-sm md:text-base">
+              {/* Summary Card */}
+              <motion.div
+                whileHover={{ scale: 1.01 }}
+                className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 shadow-lg"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-gradient-to-r from-purple-500/30 to-blue-500/30 p-2 rounded-lg">
+                    <Lightbulb className="w-5 h-5 text-purple-300" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white">Dream Summary</h3>
+                </div>
+                <p className="text-white/90 leading-relaxed text-base">
                   {dreamAnalysis.summary}
                 </p>
-              </div>
+              </motion.div>
 
-              <div className="mt-6">
-                <h3 className="text-lg font-medium mb-4 flex items-center gap-2 text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-indigo-300">
-                  <Lightbulb className="w-5 h-5 text-purple-400" />
-                  <span>Key Insights</span>
+              {/* Key Insights */}
+              <div>
+                <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-3">
+                  <div className="w-1 h-6 bg-gradient-to-b from-purple-400 to-cyan-400 rounded-full"></div>
+                  Key Insights
                 </h3>
-                <div className="space-y-3">
-                  <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="flex items-start gap-3 bg-gradient-to-r from-purple-500/10 to-purple-500/5 p-4 rounded-lg border border-purple-500/20"
-                  >
-                    <div className="mt-1 bg-purple-500/20 p-1.5 rounded-full">
-                      <Sparkles className="w-3.5 h-3.5 text-purple-300" />
-                    </div>
-                    <span className="text-white/90 text-sm md:text-base">
-                      Your feelings of embarrassment may be connected to deeper
-                      concerns about how others perceive you.
-                    </span>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="flex items-start gap-3 bg-gradient-to-r from-blue-500/10 to-blue-500/5 p-4 rounded-lg border border-blue-500/20"
-                  >
-                    <div className="mt-1 bg-blue-500/20 p-1.5 rounded-full">
-                      <Sparkles className="w-3.5 h-3.5 text-blue-300" />
-                    </div>
-                    <span className="text-white/90 text-sm md:text-base">
-                      The library setting suggests you value knowledge but feel
-                      pressure to meet academic standards.
-                    </span>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="flex items-start gap-3 bg-gradient-to-r from-cyan-500/10 to-cyan-500/5 p-4 rounded-lg border border-cyan-500/20"
-                  >
-                    <div className="mt-1 bg-cyan-500/20 p-1.5 rounded-full">
-                      <Sparkles className="w-3.5 h-3.5 text-cyan-300" />
-                    </div>
-                    <span className="text-white/90 text-sm md:text-base">
-                      Consider how you balance personal interests with external
-                      expectations in your waking life.
-                    </span>
-                  </motion.div>
+                <div className="grid gap-4">
+                  {[
+                    {
+                      text: "You carry a deep fear that others will discover you're not as put-together as you appear. This dream shows how even your safe spaces can trigger anxiety about being found out.",
+                      color: "purple"
+                    },
+                    {
+                      text: "The library setting reveals your relationship with learning. You want to grow, but you also fear making mistakes in front of others who might judge your efforts.",
+                      color: "blue"
+                    },
+                    {
+                      text: "Technology represents the unpredictable moments when your private world becomes visible. You can't control everything, and that terrifies you.",
+                      color: "cyan"
+                    }
+                  ].map((insight, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.1 + 0.2 }}
+                      whileHover={{ scale: 1.02, x: 5 }}
+                      className={`bg-gradient-to-r from-${insight.color}-500/15 to-${insight.color}-500/5 backdrop-blur-sm p-5 rounded-xl border border-${insight.color}-500/20 hover:border-${insight.color}-500/40 transition-all duration-300`}
+                    >
+                      <div className="flex items-start gap-4">
+                        <motion.div
+                          whileHover={{ rotate: 180 }}
+                          transition={{ duration: 0.3 }}
+                          className={`bg-${insight.color}-500/20 p-2 rounded-full mt-1`}
+                        >
+                          <Sparkles className={`w-4 h-4 text-${insight.color}-300`} />
+                        </motion.div>
+                        <p className="text-white/90 leading-relaxed">{insight.text}</p>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
               </div>
             </motion.div>
@@ -173,73 +227,95 @@ export function DreamAnalysis() {
           {activeTab === "themes" && (
             <motion.div
               key="themes"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-6"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="space-y-8"
             >
+              {/* Themes */}
               <div>
-                <h3 className="text-lg font-medium mb-4 flex items-center gap-2 text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-cyan-300">
-                  <Hash className="w-5 h-5 text-indigo-400" />
-                  <span>Themes</span>
+                <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-3">
+                  <div className="w-1 h-6 bg-gradient-to-b from-indigo-400 to-cyan-400 rounded-full"></div>
+                  Themes
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {dreamAnalysis.themes.map((theme, i) => (
                     <motion.div
                       key={i}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: i * 0.1 }}
-                      className="bg-gradient-to-br from-indigo-500/20 to-indigo-500/5 p-4 rounded-lg border border-indigo-500/20 backdrop-blur-sm"
+                      whileHover={{ scale: 1.03, y: -2 }}
+                      className="bg-gradient-to-br from-indigo-500/20 to-indigo-500/5 backdrop-blur-sm p-5 rounded-xl border border-indigo-500/20 hover:border-indigo-500/40 transition-all duration-300"
                     >
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-white/90">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="font-medium text-white/90 text-lg">
                           #{theme.name}
                         </span>
-                        <div className="flex">
+                        <div className="flex gap-1">
                           {[...Array(5)].map((_, starIndex) => (
-                            <Star
+                            <motion.div
                               key={starIndex}
-                              className={`w-4 h-4 ${
-                                starIndex < theme.rating
-                                  ? "text-indigo-400 fill-indigo-400"
-                                  : "text-white/20"
-                              }`}
-                            />
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              transition={{ delay: i * 0.1 + starIndex * 0.05 }}
+                            >
+                              <Star
+                                className={`w-4 h-4 ${
+                                  starIndex < theme.rating
+                                    ? "text-indigo-400 fill-indigo-400"
+                                    : "text-white/20"
+                                }`}
+                              />
+                            </motion.div>
                           ))}
                         </div>
                       </div>
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(theme.rating / 5) * 100}%` }}
+                        transition={{ delay: i * 0.1 + 0.3, duration: 0.8 }}
+                        className="h-2 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-full"
+                      />
                     </motion.div>
                   ))}
                 </div>
               </div>
 
+              {/* Symbols */}
               <div>
-                <h3 className="text-lg font-medium mb-4 flex items-center gap-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-teal-300">
-                  <MessageCircle className="w-5 h-5 text-cyan-400" />
-                  <span>Symbols</span>
+                <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-3">
+                  <div className="w-1 h-6 bg-gradient-to-b from-cyan-400 to-teal-400 rounded-full"></div>
+                  Symbols
                 </h3>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {dreamAnalysis.symbols.map((symbol, i) => (
                     <motion.div
                       key={i}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 + i * 0.1 }}
-                      className="bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 p-4 rounded-lg border border-cyan-500/20 backdrop-blur-sm"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.1 + 0.2 }}
+                      whileHover={{ scale: 1.02, x: 5 }}
+                      className="bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 backdrop-blur-sm p-6 rounded-xl border border-cyan-500/20 hover:border-cyan-500/40 transition-all duration-300"
                     >
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="bg-gradient-to-r from-cyan-500/30 to-teal-500/30 p-1.5 rounded-full">
-                          <Hash className="w-3.5 h-3.5 text-white" />
+                      <div className="flex items-start gap-4">
+                        <motion.div
+                          whileHover={{ rotate: 360 }}
+                          transition={{ duration: 0.5 }}
+                          className="bg-gradient-to-r from-cyan-500/30 to-teal-500/30 p-3 rounded-xl"
+                        >
+                          <Hash className="w-5 h-5 text-white" />
+                        </motion.div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-white text-lg mb-2">
+                            {symbol.name}
+                          </h4>
+                          <p className="text-white/70 leading-relaxed">
+                            {symbol.description}
+                          </p>
                         </div>
-                        <span className="font-medium text-white/90">
-                          {symbol.name}
-                        </span>
                       </div>
-                      <p className="text-sm text-white/70 pl-7">
-                        {symbol.description}
-                      </p>
                     </motion.div>
                   ))}
                 </div>
@@ -250,67 +326,96 @@ export function DreamAnalysis() {
           {activeTab === "emotions" && (
             <motion.div
               key="emotions"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-6"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="space-y-8"
             >
-              <h3 className="text-lg font-medium mb-4 flex items-center gap-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-teal-300">
-                <Layers className="w-5 h-5 text-blue-400" />
-                <span>Emotional Landscape</span>
-              </h3>
-              <div className="space-y-5 mb-6">
-                {dreamAnalysis.emotions.map((emotion, i) => (
-                  <motion.div key={i} className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium text-white/90 capitalize">
-                        {emotion.name}
-                      </span>
-                      <span className="text-white/70">
-                        {emotion.intensity}%
-                      </span>
-                    </div>
-                    <div className="h-3 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm p-0.5">
+              {/* Emotional Bars */}
+              <div>
+                <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-3">
+                  <div className="w-1 h-6 bg-gradient-to-b from-blue-400 to-teal-400 rounded-full"></div>
+                  Emotional Intensity
+                </h3>
+                <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+                  <div className="space-y-6">
+                    {dreamAnalysis.emotions.map((emotion, i) => (
                       <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${emotion.intensity}%` }}
-                        transition={{
-                          duration: 0.8,
-                          delay: i * 0.2,
-                          ease: "easeOut",
-                        }}
-                        className={`h-full rounded-full ${
-                          emotion.name === "embarrassment"
-                            ? "bg-gradient-to-r from-red-500 to-red-400"
-                            : emotion.name === "anxiety"
-                              ? "bg-gradient-to-r from-amber-500 to-yellow-400"
-                              : "bg-gradient-to-r from-blue-500 to-blue-400"
-                        }`}
-                      />
-                    </div>
-                  </motion.div>
-                ))}
+                        key={i}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.1 }}
+                        className="space-y-3"
+                      >
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-3">
+                            <motion.div
+                              whileHover={{ scale: 1.2 }}
+                              className={`w-4 h-4 rounded-full ${
+                                emotion.name === "embarrassment"
+                                  ? "bg-red-400"
+                                  : emotion.name === "vulnerability"
+                                    ? "bg-amber-400"
+                                    : "bg-blue-400"
+                              }`}
+                            />
+                            <span className="font-medium text-white capitalize text-lg">
+                              {emotion.name}
+                            </span>
+                          </div>
+                          <motion.span
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: i * 0.1 + 0.3 }}
+                            className="text-white/70 font-mono bg-white/10 px-3 py-1 rounded-full text-sm"
+                          >
+                            {emotion.intensity}%
+                          </motion.span>
+                        </div>
+                        <div className="h-4 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${emotion.intensity}%` }}
+                            transition={{
+                              duration: 1.2,
+                              delay: i * 0.2 + 0.5,
+                              ease: "easeOut",
+                            }}
+                            className={`h-full rounded-full ${
+                              emotion.name === "embarrassment"
+                                ? "bg-gradient-to-r from-red-500 to-red-400"
+                                : emotion.name === "vulnerability"
+                                  ? "bg-gradient-to-r from-amber-500 to-yellow-400"
+                                  : "bg-gradient-to-r from-blue-500 to-blue-400"
+                            }`}
+                          />
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
               </div>
 
+              {/* Reflection Card */}
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="bg-gradient-to-br from-teal-500/20 to-teal-500/5 p-5 rounded-lg border border-teal-500/20 backdrop-blur-sm"
+                transition={{ delay: 0.6 }}
+                whileHover={{ scale: 1.01 }}
+                className="bg-gradient-to-br from-teal-500/20 to-teal-500/5 backdrop-blur-sm p-6 rounded-2xl border border-teal-500/20"
               >
-                <h4 className="font-medium mb-3 text-white/90 flex items-center gap-2">
-                  <div className="bg-teal-500/20 p-1 rounded-full">
-                    <Lightbulb className="w-4 h-4 text-teal-300" />
-                  </div>
-                  Emotional Insights
-                </h4>
-                <p className="text-sm text-white/80 leading-relaxed">
-                  Your dream reveals significant emotional intensity around
-                  embarrassment and anxiety. These emotions may be connected to
-                  real-life situations where you feel exposed or judged.
-                  Consider journaling about times when you've felt similar
-                  emotions in your waking life.
+                <div className="flex items-center gap-3 mb-4">
+                  <motion.div
+                    whileHover={{ scale: 1.1 }}
+                    className="bg-teal-500/20 p-2 rounded-lg"
+                  >
+                    <Lightbulb className="w-5 h-5 text-teal-300" />
+                  </motion.div>
+                  <h4 className="text-lg font-semibold text-white">What This Means for You</h4>
+                </div>
+                <p className="text-white/80 leading-relaxed">
+                  You're wrestling with something most people never talk about openly. The fear that you're fooling everyone around you. That somehow, you've convinced people you belong in spaces where you're trying to grow, but deep down you worry they'll figure out you don't deserve to be there. This dream is your mind's way of processing that anxiety. Here's what matters: everyone feels this way sometimes. The people who seem most confident? They've felt exactly what you're feeling. Your growth journey is valid, even when it feels messy or imperfect.
                 </p>
               </motion.div>
             </motion.div>

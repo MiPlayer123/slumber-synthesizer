@@ -62,7 +62,7 @@ export function DreamStatistics({ stats = {} }) {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-300 focus:outline-none focus-visible:ring-0 focus:ring-0 outline-none ${
                 activeTab === tab.id
                   ? "bg-white/10 text-white"
                   : "text-white/60 hover:text-white/80"
@@ -202,7 +202,12 @@ export function DreamStatistics({ stats = {} }) {
   );
 }
 
-function StatCard({ title, value, subtitle, color }) {
+function StatCard({ title, value, subtitle, color }: {
+  title: string;
+  value: string | number;
+  subtitle: string;
+  color: string;
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

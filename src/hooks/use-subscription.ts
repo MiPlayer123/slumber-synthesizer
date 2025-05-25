@@ -1232,7 +1232,7 @@ export const useSubscription = () => {
   };
 
   // Update startCheckout function to use dynamic return URL
-  const startCheckout = async (planId: string, returnUrl?: string) => {
+  const startCheckout = async (planId: string, returnUrl?: string, promoCode?: string) => {
     if (!user) {
       toast({
         variant: "destructive",
@@ -1257,6 +1257,7 @@ export const useSubscription = () => {
             planId,
             returnUrl:
               returnUrl || makeReturnUrl(STRIPE_RETURN_PATHS.CHECKOUT_COMPLETE),
+            promoCode,
           },
         },
       );
@@ -1285,6 +1286,35 @@ export const useSubscription = () => {
     }
   };
 
+  // Validate a promo code
+  const validatePromoCode = async (code: string) => {
+    if (!code.trim()) {
+      return { valid: false, error: "Please enter a promo code" };
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "manage-promo-codes",
+        {
+          body: {
+            action: "validate_promo_code",
+            code: code.trim().toUpperCase(),
+          },
+        },
+      );
+
+      if (error) {
+        console.error("Error validating promo code:", error);
+        return { valid: false, error: "Failed to validate promo code" };
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Promo code validation error:", error);
+      return { valid: false, error: "Failed to validate promo code" };
+    }
+  };
+
   return {
     subscription,
     remainingUsage,
@@ -1293,6 +1323,7 @@ export const useSubscription = () => {
     hasReachedLimit,
     recordUsage,
     startCheckout,
+    validatePromoCode,
     refreshSubscription,
   };
 };
