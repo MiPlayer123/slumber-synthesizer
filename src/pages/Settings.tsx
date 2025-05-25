@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSubscription } from "@/hooks/use-subscription";
+import { PromoCodeInput } from "@/components/subscription/PromoCodeInput";
 
 const Settings = () => {
   const { user } = useAuth();
@@ -81,6 +82,10 @@ const Settings = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [isRefreshingSubscription, setIsRefreshingSubscription] =
     useState(false);
+
+  // Promo code state
+  const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
+  const [promoDiscountInfo, setPromoDiscountInfo] = useState<any>(null);
 
   // Notification states (disabled for now)
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -372,7 +377,7 @@ const Settings = () => {
   const handleSubscribe = async () => {
     setIsProcessingPayment(true);
     try {
-      await startCheckout(selectedPlan);
+      await startCheckout(selectedPlan, undefined, appliedPromoCode || undefined);
     } catch (error) {
       toast({
         variant: "destructive",
@@ -385,6 +390,12 @@ const Settings = () => {
     } finally {
       setIsProcessingPayment(false);
     }
+  };
+
+  // Handle promo code validation
+  const handlePromoCodeValidated = (code: string | null, discountInfo?: any) => {
+    setAppliedPromoCode(code);
+    setPromoDiscountInfo(discountInfo);
   };
 
   // Handle subscription management
@@ -1212,6 +1223,11 @@ const Settings = () => {
                           </CardContent>
                         </Card>
                       </div>
+
+                      <PromoCodeInput
+                        onPromoCodeValidated={handlePromoCodeValidated}
+                        disabled={isProcessingPayment}
+                      />
 
                       <Button
                         onClick={handleSubscribe}

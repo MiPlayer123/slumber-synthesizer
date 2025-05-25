@@ -68,14 +68,14 @@ export function FeatureGrid() {
       </motion.div>
 
       {/* Desktop layout: shifted up and to the right */}
-      <div className="relative h-[600px] max-w-4xl mx-0 md:ml-12 -mt-12 hidden md:block">
+      <div className="relative h-[600px] max-w-4xl mx-0 md:ml-12 -mt-20 hidden md:block">
         <svg
           className="absolute inset-0 w-full h-full z-0"
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
         >
           <motion.path
-            d="M50,30 L30,60 L70,60 Z"
+            d="M55,25 L32,65 L78,65 Z"
             stroke="url(#gradient)"
             strokeWidth="0.2"
             fill="none"
@@ -94,8 +94,8 @@ export function FeatureGrid() {
         </svg>
 
         {features.map((feature, i) => {
-          const xPos = 50 + feature.x * 25;
-          const yPos = 30 + feature.y * 30;
+          const xPos = 55 + feature.x * 25;
+          const yPos = 20 + feature.y * 30;
           return (
             <motion.div
               key={i}
