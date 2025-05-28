@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.23.0";
 import Stripe from "https://esm.sh/stripe@12.0.0?target=deno";
 
 // ---------- ENV VALIDATION ----------
@@ -10,14 +9,9 @@ const required = (key: string) => {
   return v;
 };
 
-const SUPABASE_URL = required("SUPABASE_URL");
-const SUPABASE_SERVICE_ROLE = required("SUPABASE_SERVICE_ROLE_KEY");
 const STRIPE_SECRET_KEY = required("STRIPE_SECRET_KEY");
 
 // ---------- CLIENTS ----------
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
   apiVersion: "2022-11-15",
   httpClient: Stripe.createFetchHttpClient(),

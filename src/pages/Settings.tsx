@@ -85,7 +85,6 @@ const Settings = () => {
 
   // Promo code state
   const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
-  const [promoDiscountInfo, setPromoDiscountInfo] = useState<any>(null);
 
   // Notification states (disabled for now)
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -397,12 +396,8 @@ const Settings = () => {
   };
 
   // Handle promo code validation
-  const handlePromoCodeValidated = (
-    code: string | null,
-    discountInfo?: any,
-  ) => {
+  const handlePromoCodeValidated = (code: string | null) => {
     setAppliedPromoCode(code);
-    setPromoDiscountInfo(discountInfo);
   };
 
   // Handle subscription management

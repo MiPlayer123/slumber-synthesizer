@@ -5,13 +5,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarDays,
   Hash,
-  LineChart,
   PieChart,
   Sparkles,
   TrendingUp,
   Activity,
   BarChart3,
-  Clock,
   Target,
 } from "lucide-react";
 

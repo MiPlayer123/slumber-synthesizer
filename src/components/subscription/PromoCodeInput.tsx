@@ -45,7 +45,10 @@ export const PromoCodeInput = ({
     } catch (error) {
       setValidationResult({
         valid: false,
-        error: "Failed to validate promo code",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to validate promo code",
       });
       setAppliedCode(null);
       onPromoCodeValidated(null);

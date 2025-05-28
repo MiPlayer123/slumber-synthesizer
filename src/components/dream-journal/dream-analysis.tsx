@@ -2,15 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Brain,
-  Star,
-  Hash,
-  Sparkles,
-  Lightbulb,
-  MessageCircle,
-  Layers,
-} from "lucide-react";
+import { Brain, Star, Hash, Sparkles, Lightbulb, Layers } from "lucide-react";
 
 export function DreamAnalysis() {
   const [activeTab, setActiveTab] = useState("analysis");

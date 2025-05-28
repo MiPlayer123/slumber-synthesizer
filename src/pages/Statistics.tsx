@@ -322,9 +322,9 @@ const Statistics = () => {
             Overview
           </button>
           <button
-            onClick={() => setActiveTab("patterns")}
+            onClick={() => setActiveTab("wellness")}
             className={`flex-1 rounded-sm py-2 text-sm font-medium transition-all duration-300 focus:outline-none focus-visible:ring-0 focus:ring-0 outline-none ${
-              activeTab === "patterns"
+              activeTab === "wellness"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
@@ -332,9 +332,9 @@ const Statistics = () => {
             Wellness & Insights
           </button>
           <button
-            onClick={() => setActiveTab("themes")}
+            onClick={() => setActiveTab("insights")}
             className={`flex-1 rounded-sm py-2 text-sm font-medium transition-all duration-300 focus:outline-none focus-visible:ring-0 focus:ring-0 outline-none ${
-              activeTab === "themes"
+              activeTab === "insights"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
@@ -342,9 +342,9 @@ const Statistics = () => {
             Patterns & Insights
           </button>
           <button
-            onClick={() => setActiveTab("emotions")}
+            onClick={() => setActiveTab("calendar")}
             className={`flex-1 rounded-sm py-2 text-sm font-medium transition-all duration-300 focus:outline-none focus-visible:ring-0 focus:ring-0 outline-none ${
-              activeTab === "emotions"
+              activeTab === "calendar"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}

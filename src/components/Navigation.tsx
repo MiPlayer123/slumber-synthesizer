@@ -72,7 +72,7 @@ export const Navigation = () => {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 w-full z-50 animate-fade-in transition-colors duration-300 ${
+      className={`fixed top-0 w-full z-50 animate-fade-in transition-colors duration-300 ${
         isLanding
           ? "bg-[#1a0b2e] border-[#1a0b2e]"
           : "bg-background/80 dark:bg-background/25 backdrop-blur-lg border-b"

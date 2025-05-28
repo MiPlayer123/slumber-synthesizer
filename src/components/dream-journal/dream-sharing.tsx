@@ -8,7 +8,6 @@ import {
   MessageSquare,
   MoreHorizontal,
   Globe,
-  Sparkles,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
