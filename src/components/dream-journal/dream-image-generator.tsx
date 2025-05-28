@@ -235,49 +235,19 @@ export function DreamImageGenerator() {
               transition={{ type: "spring", damping: 20, stiffness: 300 }}
               className="relative"
             >
-              <div className="relative aspect-square bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
-                <motion.div
-                  initial={{ scale: 1.1, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.8, ease: "easeOut" }}
-                  className="w-full h-full"
-                >
-                  <img
-                    src="./images/e6477f41-9e85-41b4-b60f-8c257c3fca4e_1748211619250.png"
-                    alt="Generated dream visualization"
-                    className="w-full h-full object-cover"
-                  />
-                </motion.div>
-
-                {/* Magical overlay effect */}
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-purple-500/40 via-transparent to-blue-500/40"
-                  initial={{ opacity: 0.8, scale: 1.1 }}
-                  animate={{ opacity: 0, scale: 1 }}
-                  transition={{ duration: 2, ease: "easeOut" }}
-                />
-
-                {/* Sparkle effects */}
-                <motion.div
-                  className="absolute top-4 right-4"
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 1, duration: 0.5 }}
-                >
-                  <Sparkles className="w-6 h-6 text-purple-300" />
-                </motion.div>
-              </div>
-
-              {/* Success message */}
+              {/* Image Display */}
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="mt-4 text-center"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/2"
               >
-                <p className="text-white/70 text-sm">
-                  ✨ Your dream has been visualized
-                </p>
+                <img
+                  src="./images/e6477f41-9e85-41b4-b60f-8c257c3fca4e_1748211619250.png"
+                  alt="Generated dream visualization"
+                  className="w-full h-64 object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
               </motion.div>
             </motion.div>
           )}

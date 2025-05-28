@@ -775,11 +775,11 @@ export function DreamStatistics() {
                   </div>
 
                   {/* Day Headers */}
-                  <div className="grid grid-cols-7 gap-0.5 lg:gap-1 mb-1 lg:mb-2">
+                  <div className="grid grid-cols-7 gap-0.5 lg:gap-1 mb-1 lg:mb-2 max-w-sm lg:max-w-md mx-auto">
                     {["S", "M", "T", "W", "T", "F", "S"].map((day) => (
                       <div
                         key={day}
-                        className="text-center text-xs font-medium text-white/50 py-0.5 lg:py-1"
+                        className="w-8 h-6 lg:w-10 lg:h-8 flex items-center justify-center text-xs font-medium text-white/50"
                       >
                         {day}
                       </div>
