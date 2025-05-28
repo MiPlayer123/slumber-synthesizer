@@ -174,13 +174,13 @@ export function DreamStatistics() {
             </motion.div>
             <div className="flex-1">
               <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-white via-indigo-200 to-blue-200 bg-clip-text text-transparent">
-            Dream Statistics
-          </h2>
+                Dream Statistics
+              </h2>
               <p className="text-white/60 text-xs sm:text-sm mt-0.5 sm:mt-1 leading-relaxed">
                 Track your dream patterns and insights
               </p>
+            </div>
           </div>
-        </div>
 
           {/* Personalized Badge */}
           <motion.div
@@ -241,9 +241,9 @@ export function DreamStatistics() {
               className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-3.5 rounded-lg sm:rounded-xl font-medium transition-all duration-300 whitespace-nowrap text-sm sm:text-base flex-1 sm:flex-initial ${
                 activeTab === tab.id
                   ? `bg-gradient-to-r ${tab.gradient} text-white shadow-lg shadow-indigo-500/20`
-                : "text-white/60 hover:text-white/90 hover:bg-white/5"
-            }`}
-          >
+                  : "text-white/60 hover:text-white/90 hover:bg-white/5"
+              }`}
+            >
               <tab.icon className="w-4 h-4 sm:w-5 sm:h-5" />
               <span>{tab.label}</span>
             </motion.button>
@@ -297,31 +297,31 @@ export function DreamStatistics() {
                     delay: 0.4,
                   },
                 ].map((metric, i) => (
-                <motion.div
+                  <motion.div
                     key={i}
                     initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: metric.delay }}
                     whileHover={{ scale: 1.02, y: -2 }}
                     className={`bg-gradient-to-br backdrop-blur-sm p-6 rounded-2xl border transition-all duration-300 ${
                       metric.color === "indigo"
                         ? "from-indigo-500/15 to-indigo-500/5 border-indigo-500/20 hover:border-indigo-500/40"
                         : metric.color === "blue"
-                        ? "from-blue-500/15 to-blue-500/5 border-blue-500/20 hover:border-blue-500/40"
-                        : metric.color === "cyan"
-                        ? "from-cyan-500/15 to-cyan-500/5 border-cyan-500/20 hover:border-cyan-500/40"
-                        : "from-teal-500/15 to-teal-500/5 border-teal-500/20 hover:border-teal-500/40"
+                          ? "from-blue-500/15 to-blue-500/5 border-blue-500/20 hover:border-blue-500/40"
+                          : metric.color === "cyan"
+                            ? "from-cyan-500/15 to-cyan-500/5 border-cyan-500/20 hover:border-cyan-500/40"
+                            : "from-teal-500/15 to-teal-500/5 border-teal-500/20 hover:border-teal-500/40"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-4">
-                <motion.div
+                      <motion.div
                         whileHover={{ scale: 1.1, rotate: 5 }}
                         className={`bg-${metric.color}-500/20 p-2 rounded-lg`}
                       >
                         <metric.icon
                           className={`w-5 h-5 text-${metric.color}-300`}
                         />
-                </motion.div>
+                      </motion.div>
                     </div>
                     <div>
                       <p className="text-2xl font-bold text-white mb-1">
@@ -332,25 +332,25 @@ export function DreamStatistics() {
                       </p>
                       <p className="text-xs text-white/50">{metric.subtitle}</p>
                     </div>
-                </motion.div>
+                  </motion.div>
                 ))}
               </div>
 
               {/* Most Common Dream Themes */}
-                <motion.div
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
                 className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-white/10"
-                >
+              >
                 <h3 className="text-lg sm:text-xl font-semibold text-white mb-4 sm:mb-6 flex items-center gap-3">
                   <div className="w-1 h-6 bg-gradient-to-b from-indigo-400 to-blue-400 rounded-full"></div>
-                    Most Common Dream Themes
-                  </h3>
+                  Most Common Dream Themes
+                </h3>
                 <div className="space-y-3 sm:space-y-4">
-                    {statsData.themes.slice(0, 3).map((theme, i) => (
+                  {statsData.themes.slice(0, 3).map((theme, i) => (
                     <motion.div
-                        key={i}
+                      key={i}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.6 + i * 0.1 }}
@@ -372,7 +372,7 @@ export function DreamStatistics() {
                       </div>
                       <div className="flex items-center gap-3 ml-6 sm:ml-0">
                         <div className="flex-1 sm:w-24 h-2 bg-white/10 rounded-full overflow-hidden">
-                <motion.div
+                          <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${theme.percentage}%` }}
                             transition={{ delay: 0.8 + i * 0.1, duration: 0.8 }}
@@ -384,14 +384,14 @@ export function DreamStatistics() {
                                   : "bg-gradient-to-r from-cyan-500 to-cyan-400"
                             }`}
                           />
-                    </div>
+                        </div>
                         <span className="text-white/70 font-mono text-xs sm:text-sm min-w-[2.5rem] text-right">
                           {theme.percentage}%
-                          </span>
-                  </div>
-                </motion.div>
+                        </span>
+                      </div>
+                    </motion.div>
                   ))}
-              </div>
+                </div>
               </motion.div>
             </motion.div>
           )}
@@ -425,7 +425,7 @@ export function DreamStatistics() {
                     {/* Grid lines */}
                     {[0, 1, 2, 3].map((i) => (
                       <line
-                          key={i}
+                        key={i}
                         x1="50"
                         y1={50 + i * 40}
                         x2="550"
@@ -450,55 +450,55 @@ export function DreamStatistics() {
                     ))}
 
                     {/* Line path */}
-                      <motion.path
+                    <motion.path
                       d={`M ${statsData.monthlyDreams
-                          .map(
+                        .map(
                           (data, i) =>
                             `${70 + i * 40} ${170 - (data.dreams / 30) * 120}`,
-                          )
+                        )
                         .join(" L ")}`}
-                        fill="none"
-                        stroke="url(#lineGradient)"
-                        strokeWidth="3"
+                      fill="none"
+                      stroke="url(#lineGradient)"
+                      strokeWidth="3"
                       initial={{ pathLength: 0 }}
                       animate={{ pathLength: 1 }}
                       transition={{ duration: 2, delay: 0.5 }}
                     />
 
                     {/* Area under curve */}
-                      <motion.path
+                    <motion.path
                       d={`M 70 170 L ${statsData.monthlyDreams
-                          .map(
+                        .map(
                           (data, i) =>
                             `${70 + i * 40} ${170 - (data.dreams / 30) * 120}`,
-                          )
+                        )
                         .join(" L ")} L 550 170 Z`}
-                        fill="url(#areaGradient)"
+                      fill="url(#areaGradient)"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ duration: 1, delay: 1 }}
-                      />
+                    />
 
-                      {/* Data points */}
+                    {/* Data points */}
                     {statsData.monthlyDreams.map((data, i) => (
-                        <motion.circle
-                          key={i}
+                      <motion.circle
+                        key={i}
                         cx={70 + i * 40}
                         cy={170 - (data.dreams / 30) * 120}
                         r="4"
                         fill="white"
                         stroke="url(#lineGradient)"
-                          strokeWidth="2"
+                        strokeWidth="2"
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ delay: 0.7 + i * 0.1 }}
-                        />
-                      ))}
+                      />
+                    ))}
 
                     {/* Month labels */}
                     {statsData.monthlyDreams.map((data, i) => (
                       <text
-                            key={i}
+                        key={i}
                         x={70 + i * 40}
                         y="190"
                         fill="rgba(255,255,255,0.6)"
@@ -510,34 +510,34 @@ export function DreamStatistics() {
                     ))}
 
                     {/* Gradients */}
-                        <defs>
-                          <linearGradient
+                    <defs>
+                      <linearGradient
                         id="lineGradient"
-                            x1="0%"
-                            y1="0%"
-                            x2="100%"
-                            y2="0%"
-                          >
+                        x1="0%"
+                        y1="0%"
+                        x2="100%"
+                        y2="0%"
+                      >
                         <stop offset="0%" stopColor="#8B5CF6" />
                         <stop offset="50%" stopColor="#06B6D4" />
                         <stop offset="100%" stopColor="#10B981" />
-                          </linearGradient>
-                          <linearGradient
+                      </linearGradient>
+                      <linearGradient
                         id="areaGradient"
-                            x1="0%"
-                            y1="0%"
-                            x2="0%"
-                            y2="100%"
-                          >
+                        x1="0%"
+                        y1="0%"
+                        x2="0%"
+                        y2="100%"
+                      >
                         <stop offset="0%" stopColor="rgba(139, 92, 246, 0.3)" />
-                            <stop
-                              offset="100%"
+                        <stop
+                          offset="100%"
                           stopColor="rgba(139, 92, 246, 0.05)"
-                            />
-                          </linearGradient>
-                        </defs>
-                      </svg>
-                    </div>
+                        />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </div>
 
                 {/* Stats Summary */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-4 sm:mt-6">
@@ -548,7 +548,7 @@ export function DreamStatistics() {
                       )}
                     </p>
                     <p className="text-xs text-white/60">Peak Month</p>
-                    </div>
+                  </div>
                   <div className="bg-cyan-500/10 rounded-lg p-3 text-center">
                     <p className="text-lg sm:text-xl font-bold text-cyan-300">
                       {Math.round(
@@ -568,7 +568,7 @@ export function DreamStatistics() {
                       )}
                     </p>
                     <p className="text-xs text-white/60">Total</p>
-                      </div>
+                  </div>
                   <div className="bg-teal-500/10 rounded-lg p-3 text-center">
                     <p className="text-lg sm:text-xl font-bold text-teal-300">
                       {statsData.monthlyDreams[
@@ -583,9 +583,9 @@ export function DreamStatistics() {
                       ].dreams - statsData.monthlyDreams[0].dreams}
                     </p>
                     <p className="text-xs text-white/60">Growth</p>
-                      </div>
-                      </div>
-                </motion.div>
+                  </div>
+                </div>
+              </motion.div>
             </motion.div>
           )}
 
@@ -601,18 +601,18 @@ export function DreamStatistics() {
               {/* Dream Themes */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
                 className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-white/10"
               >
                 <h3 className="text-lg sm:text-xl font-semibold text-white mb-4 sm:mb-6 flex items-center gap-3">
                   <div className="w-1 h-6 bg-gradient-to-b from-cyan-400 to-teal-400 rounded-full"></div>
                   Dream Themes
-                  </h3>
+                </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                    {statsData.themes.map((theme, i) => (
-                      <motion.div
-                        key={i}
+                  {statsData.themes.map((theme, i) => (
+                    <motion.div
+                      key={i}
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.2 + i * 0.05 }}
@@ -621,12 +621,12 @@ export function DreamStatistics() {
                     >
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-semibold text-white capitalize text-sm sm:text-base">
-                            {theme.name}
+                          {theme.name}
                         </h4>
                         <span className="text-cyan-300 font-mono text-xs sm:text-sm">
                           {theme.percentage}%
-                          </span>
-                        </div>
+                        </span>
+                      </div>
                       <div className="flex items-center gap-3">
                         <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
                           <motion.div
@@ -641,11 +641,11 @@ export function DreamStatistics() {
                         </div>
                         <span className="text-white/60 text-xs">
                           {theme.count}
-                          </span>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
+                        </span>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
               </motion.div>
 
               {/* Dream Symbols */}
@@ -658,11 +658,11 @@ export function DreamStatistics() {
                 <h3 className="text-lg sm:text-xl font-semibold text-white mb-4 sm:mb-6 flex items-center gap-3">
                   <div className="w-1 h-6 bg-gradient-to-b from-purple-400 to-pink-400 rounded-full"></div>
                   Common Symbols
-                  </h3>
+                </h3>
                 <div className="space-y-3 sm:space-y-4">
-                    {statsData.symbols.map((symbol, i) => (
-                      <motion.div
-                        key={i}
+                  {statsData.symbols.map((symbol, i) => (
+                    <motion.div
+                      key={i}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.4 + i * 0.05 }}
@@ -689,18 +689,18 @@ export function DreamStatistics() {
                           />
                           <div>
                             <span className="text-white/90 capitalize font-medium text-sm sm:text-base">
-                            {symbol.name}
-                          </span>
+                              {symbol.name}
+                            </span>
                             <p className="text-white/50 text-xs mt-1">
                               {symbol.description}
                             </p>
-                        </div>
+                          </div>
                         </div>
                         <div className="flex items-center gap-3 min-w-0 sm:min-w-[120px]">
                           <div className="flex-1 sm:w-20 h-2 bg-white/10 rounded-full overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${symbol.percentage}%` }}
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${symbol.percentage}%` }}
                               transition={{
                                 delay: 0.6 + i * 0.05,
                                 duration: 0.8,
@@ -721,20 +721,20 @@ export function DreamStatistics() {
                                             : "bg-gradient-to-r from-purple-500 to-purple-300"
                               }`}
                             />
-                        </div>
+                          </div>
                           <span className="text-white/70 font-mono text-xs min-w-[2.5rem] text-right">
                             {symbol.percentage}%
                           </span>
                         </div>
-                  </div>
+                      </div>
                       <div className="text-right">
                         <span className="text-white/50 text-xs">
                           {symbol.count} appearances
-                    </span>
-                    </div>
+                        </span>
+                      </div>
                     </motion.div>
                   ))}
-                    </div>
+                </div>
               </motion.div>
             </motion.div>
           )}
@@ -751,14 +751,14 @@ export function DreamStatistics() {
               {/* Calendar View */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7 }}
                 className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-2xl p-3 sm:p-4 lg:p-5 border border-white/10"
               >
                 <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-white mb-2 sm:mb-3 lg:mb-4 flex items-center gap-2 lg:gap-3">
                   <div className="w-1 h-4 lg:h-6 bg-gradient-to-b from-emerald-400 to-teal-400 rounded-full"></div>
                   Calendar View
-              </h3>
+                </h3>
 
                 <div className="space-y-2 lg:space-y-3">
                   {/* Calendar Header */}
@@ -780,17 +780,17 @@ export function DreamStatistics() {
                       <div
                         key={day}
                         className="text-center text-xs font-medium text-white/50 py-0.5 lg:py-1"
-                  >
-                    {day}
+                      >
+                        {day}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
 
                   {/* Calendar Days */}
                   <div className="grid grid-cols-7 gap-0.5 lg:gap-1 max-w-sm lg:max-w-md mx-auto">
                     {statsData.calendar.entries.map((day, i) => (
-                    <motion.div
-                      key={i}
+                      <motion.div
+                        key={i}
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.8 + i * 0.005 }}
@@ -823,10 +823,10 @@ export function DreamStatistics() {
                           >
                             {day.dreams}
                           </motion.div>
-                      )}
-                    </motion.div>
-                ))}
-              </div>
+                        )}
+                      </motion.div>
+                    ))}
+                  </div>
 
                   {/* Calendar Stats */}
                   <div className="grid grid-cols-3 gap-2 lg:gap-3 mt-3 lg:mt-4 pt-3 lg:pt-4 border-t border-white/10">
@@ -838,7 +838,7 @@ export function DreamStatistics() {
                         }
                       </p>
                       <p className="text-xs text-white/60">Dreams This Month</p>
-                  </div>
+                    </div>
                     <div className="text-center">
                       <p className="text-base lg:text-lg font-bold text-teal-300">
                         {Math.round(
@@ -851,15 +851,15 @@ export function DreamStatistics() {
                         %
                       </p>
                       <p className="text-xs text-white/60">Completion</p>
-                  </div>
+                    </div>
                     <div className="text-center">
                       <p className="text-base lg:text-lg font-bold text-cyan-300">
                         {statsData.overview.streakDays}
                       </p>
                       <p className="text-xs text-white/60">Current Streak</p>
+                    </div>
                   </div>
                 </div>
-              </div>
               </motion.div>
             </motion.div>
           )}
