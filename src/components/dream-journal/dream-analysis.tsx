@@ -109,7 +109,7 @@ export function DreamAnalysis() {
       },
       themes: [
         { name: "Growth & Learning", percentage: 34, color: "emerald" },
-        { name: "Social Anxiety", percentage: 28, color: "orange" },
+        { name: "Social Anxiety", percentage: 28, color: "red" },
         { name: "Technology", percentage: 19, color: "blue" },
         { name: "Safe Spaces", percentage: 19, color: "purple" },
       ],
@@ -467,7 +467,7 @@ export function DreamAnalysis() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 backdrop-blur-sm p-6 rounded-xl border border-emerald-500/20 h-40"
+                    className="bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 backdrop-blur-sm p-6 rounded-xl border border-emerald-500/20 min-h-[160px] md:h-40"
                   >
                     <div className="flex items-center gap-3 mb-4">
                       <div className="bg-emerald-500/20 p-2 rounded-lg">
@@ -487,7 +487,7 @@ export function DreamAnalysis() {
                         </span>
                       </div>
                     </div>
-                    <p className="text-white/70 text-sm">
+                    <p className="text-white/70 text-sm leading-relaxed">
                       {dreamAnalysis.patterns.sleepQuality.insight}
                     </p>
                   </motion.div>
@@ -497,7 +497,7 @@ export function DreamAnalysis() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="bg-gradient-to-br from-blue-500/20 to-blue-500/5 backdrop-blur-sm p-6 rounded-xl border border-blue-500/20 h-40"
+                    className="bg-gradient-to-br from-blue-500/20 to-blue-500/5 backdrop-blur-sm p-6 rounded-xl border border-blue-500/20 min-h-[160px] md:h-40"
                   >
                     <div className="flex items-center gap-3 mb-4">
                       <div className="bg-blue-500/20 p-2 rounded-lg">
@@ -517,7 +517,7 @@ export function DreamAnalysis() {
                         </span>
                       </div>
                     </div>
-                    <p className="text-white/70 text-sm">
+                    <p className="text-white/70 text-sm leading-relaxed">
                       {dreamAnalysis.patterns.frequency.insight}
                     </p>
                   </motion.div>

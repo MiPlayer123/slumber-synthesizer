@@ -282,11 +282,6 @@ export default function Index() {
           </div>
         </section>
 
-        {/* Features Grid */}
-        <section id="features" className="relative pt-8 pb-16">
-          <FeatureGrid />
-        </section>
-
         {/* Dream Analysis Section */}
         <section className="relative py-24 overflow-hidden bg-gradient-to-l from-slate-900/20 to-gray-800/20">
           <div className="container mx-auto px-6">
@@ -309,6 +304,11 @@ export default function Index() {
 
             <DreamAnalysis />
           </div>
+        </section>
+
+        {/* Features Grid moved below Dream Analysis */}
+        <section id="features" className="relative pt-8 pb-16">
+          <FeatureGrid />
         </section>
 
         {/* Dream Sharing Section */}
