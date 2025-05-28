@@ -306,12 +306,7 @@ export default function Index() {
           </div>
         </section>
 
-        {/* Features Grid moved below Dream Analysis */}
-        <section id="features" className="relative pt-8 pb-16">
-          <FeatureGrid />
-        </section>
-
-        {/* Dream Sharing Section */}
+        {/* Dream Sharing Section - Moved above Features Grid */}
         <section className="relative py-24 overflow-hidden">
           <div className="container mx-auto px-6">
             <motion.div
@@ -333,6 +328,11 @@ export default function Index() {
 
             <DreamSharing />
           </div>
+        </section>
+
+        {/* Features Grid */}
+        <section id="features" className="relative pt-8 pb-16">
+          <FeatureGrid />
         </section>
 
         {/* Testimonials */}

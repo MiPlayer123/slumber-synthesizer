@@ -26,7 +26,7 @@ export function DreamSharing() {
       excerpt:
         "I set my alarm for 6:00 am and the woke up 2 minutes before it. However, I still heard an alarm go off at 6 even though I was holding my phone. I then woke up to my phone ringing. I set 7 alarms on my phone and I only full shut off my phone by the 4th.",
       tags: ["normal", "confusion"],
-      likes: 1,
+      likes: 33,
       comments: 0,
       image:
         "https://jduzfrjhxfxiyajvpkus.supabase.co/storage/v1/object/public/dream-images/39337da5-1b4d-4802-9424-06d5a17895c4_1747156281069.png",
@@ -42,11 +42,16 @@ export function DreamSharing() {
       excerpt:
         "Came back from vacation with the mother of my baby half-sister. My tablet was suddenly full of undelete able widgets with pictures of myself taking up a lot of screens. And my encyclopedia book was destroyed. There was sugar in it which made larges holes in the book. I was very disappointed by it but I didn't want to confront the mother of my half-sister. My stepdad kept teasing me but I kept falling for it getting triggered. I then got a bird and a small cage but the cage I got second hand from an old lady was incomplete. Parts were missing and the further I got to setting it up the more it seemed to be damaged and incomplete. During setting up the cage the bird did get into the cage now and then, like a good and sweet bird.",
       tags: ["normal", "family"],
-      likes: 4,
-      comments: 0,
+      likes: 17,
+      comments: 1,
       image:
         "https://jduzfrjhxfxiyajvpkus.supabase.co/storage/v1/object/public/dream-images/e1ecc69f-f653-4cba-99f8-40d8703600ac_1745519582495.png",
       date: "2 days ago",
+      commentPreview: {
+        user: "popp11",
+        text: "oh wow! the broken cage thing feels like such a metaphor for trying to care for something when you don't have all the right tools or circumstances. but the bird still trusted you and went in anyway 🥺 that's actually really beautiful",
+        timeAgo: "6h",
+      },
     },
     {
       id: 3,
@@ -58,7 +63,7 @@ export function DreamSharing() {
       excerpt:
         "Was in lecture hall like bathhouse NYC (a sauna and cold plunge place) and ate chicken for the first time and it was fire",
       tags: ["normal", "neutral"],
-      likes: 1,
+      likes: 31,
       comments: 0,
       image:
         "https://jduzfrjhxfxiyajvpkus.supabase.co/storage/v1/object/public/dream-images/6b4cb86e-fdd6-48d3-a00a-9a24fdae0b94_1744838570182.png",
@@ -268,6 +273,31 @@ function DreamCard({ dream, index }) {
                 </motion.span>
               ))}
             </div>
+
+            {/* Comment Preview */}
+            {dream.commentPreview && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="bg-gradient-to-r from-white/5 to-white/10 backdrop-blur-sm rounded-xl p-4 mb-4 border border-white/10"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold">
+                    {dream.commentPreview.user.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-white/70 text-sm font-medium">
+                    {dream.commentPreview.user}
+                  </span>
+                  <span className="text-white/40 text-xs">
+                    • {dream.commentPreview.timeAgo}
+                  </span>
+                </div>
+                <p className="text-white/80 text-sm leading-relaxed">
+                  {dream.commentPreview.text}
+                </p>
+              </motion.div>
+            )}
           </div>
 
           {/* Action Buttons */}
