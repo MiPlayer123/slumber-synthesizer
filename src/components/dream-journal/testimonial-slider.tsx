@@ -6,23 +6,23 @@ import { motion, AnimatePresence } from "framer-motion";
 const testimonials = [
   {
     quote:
-      "Rem has transformed how I connect with my dreams. The insights I've gained have been truly illuminating, and the community is wonderfully supportive.",
-    author: "Alex D.",
-    avatar: "A",
+      "okay so i've been using this for like 3 months now and WOW. i used to forget my dreams 5 minutes after waking up but now i'm remembering so much more! the AI thing actually picked up on patterns i never noticed. lowkey life changing ngl 😭",
+    author: "sarah_dreams22",
+    avatar: "S",
     color: "from-purple-500 to-blue-500",
   },
   {
     quote:
-      "I've kept dream journals for years, but Rem brings a whole new dimension to the practice. The AI analysis has helped me understand recurring themes I never noticed before.",
-    author: "Jamie L.",
-    avatar: "J",
+      "been journaling my dreams for years but this app hits different!! the community is so wholesome and supportive. love reading other people's wild dreams lol. also the analysis feature is chef's kiss 👌",
+    author: "mikethevibe",
+    avatar: "M",
     color: "from-blue-500 to-cyan-500",
   },
   {
     quote:
-      "The 3D dream visualization feature is mind-blowing. Being able to see my dreams represented visually has given me new perspectives on their meaning.",
-    author: "Morgan T.",
-    avatar: "M",
+      "y'all this app is actually insane. had the weirdest nightmare last week and posted it here... the comments and insights helped me work through some stuff i didn't even realize was bothering me. definitely recommend!!",
+    author: "dreamerforlife",
+    avatar: "D",
     color: "from-cyan-500 to-green-500",
   },
 ];

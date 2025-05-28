@@ -53,9 +53,28 @@
   * {
     @apply border-border;
   }
+  html {
+    background-color: #1a0b2e; /* Purple background for over-scroll areas */
+  }
+  html::before {
+    content: "";
+    position: fixed;
+    top: -100vh;
+    left: -100vw;
+    width: 300vw;
+    height: 300vh;
+    background-color: #1a0b2e;
+    z-index: -1000;
+    pointer-events: none;
+  }
   body {
-    background-color: #1a0b2e; /* dark purple/gray */
+    background-color: #1a0b2e; /* Purple for the actual page content */
     @apply text-foreground;
+  }
+  /* Ensure the root element has the correct background for page content */
+  #root {
+    background-color: #1a0b2e;
+    min-height: 100vh;
   }
   h1,
   h2,
