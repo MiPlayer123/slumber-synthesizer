@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, RefreshCw, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,16 +14,47 @@ export function DreamImageGenerator() {
   const [phase, setPhase] = useState<Phase>("typing");
   const [typingText, setTypingText] = useState("");
   const [showCursor, setShowCursor] = useState(true);
+  const [isInView, setIsInView] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // 1) Blink the cursor while typing
+  // Intersection Observer to detect when component is in view
   useEffect(() => {
-    const iv = setInterval(() => setShowCursor((v) => !v), 500);
-    return () => clearInterval(iv);
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(entry.isIntersecting);
+        // Reset to typing phase when coming into view
+        if (entry.isIntersecting) {
+          setPhase("typing");
+        }
+      },
+      {
+        threshold: 0.3, // Trigger when 30% of component is visible
+        rootMargin: "-50px", // Add some margin for better UX
+      },
+    );
+
+    const currentRef = containerRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
   }, []);
 
-  // 2) When we enter "typing", start a simple character interval
+  // 1) Blink the cursor while typing (only when in view)
   useEffect(() => {
-    if (phase !== "typing") return;
+    if (!isInView) return;
+    const iv = setInterval(() => setShowCursor((v) => !v), 500);
+    return () => clearInterval(iv);
+  }, [isInView]);
+
+  // 2) When we enter "typing", start a simple character interval (only when in view)
+  useEffect(() => {
+    if (phase !== "typing" || !isInView) return;
     setTypingText("");
     let i = 0;
     const interval = setInterval(
@@ -39,24 +70,25 @@ export function DreamImageGenerator() {
       40 + Math.random() * 30,
     );
     return () => clearInterval(interval);
-  }, [phase, dreamText]);
+  }, [phase, dreamText, isInView]);
 
-  // 3) When we enter "generating", fake an API call
+  // 3) When we enter "generating", fake an API call (only when in view)
   useEffect(() => {
-    if (phase !== "generating") return;
+    if (phase !== "generating" || !isInView) return;
     const t = setTimeout(() => setPhase("show"), 2000);
     return () => clearTimeout(t);
-  }, [phase]);
+  }, [phase, isInView]);
 
-  // 4) When we enter "show", show for 5s and then loop back
+  // 4) When we enter "show", show for 5s and then loop back (only when in view)
   useEffect(() => {
-    if (phase !== "show") return;
+    if (phase !== "show" || !isInView) return;
     const t = setTimeout(() => setPhase("typing"), 5000);
     return () => clearTimeout(t);
-  }, [phase]);
+  }, [phase, isInView]);
 
   return (
     <motion.div
+      ref={containerRef}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
