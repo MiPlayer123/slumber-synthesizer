@@ -377,7 +377,11 @@ const Settings = () => {
   const handleSubscribe = async () => {
     setIsProcessingPayment(true);
     try {
-      await startCheckout(selectedPlan, undefined, appliedPromoCode || undefined);
+      await startCheckout(
+        selectedPlan,
+        undefined,
+        appliedPromoCode || undefined,
+      );
     } catch (error) {
       toast({
         variant: "destructive",
@@ -393,7 +397,10 @@ const Settings = () => {
   };
 
   // Handle promo code validation
-  const handlePromoCodeValidated = (code: string | null, discountInfo?: any) => {
+  const handlePromoCodeValidated = (
+    code: string | null,
+    discountInfo?: any,
+  ) => {
     setAppliedPromoCode(code);
     setPromoDiscountInfo(discountInfo);
   };

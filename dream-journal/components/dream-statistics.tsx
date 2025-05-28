@@ -202,7 +202,12 @@ export function DreamStatistics({ stats = {} }) {
   );
 }
 
-function StatCard({ title, value, subtitle, color }: {
+function StatCard({
+  title,
+  value,
+  subtitle,
+  color,
+}: {
   title: string;
   value: string | number;
   subtitle: string;

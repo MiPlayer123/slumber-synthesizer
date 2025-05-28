@@ -12,7 +12,10 @@ interface PromoCodeInputProps {
   disabled?: boolean;
 }
 
-export const PromoCodeInput = ({ onPromoCodeValidated, disabled = false }: PromoCodeInputProps) => {
+export const PromoCodeInput = ({
+  onPromoCodeValidated,
+  disabled = false,
+}: PromoCodeInputProps) => {
   const [promoCode, setPromoCode] = useState("");
   const [isValidating, setIsValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<{
@@ -31,7 +34,7 @@ export const PromoCodeInput = ({ onPromoCodeValidated, disabled = false }: Promo
     try {
       const result = await validatePromoCode(promoCode);
       setValidationResult(result);
-      
+
       if (result.valid) {
         setAppliedCode(promoCode.toUpperCase());
         onPromoCodeValidated(promoCode.toUpperCase(), result.discount_info);
@@ -40,7 +43,10 @@ export const PromoCodeInput = ({ onPromoCodeValidated, disabled = false }: Promo
         onPromoCodeValidated(null);
       }
     } catch (error) {
-      setValidationResult({ valid: false, error: "Failed to validate promo code" });
+      setValidationResult({
+        valid: false,
+        error: "Failed to validate promo code",
+      });
       setAppliedCode(null);
       onPromoCodeValidated(null);
     } finally {
@@ -57,7 +63,7 @@ export const PromoCodeInput = ({ onPromoCodeValidated, disabled = false }: Promo
 
   const formatDiscount = (discountInfo: any) => {
     if (!discountInfo) return "";
-    
+
     if (discountInfo.percent_off) {
       return `${discountInfo.percent_off}% off`;
     } else if (discountInfo.amount_off) {
@@ -70,13 +76,13 @@ export const PromoCodeInput = ({ onPromoCodeValidated, disabled = false }: Promo
 
   const getDurationText = (discountInfo: any) => {
     if (!discountInfo) return "";
-    
+
     switch (discountInfo.duration) {
       case "once":
         return "for first payment";
       case "repeating":
-        return discountInfo.duration_in_months 
-          ? `for ${discountInfo.duration_in_months} month${discountInfo.duration_in_months > 1 ? 's' : ''}`
+        return discountInfo.duration_in_months
+          ? `for ${discountInfo.duration_in_months} month${discountInfo.duration_in_months > 1 ? "s" : ""}`
           : "for limited time";
       case "forever":
         return "forever";
@@ -102,7 +108,10 @@ export const PromoCodeInput = ({ onPromoCodeValidated, disabled = false }: Promo
                 <Check className="h-4 w-4 text-green-600" />
                 <div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                    <Badge
+                      variant="secondary"
+                      className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                    >
                       {appliedCode}
                     </Badge>
                     <span className="text-sm font-medium text-green-700 dark:text-green-300">
@@ -170,4 +179,4 @@ export const PromoCodeInput = ({ onPromoCodeValidated, disabled = false }: Promo
       </CardContent>
     </Card>
   );
-}; 
+};

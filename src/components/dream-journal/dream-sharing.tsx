@@ -84,7 +84,7 @@ export function DreamSharing() {
           transition={{
             duration: 25,
             repeat: Infinity,
-            ease: "linear"
+            ease: "linear",
           }}
           className="absolute -top-32 -right-32 w-96 h-96 bg-gradient-to-br from-cyan-500/15 to-teal-500/15 rounded-full blur-3xl"
         />
@@ -96,7 +96,7 @@ export function DreamSharing() {
           transition={{
             duration: 30,
             repeat: Infinity,
-            ease: "linear"
+            ease: "linear",
           }}
           className="absolute -bottom-32 -left-32 w-80 h-80 bg-gradient-to-tr from-teal-500/15 to-green-500/15 rounded-full blur-3xl"
         />
@@ -122,10 +122,12 @@ export function DreamSharing() {
               <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-white via-cyan-200 to-teal-200 bg-clip-text text-transparent">
                 Dream Community
               </h2>
-              <p className="text-white/60 text-xs sm:text-sm mt-0.5 sm:mt-1">Connect with fellow dreamers</p>
+              <p className="text-white/60 text-xs sm:text-sm mt-0.5 sm:mt-1">
+                Connect with fellow dreamers
+              </p>
             </div>
           </div>
-          
+
           {/* Share Dream Button */}
           <motion.div
             whileHover={{ scale: 1.02 }}
@@ -150,8 +152,20 @@ export function DreamSharing() {
           className="flex gap-1 sm:gap-2 p-1.5 sm:p-2 bg-white/5 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-white/10 mb-6 sm:mb-8"
         >
           {[
-            { id: "community", label: "Community Dreams", shortLabel: "Community", icon: Globe, gradient: "from-cyan-500 to-teal-500" },
-            { id: "following", label: "Following", shortLabel: "Following", icon: Heart, gradient: "from-teal-500 to-green-500" }
+            {
+              id: "community",
+              label: "Community Dreams",
+              shortLabel: "Community",
+              icon: Globe,
+              gradient: "from-cyan-500 to-teal-500",
+            },
+            {
+              id: "following",
+              label: "Following",
+              shortLabel: "Following",
+              icon: Heart,
+              gradient: "from-teal-500 to-green-500",
+            },
           ].map((tab) => (
             <motion.button
               key={tab.id}
@@ -165,7 +179,9 @@ export function DreamSharing() {
               }`}
             >
               <tab.icon className="w-4 h-4" />
-              <span className="hidden xs:inline sm:hidden lg:inline">{tab.shortLabel}</span>
+              <span className="hidden xs:inline sm:hidden lg:inline">
+                {tab.shortLabel}
+              </span>
               <span className="hidden sm:inline lg:hidden">{tab.label}</span>
             </motion.button>
           ))}
@@ -212,12 +228,12 @@ function DreamCard({ dream, index }) {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
         </div>
-        
+
         {/* Content Section */}
         <div className="p-6 lg:w-2/3 flex flex-col justify-between">
           {/* User Info */}
           <div className="flex items-center gap-3 mb-4">
-            <motion.div 
+            <motion.div
               className="w-10 h-10 rounded-full bg-gradient-to-r from-cyan-500 to-teal-500 flex items-center justify-center text-white font-bold shadow-lg"
               whileHover={{ scale: 1.1, rotate: 5 }}
             >
@@ -231,8 +247,12 @@ function DreamCard({ dream, index }) {
 
           {/* Dream Content */}
           <div className="flex-1">
-            <h3 className="text-xl font-semibold text-white mb-3 leading-tight">{dream.title}</h3>
-            <p className="text-white/70 text-sm mb-4 line-clamp-3 leading-relaxed">{dream.excerpt}</p>
+            <h3 className="text-xl font-semibold text-white mb-3 leading-tight">
+              {dream.title}
+            </h3>
+            <p className="text-white/70 text-sm mb-4 line-clamp-3 leading-relaxed">
+              {dream.excerpt}
+            </p>
 
             {/* Tags */}
             <div className="flex flex-wrap gap-2 mb-4">
@@ -253,17 +273,12 @@ function DreamCard({ dream, index }) {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-6">
-            <motion.div
-              className="flex items-center gap-2 text-sm text-white/60 cursor-default"
-            >
-              <Heart
-                className="w-4 h-4"
-                fill="none"
-              />
+            <motion.div className="flex items-center gap-2 text-sm text-white/60 cursor-default">
+              <Heart className="w-4 h-4" fill="none" />
               <span className="font-medium">{dream.likes}</span>
             </motion.div>
-            
-            <motion.button 
+
+            <motion.button
               className="flex items-center gap-2 text-sm text-white/60 hover:text-cyan-400 transition-all duration-200"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -271,8 +286,8 @@ function DreamCard({ dream, index }) {
               <MessageSquare className="w-4 h-4" />
               <span className="font-medium">{dream.comments}</span>
             </motion.button>
-            
-            <motion.button 
+
+            <motion.button
               className="ml-auto text-white/60 hover:text-white/90 transition-all duration-200 p-2 rounded-lg hover:bg-white/10"
               whileHover={{ scale: 1.05, rotate: 90 }}
               whileTap={{ scale: 0.95 }}

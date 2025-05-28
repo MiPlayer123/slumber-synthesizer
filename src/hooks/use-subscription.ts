@@ -1232,7 +1232,11 @@ export const useSubscription = () => {
   };
 
   // Update startCheckout function to use dynamic return URL
-  const startCheckout = async (planId: string, returnUrl?: string, promoCode?: string) => {
+  const startCheckout = async (
+    planId: string,
+    returnUrl?: string,
+    promoCode?: string,
+  ) => {
     if (!user) {
       toast({
         variant: "destructive",

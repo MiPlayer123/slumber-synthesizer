@@ -27,15 +27,18 @@ export function DreamAnalysis() {
     symbols: [
       {
         name: "Library",
-        description: "Your sanctuary for learning and self-improvement, where you expect to feel secure and focused",
+        description:
+          "Your sanctuary for learning and self-improvement, where you expect to feel secure and focused",
       },
       {
         name: "Technology malfunction",
-        description: "The moment when your private thoughts or actions become visible to others unexpectedly",
+        description:
+          "The moment when your private thoughts or actions become visible to others unexpectedly",
       },
       {
         name: "Being asked to leave",
-        description: "Your fear that you don't belong in spaces where you're trying to grow or improve yourself",
+        description:
+          "Your fear that you don't belong in spaces where you're trying to grow or improve yourself",
       },
     ],
     emotions: [
@@ -62,7 +65,7 @@ export function DreamAnalysis() {
           transition={{
             duration: 20,
             repeat: Infinity,
-            ease: "linear"
+            ease: "linear",
           }}
           className="absolute -top-32 -right-32 w-96 h-96 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-full blur-3xl"
         />
@@ -74,7 +77,7 @@ export function DreamAnalysis() {
           transition={{
             duration: 25,
             repeat: Infinity,
-            ease: "linear"
+            ease: "linear",
           }}
           className="absolute -bottom-32 -left-32 w-80 h-80 bg-gradient-to-tr from-cyan-500/20 to-indigo-500/20 rounded-full blur-3xl"
         />
@@ -100,10 +103,12 @@ export function DreamAnalysis() {
               <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-white via-purple-200 to-cyan-200 bg-clip-text text-transparent">
                 Dream Analysis
               </h2>
-              <p className="text-white/60 text-xs sm:text-sm mt-0.5 sm:mt-1 leading-relaxed">AI-powered insights into your subconscious</p>
+              <p className="text-white/60 text-xs sm:text-sm mt-0.5 sm:mt-1 leading-relaxed">
+                AI-powered insights into your subconscious
+              </p>
             </div>
           </div>
-          
+
           {/* AI Powered Badge */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
@@ -130,9 +135,24 @@ export function DreamAnalysis() {
           className="flex gap-1 sm:gap-2 p-1.5 sm:p-2 bg-white/5 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-white/10 mb-6 sm:mb-8 overflow-x-auto"
         >
           {[
-            { id: "analysis", label: "Analysis", icon: Brain, gradient: "from-purple-500 to-blue-500" },
-            { id: "themes", label: "Themes", icon: Hash, gradient: "from-indigo-500 to-cyan-500" },
-            { id: "emotions", label: "Emotions", icon: Layers, gradient: "from-blue-500 to-teal-500" }
+            {
+              id: "analysis",
+              label: "Analysis",
+              icon: Brain,
+              gradient: "from-purple-500 to-blue-500",
+            },
+            {
+              id: "themes",
+              label: "Themes",
+              icon: Hash,
+              gradient: "from-indigo-500 to-cyan-500",
+            },
+            {
+              id: "emotions",
+              label: "Emotions",
+              icon: Layers,
+              gradient: "from-blue-500 to-teal-500",
+            },
           ].map((tab) => (
             <motion.button
               key={tab.id}
@@ -171,7 +191,9 @@ export function DreamAnalysis() {
                   <div className="bg-gradient-to-r from-purple-500/30 to-blue-500/30 p-2 rounded-lg">
                     <Lightbulb className="w-5 h-5 text-purple-300" />
                   </div>
-                  <h3 className="text-xl font-semibold text-white">Dream Summary</h3>
+                  <h3 className="text-xl font-semibold text-white">
+                    Dream Summary
+                  </h3>
                 </div>
                 <p className="text-white/90 leading-relaxed text-base">
                   {dreamAnalysis.summary}
@@ -188,16 +210,16 @@ export function DreamAnalysis() {
                   {[
                     {
                       text: "You carry a deep fear that others will discover you're not as put-together as you appear. This dream shows how even your safe spaces can trigger anxiety about being found out.",
-                      color: "purple"
+                      color: "purple",
                     },
                     {
                       text: "The library setting reveals your relationship with learning. You want to grow, but you also fear making mistakes in front of others who might judge your efforts.",
-                      color: "blue"
+                      color: "blue",
                     },
                     {
                       text: "Technology represents the unpredictable moments when your private world becomes visible. You can't control everything, and that terrifies you.",
-                      color: "cyan"
-                    }
+                      color: "cyan",
+                    },
                   ].map((insight, i) => (
                     <motion.div
                       key={i}
@@ -213,9 +235,13 @@ export function DreamAnalysis() {
                           transition={{ duration: 0.3 }}
                           className={`bg-${insight.color}-500/20 p-2 rounded-full mt-1`}
                         >
-                          <Sparkles className={`w-4 h-4 text-${insight.color}-300`} />
+                          <Sparkles
+                            className={`w-4 h-4 text-${insight.color}-300`}
+                          />
                         </motion.div>
-                        <p className="text-white/90 leading-relaxed">{insight.text}</p>
+                        <p className="text-white/90 leading-relaxed">
+                          {insight.text}
+                        </p>
                       </div>
                     </motion.div>
                   ))}
@@ -412,10 +438,20 @@ export function DreamAnalysis() {
                   >
                     <Lightbulb className="w-5 h-5 text-teal-300" />
                   </motion.div>
-                  <h4 className="text-lg font-semibold text-white">What This Means for You</h4>
+                  <h4 className="text-lg font-semibold text-white">
+                    What This Means for You
+                  </h4>
                 </div>
                 <p className="text-white/80 leading-relaxed">
-                  You're wrestling with something most people never talk about openly. The fear that you're fooling everyone around you. That somehow, you've convinced people you belong in spaces where you're trying to grow, but deep down you worry they'll figure out you don't deserve to be there. This dream is your mind's way of processing that anxiety. Here's what matters: everyone feels this way sometimes. The people who seem most confident? They've felt exactly what you're feeling. Your growth journey is valid, even when it feels messy or imperfect.
+                  You're wrestling with something most people never talk about
+                  openly. The fear that you're fooling everyone around you. That
+                  somehow, you've convinced people you belong in spaces where
+                  you're trying to grow, but deep down you worry they'll figure
+                  out you don't deserve to be there. This dream is your mind's
+                  way of processing that anxiety. Here's what matters: everyone
+                  feels this way sometimes. The people who seem most confident?
+                  They've felt exactly what you're feeling. Your growth journey
+                  is valid, even when it feels messy or imperfect.
                 </p>
               </motion.div>
             </motion.div>

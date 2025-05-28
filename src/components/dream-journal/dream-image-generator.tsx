@@ -72,7 +72,7 @@ export function DreamImageGenerator() {
           transition={{
             duration: 25,
             repeat: Infinity,
-            ease: "linear"
+            ease: "linear",
           }}
           className="absolute -top-32 -right-32 w-96 h-96 bg-gradient-to-br from-purple-500/15 to-blue-500/15 rounded-full blur-3xl"
         />
@@ -84,7 +84,7 @@ export function DreamImageGenerator() {
           transition={{
             duration: 30,
             repeat: Infinity,
-            ease: "linear"
+            ease: "linear",
           }}
           className="absolute -bottom-32 -left-32 w-80 h-80 bg-gradient-to-tr from-blue-500/15 to-indigo-500/15 rounded-full blur-3xl"
         />
@@ -109,7 +109,9 @@ export function DreamImageGenerator() {
               <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-white via-purple-200 to-blue-200 bg-clip-text text-transparent">
                 Dream Visualizer
               </h2>
-              <p className="text-white/60 text-sm mt-1">Transform dreams into art</p>
+              <p className="text-white/60 text-sm mt-1">
+                Transform dreams into art
+              </p>
             </div>
           </div>
           <motion.div
@@ -120,7 +122,9 @@ export function DreamImageGenerator() {
             className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 backdrop-blur-sm px-4 py-2 rounded-2xl border border-purple-500/30 flex items-center gap-2 w-fit"
           >
             <Sparkles className="w-4 h-4 text-purple-300" />
-            <span className="text-purple-200 text-sm font-medium">AI Powered</span>
+            <span className="text-purple-200 text-sm font-medium">
+              AI Powered
+            </span>
           </motion.div>
         </motion.div>
 

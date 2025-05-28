@@ -5,6 +5,7 @@ This document explains how to set up and use promo codes with Stripe in your app
 ## Overview
 
 The promo code system consists of:
+
 1. **Edge Functions**: Server-side functions to manage coupons and promotion codes
 2. **Frontend Components**: UI components for entering and validating promo codes
 3. **Management Script**: A Node.js script to create and manage promo codes
@@ -16,11 +17,13 @@ The promo code system consists of:
 Two edge functions have been created:
 
 #### `create-checkout` (Updated)
+
 - Now supports an optional `promoCode` parameter
 - Validates promo codes before creating checkout sessions
 - Enables `allow_promotion_codes` for customer-facing discount entry
 
 #### `manage-promo-codes` (New)
+
 - Creates and manages Stripe coupons
 - Creates promotion codes from coupons
 - Validates promotion codes
@@ -30,19 +33,24 @@ Two edge functions have been created:
 ### 2. Frontend Integration
 
 #### PromoCodeInput Component
+
 Located at `src/components/subscription/PromoCodeInput.tsx`
 
 Features:
+
 - Real-time promo code validation
 - Visual feedback for valid/invalid codes
 - Discount information display
 - Integration with subscription checkout
 
 #### Settings Page Integration
+
 The promo code input has been added to the subscription section in `src/pages/Settings.tsx`
 
 ### 3. Subscription Hook Updates
+
 The `useSubscription` hook now includes:
+
 - `validatePromoCode()` function
 - Updated `startCheckout()` to accept promo codes
 
@@ -53,76 +61,81 @@ The `useSubscription` hook now includes:
 #### Creating Promo Codes
 
 1. **Using the Management Script**:
+
    ```bash
    # Set environment variables
    export SUPABASE_URL="your-supabase-url"
    export SUPABASE_ANON_KEY="your-supabase-anon-key"
-   
+
    # Run the script
    node scripts/create-promo-code.js
    ```
 
 2. **Using the Edge Function Directly**:
+
    ```javascript
    // Create a coupon first
-   const couponResponse = await fetch('/api/functions/v1/manage-promo-codes', {
-     method: 'POST',
-     headers: { 'Content-Type': 'application/json' },
+   const couponResponse = await fetch("/api/functions/v1/manage-promo-codes", {
+     method: "POST",
+     headers: { "Content-Type": "application/json" },
      body: JSON.stringify({
-       action: 'create_coupon',
-       name: 'Black Friday 2024',
+       action: "create_coupon",
+       name: "Black Friday 2024",
        percent_off: 25,
-       duration: 'once'
-     })
+       duration: "once",
+     }),
    });
-   
+
    // Then create a promotion code
-   const promoResponse = await fetch('/api/functions/v1/manage-promo-codes', {
-     method: 'POST',
-     headers: { 'Content-Type': 'application/json' },
+   const promoResponse = await fetch("/api/functions/v1/manage-promo-codes", {
+     method: "POST",
+     headers: { "Content-Type": "application/json" },
      body: JSON.stringify({
-       action: 'create_promotion_code',
-       coupon_id: 'coupon_id_from_above',
-       code: 'BLACKFRIDAY25'
-     })
+       action: "create_promotion_code",
+       coupon_id: "coupon_id_from_above",
+       code: "BLACKFRIDAY25",
+     }),
    });
    ```
 
 #### Managing Promo Codes
 
 **List Active Codes**:
+
 ```javascript
-const response = await fetch('/api/functions/v1/manage-promo-codes', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+const response = await fetch("/api/functions/v1/manage-promo-codes", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    action: 'list_promotion_codes',
-    active: true
-  })
+    action: "list_promotion_codes",
+    active: true,
+  }),
 });
 ```
 
 **Validate a Code**:
+
 ```javascript
-const response = await fetch('/api/functions/v1/manage-promo-codes', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+const response = await fetch("/api/functions/v1/manage-promo-codes", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    action: 'validate_promo_code',
-    code: 'BLACKFRIDAY25'
-  })
+    action: "validate_promo_code",
+    code: "BLACKFRIDAY25",
+  }),
 });
 ```
 
 **Deactivate a Code**:
+
 ```javascript
-const response = await fetch('/api/functions/v1/manage-promo-codes', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+const response = await fetch("/api/functions/v1/manage-promo-codes", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    action: 'deactivate_promotion_code',
-    promotion_code_id: 'promo_code_id'
-  })
+    action: "deactivate_promotion_code",
+    promotion_code_id: "promo_code_id",
+  }),
 });
 ```
 
@@ -139,6 +152,7 @@ Users can enter promo codes in the subscription section:
 ## Coupon Types
 
 ### Percentage Discounts
+
 ```javascript
 {
   name: "25% Off",
@@ -148,6 +162,7 @@ Users can enter promo codes in the subscription section:
 ```
 
 ### Fixed Amount Discounts
+
 ```javascript
 {
   name: "$5 Off",
@@ -158,11 +173,13 @@ Users can enter promo codes in the subscription section:
 ```
 
 ### Duration Options
+
 - **once**: Applies to the first payment only
 - **repeating**: Applies for a specified number of months
 - **forever**: Applies to all future payments
 
 ### Additional Options
+
 - `max_redemptions`: Limit total uses across all customers
 - `redeem_by`: Expiration date for the coupon
 - `first_time_transaction`: Only for new customers
@@ -171,11 +188,13 @@ Users can enter promo codes in the subscription section:
 ## Stripe Dashboard Setup
 
 ### 1. Enable Promotion Codes
+
 1. Go to your Stripe Dashboard
 2. Navigate to Products → Coupons
 3. Ensure promotion codes are enabled in your account settings
 
 ### 2. Customer Portal Configuration
+
 Make sure your Stripe Customer Portal is configured to show promotion code fields if you want customers to enter codes directly in Stripe's interface.
 
 ## Security Considerations
@@ -188,6 +207,7 @@ Make sure your Stripe Customer Portal is configured to show promotion code field
 ## Testing
 
 ### Test Promo Codes
+
 Create test promotion codes in your Stripe test environment:
 
 ```bash
@@ -198,6 +218,7 @@ node scripts/create-promo-code.js
 ```
 
 ### Example Test Codes
+
 - `TEST25` - 25% off first payment
 - `WELCOME10` - $10 off first payment
 - `FOREVER20` - 20% off forever
@@ -207,11 +228,13 @@ node scripts/create-promo-code.js
 ### Common Issues
 
 1. **"Invalid promo code" error**:
+
    - Check if the code exists in Stripe
    - Verify the code is active
    - Check expiration dates and usage limits
 
 2. **Validation fails**:
+
    - Ensure edge function environment variables are set
    - Check Stripe API key permissions
    - Verify network connectivity
@@ -222,6 +245,7 @@ node scripts/create-promo-code.js
    - Verify customer eligibility (first-time customer restrictions, etc.)
 
 ### Debug Mode
+
 Enable debug logging in the edge functions by setting the log level to debug in your Supabase dashboard.
 
 ## API Reference
@@ -229,9 +253,11 @@ Enable debug logging in the edge functions by setting the log level to debug in 
 ### Edge Function Actions
 
 #### `create_coupon`
+
 Creates a new Stripe coupon.
 
 **Parameters**:
+
 - `name` (required): Coupon name
 - `percent_off` or `amount_off` (required): Discount amount
 - `currency`: Currency for fixed amount discounts
@@ -241,9 +267,11 @@ Creates a new Stripe coupon.
 - `redeem_by`: Expiration date
 
 #### `create_promotion_code`
+
 Creates a customer-facing promotion code from a coupon.
 
 **Parameters**:
+
 - `coupon_id` (required): ID of the coupon to create code for
 - `code`: Custom code (auto-generated if not provided)
 - `max_redemptions`: Maximum uses for this specific code
@@ -251,24 +279,30 @@ Creates a customer-facing promotion code from a coupon.
 - `first_time_transaction`: Boolean for new customers only
 
 #### `validate_promo_code`
+
 Validates a promotion code.
 
 **Parameters**:
+
 - `code` (required): The promotion code to validate
 
 #### `list_promotion_codes`
+
 Lists promotion codes.
 
 **Parameters**:
+
 - `active`: Filter by active status
 - `limit`: Number of codes to return
 - `code`: Filter by specific code
 - `customer`: Filter by customer
 
 #### `deactivate_promotion_code`
+
 Deactivates a promotion code.
 
 **Parameters**:
+
 - `promotion_code_id` (required): ID of the promotion code to deactivate
 
 ## Best Practices
@@ -283,7 +317,8 @@ Deactivates a promotion code.
 ## Support
 
 For issues related to:
+
 - **Stripe Integration**: Check Stripe documentation and dashboard
 - **Edge Functions**: Review Supabase function logs
 - **Frontend Issues**: Check browser console for errors
-- **General Questions**: Refer to this documentation or create an issue 
+- **General Questions**: Refer to this documentation or create an issue

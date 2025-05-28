@@ -57,7 +57,7 @@
     background-color: #1a0b2e; /* Purple background for over-scroll areas */
   }
   html::before {
-    content: '';
+    content: "";
     position: fixed;
     top: -100vh;
     left: -100vw;

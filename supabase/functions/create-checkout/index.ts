@@ -113,7 +113,7 @@ serve(async (req) => {
     console.log(
       `Creating checkout session for plan ${planId} (price: ${priceId})`,
     );
-    
+
     // Build checkout session configuration
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
@@ -132,7 +132,7 @@ serve(async (req) => {
     if (promoCode) {
       try {
         console.log(`Validating promo code: ${promoCode}`);
-        
+
         // First, try to find the promotion code
         const promotionCodes = await stripe.promotionCodes.list({
           code: promoCode,
@@ -142,10 +142,15 @@ serve(async (req) => {
 
         if (promotionCodes.data.length === 0) {
           return new Response(
-            JSON.stringify({ error: `Invalid or expired promo code: ${promoCode}` }),
+            JSON.stringify({
+              error: `Invalid or expired promo code: ${promoCode}`,
+            }),
             {
               status: 400,
-              headers: { ...customCorsHeaders, "Content-Type": "application/json" },
+              headers: {
+                ...customCorsHeaders,
+                "Content-Type": "application/json",
+              },
             },
           );
         }
@@ -155,14 +160,18 @@ serve(async (req) => {
 
         // Add the discount to the session
         sessionConfig.discounts = [{ promotion_code: promotionCode.id }];
-        
       } catch (promoError) {
         console.error("Error validating promo code:", promoError);
         return new Response(
-          JSON.stringify({ error: `Failed to validate promo code: ${promoCode}` }),
+          JSON.stringify({
+            error: `Failed to validate promo code: ${promoCode}`,
+          }),
           {
             status: 400,
-            headers: { ...customCorsHeaders, "Content-Type": "application/json" },
+            headers: {
+              ...customCorsHeaders,
+              "Content-Type": "application/json",
+            },
           },
         );
       }

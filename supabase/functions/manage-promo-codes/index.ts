@@ -54,13 +54,10 @@ serve(async (req) => {
       case "deactivate_promotion_code":
         return await deactivatePromotionCode(params);
       default:
-        return new Response(
-          JSON.stringify({ error: "Invalid action" }),
-          {
-            status: 400,
-            headers: { ...customCorsHeaders, "Content-Type": "application/json" },
-          },
-        );
+        return new Response(JSON.stringify({ error: "Invalid action" }), {
+          status: 400,
+          headers: { ...customCorsHeaders, "Content-Type": "application/json" },
+        });
     }
   } catch (err) {
     console.error("manage-promo-codes error", err);
@@ -86,13 +83,10 @@ async function createCoupon(params: any) {
   } = params;
 
   if (!name) {
-    return new Response(
-      JSON.stringify({ error: "Coupon name is required" }),
-      {
-        status: 400,
-        headers: { ...customCorsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    return new Response(JSON.stringify({ error: "Coupon name is required" }), {
+      status: 400,
+      headers: { ...customCorsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   if (!percent_off && !amount_off) {
@@ -119,7 +113,8 @@ async function createCoupon(params: any) {
     }
     if (duration_in_months) couponData.duration_in_months = duration_in_months;
     if (max_redemptions) couponData.max_redemptions = max_redemptions;
-    if (redeem_by) couponData.redeem_by = Math.floor(new Date(redeem_by).getTime() / 1000);
+    if (redeem_by)
+      couponData.redeem_by = Math.floor(new Date(redeem_by).getTime() / 1000);
 
     const coupon = await stripe.coupons.create(couponData);
 
@@ -129,13 +124,10 @@ async function createCoupon(params: any) {
     });
   } catch (error) {
     console.error("Error creating coupon:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { ...customCorsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...customCorsHeaders, "Content-Type": "application/json" },
+    });
   }
 }
 
@@ -154,13 +146,10 @@ async function createPromotionCode(params: any) {
   } = params;
 
   if (!coupon_id) {
-    return new Response(
-      JSON.stringify({ error: "Coupon ID is required" }),
-      {
-        status: 400,
-        headers: { ...customCorsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    return new Response(JSON.stringify({ error: "Coupon ID is required" }), {
+      status: 400,
+      headers: { ...customCorsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
@@ -170,12 +159,17 @@ async function createPromotionCode(params: any) {
 
     if (code) promotionCodeData.code = code;
     if (customer) promotionCodeData.customer = customer;
-    if (expires_at) promotionCodeData.expires_at = Math.floor(new Date(expires_at).getTime() / 1000);
-    if (first_time_transaction !== undefined) promotionCodeData.first_time_transaction = first_time_transaction;
+    if (expires_at)
+      promotionCodeData.expires_at = Math.floor(
+        new Date(expires_at).getTime() / 1000,
+      );
+    if (first_time_transaction !== undefined)
+      promotionCodeData.first_time_transaction = first_time_transaction;
     if (max_redemptions) promotionCodeData.max_redemptions = max_redemptions;
     if (minimum_amount) {
       promotionCodeData.minimum_amount = minimum_amount;
-      promotionCodeData.minimum_amount_currency = minimum_amount_currency || "usd";
+      promotionCodeData.minimum_amount_currency =
+        minimum_amount_currency || "usd";
     }
     if (restrictions) promotionCodeData.restrictions = restrictions;
 
@@ -187,13 +181,10 @@ async function createPromotionCode(params: any) {
     });
   } catch (error) {
     console.error("Error creating promotion code:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { ...customCorsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...customCorsHeaders, "Content-Type": "application/json" },
+    });
   }
 }
 
@@ -213,19 +204,19 @@ async function listPromotionCodes(params: any) {
 
     const promotionCodes = await stripe.promotionCodes.list(listParams);
 
-    return new Response(JSON.stringify({ promotion_codes: promotionCodes.data }), {
-      status: 200,
-      headers: { ...customCorsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    console.error("Error listing promotion codes:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ promotion_codes: promotionCodes.data }),
       {
-        status: 500,
+        status: 200,
         headers: { ...customCorsHeaders, "Content-Type": "application/json" },
       },
     );
+  } catch (error) {
+    console.error("Error listing promotion codes:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...customCorsHeaders, "Content-Type": "application/json" },
+    });
   }
 }
 
@@ -234,13 +225,10 @@ async function validatePromoCode(params: any) {
   const { code } = params;
 
   if (!code) {
-    return new Response(
-      JSON.stringify({ error: "Promo code is required" }),
-      {
-        status: 400,
-        headers: { ...customCorsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    return new Response(JSON.stringify({ error: "Promo code is required" }), {
+      status: 400,
+      headers: { ...customCorsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
@@ -252,9 +240,9 @@ async function validatePromoCode(params: any) {
 
     if (promotionCodes.data.length === 0) {
       return new Response(
-        JSON.stringify({ 
-          valid: false, 
-          error: "Invalid or expired promo code" 
+        JSON.stringify({
+          valid: false,
+          error: "Invalid or expired promo code",
         }),
         {
           status: 200,
@@ -268,15 +256,17 @@ async function validatePromoCode(params: any) {
 
     // Check if the promotion code is still valid
     const now = Math.floor(Date.now() / 1000);
-    const isExpired = promotionCode.expires_at && promotionCode.expires_at < now;
-    const isMaxRedemptionsReached = promotionCode.max_redemptions && 
+    const isExpired =
+      promotionCode.expires_at && promotionCode.expires_at < now;
+    const isMaxRedemptionsReached =
+      promotionCode.max_redemptions &&
       promotionCode.times_redeemed >= promotionCode.max_redemptions;
 
     if (isExpired || isMaxRedemptionsReached) {
       return new Response(
-        JSON.stringify({ 
-          valid: false, 
-          error: "Promo code has expired or reached maximum redemptions" 
+        JSON.stringify({
+          valid: false,
+          error: "Promo code has expired or reached maximum redemptions",
         }),
         {
           status: 200,
@@ -286,8 +276,8 @@ async function validatePromoCode(params: any) {
     }
 
     return new Response(
-      JSON.stringify({ 
-        valid: true, 
+      JSON.stringify({
+        valid: true,
         promotion_code: promotionCode,
         coupon: coupon,
         discount_info: {
@@ -296,7 +286,7 @@ async function validatePromoCode(params: any) {
           currency: coupon.currency,
           duration: coupon.duration,
           duration_in_months: coupon.duration_in_months,
-        }
+        },
       }),
       {
         status: 200,
@@ -305,13 +295,10 @@ async function validatePromoCode(params: any) {
     );
   } catch (error) {
     console.error("Error validating promo code:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { ...customCorsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...customCorsHeaders, "Content-Type": "application/json" },
+    });
   }
 }
 
@@ -330,9 +317,12 @@ async function deactivatePromotionCode(params: any) {
   }
 
   try {
-    const promotionCode = await stripe.promotionCodes.update(promotion_code_id, {
-      active: false,
-    });
+    const promotionCode = await stripe.promotionCodes.update(
+      promotion_code_id,
+      {
+        active: false,
+      },
+    );
 
     return new Response(JSON.stringify({ promotion_code: promotionCode }), {
       status: 200,
@@ -340,12 +330,9 @@ async function deactivatePromotionCode(params: any) {
     });
   } catch (error) {
     console.error("Error deactivating promotion code:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { ...customCorsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...customCorsHeaders, "Content-Type": "application/json" },
+    });
   }
-} 
+}
