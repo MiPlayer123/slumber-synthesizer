@@ -233,13 +233,8 @@ export default function Index() {
           </div>
         </section>
 
-        {/* Features Grid */}
-        <section id="features" className="relative pt-8 pb-16">
-          <FeatureGrid />
-        </section>
-
-        {/* Dream Analysis Section */}
-        <section className="relative py-24 overflow-hidden bg-gradient-to-l from-slate-900/20 to-gray-800/20">
+        {/* Dream Image Generator Section */}
+        <section className="relative py-24 overflow-hidden bg-gradient-to-r from-emerald-900/20 to-green-900/20">
           <div className="container mx-auto px-6">
             <motion.div
               initial={{ opacity: 0 }}
@@ -249,16 +244,17 @@ export default function Index() {
               className="text-center mb-16"
             >
               <div className="inline-flex items-center justify-center gap-2 bg-white/5 px-3 py-1 rounded-full text-sm font-medium mb-4">
-                <Brain className="w-4 h-4 text-purple-400" />
-                <span>AI-Powered Analysis</span>
+                <Sparkles className="w-4 h-4 text-green-400" />
+                <span>Dream Visualization</span>
               </div>
               <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-                Understand Your Dreams
+                Visualize Your Dreams
               </h2>
               <div className="w-16 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 mx-auto mt-4" />
             </motion.div>
-
-            <DreamAnalysis />
+            <div className="max-w-2xl mx-auto">
+              <DreamImageGenerator />
+            </div>
           </div>
         </section>
 
@@ -286,8 +282,13 @@ export default function Index() {
           </div>
         </section>
 
-        {/* Dream Image Generator Section */}
-        <section className="relative py-24 overflow-hidden bg-gradient-to-r from-emerald-900/20 to-green-900/20">
+        {/* Features Grid */}
+        <section id="features" className="relative pt-8 pb-16">
+          <FeatureGrid />
+        </section>
+
+        {/* Dream Analysis Section */}
+        <section className="relative py-24 overflow-hidden bg-gradient-to-l from-slate-900/20 to-gray-800/20">
           <div className="container mx-auto px-6">
             <motion.div
               initial={{ opacity: 0 }}
@@ -297,17 +298,16 @@ export default function Index() {
               className="text-center mb-16"
             >
               <div className="inline-flex items-center justify-center gap-2 bg-white/5 px-3 py-1 rounded-full text-sm font-medium mb-4">
-                <Sparkles className="w-4 h-4 text-green-400" />
-                <span>Dream Visualization</span>
+                <Brain className="w-4 h-4 text-purple-400" />
+                <span>AI-Powered Analysis</span>
               </div>
               <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-                Visualize Your Dreams
+                Understand Your Dreams
               </h2>
               <div className="w-16 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 mx-auto mt-4" />
             </motion.div>
-            <div className="max-w-2xl mx-auto">
-              <DreamImageGenerator />
-            </div>
+
+            <DreamAnalysis />
           </div>
         </section>
 
