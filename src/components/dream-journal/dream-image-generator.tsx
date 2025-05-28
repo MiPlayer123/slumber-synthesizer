@@ -171,7 +171,6 @@ export function DreamImageGenerator() {
           transition={{ delay: 0.3 }}
           className="mb-8"
         >
-          <h3 className="text-white/90 font-medium mb-4">Style Selection</h3>
           <div className="flex flex-wrap gap-2 sm:gap-3">
             {["Surreal", "Mystical", "Dark", "Vibrant", "Abstract"].map(
               (style, index) => (
