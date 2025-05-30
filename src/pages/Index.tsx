@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { ArrowRight, Moon } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 // import DreamScene from "@/components/dream-journal/dream-scene";
@@ -474,9 +474,11 @@ export default function Index() {
             {/* Brand Section */}
             <div className="max-w-sm">
               <div className="flex items-center gap-2 mb-3">
-                <div className="bg-gradient-to-r from-purple-500 to-blue-500 p-1.5 rounded-full">
-                  <Moon size={16} className="text-black" />
-                </div>
+                <img
+                  src="/apple-touch-icon.png"
+                  alt="REM Logo"
+                  className="h-8 w-8"
+                />
                 <span className="text-lg font-medium tracking-tight">Rem</span>
               </div>
               <p className="text-sm text-white/50">

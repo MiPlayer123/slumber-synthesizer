@@ -92,7 +92,8 @@ export const Navigation = () => {
           to={user ? "/journal" : "/"}
           className="flex items-center space-x-2"
         >
-          <span className="text-2xl font-bold text-dream-600">☾ REM</span>
+          <img src="/apple-touch-icon.png" alt="REM Logo" className="h-8 w-8" />
+          <span className="text-2xl font-bold text-dream-600">REM</span>
         </Link>
 
         {/* Desktop Navigation - Now with text labels */}
@@ -264,8 +265,13 @@ export const Navigation = () => {
             >
               <div className="py-4">
                 <div className="mb-8 flex items-center">
-                  <span className="text-2xl font-bold text-dream-600">
-                    ☾ REM
+                  <img
+                    src="/apple-touch-icon.png"
+                    alt="REM Logo"
+                    className="h-8 w-8"
+                  />
+                  <span className="text-2xl font-bold text-dream-600 ml-2">
+                    REM
                   </span>
                 </div>
 

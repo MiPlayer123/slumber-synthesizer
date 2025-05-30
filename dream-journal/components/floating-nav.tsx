@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Moon, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 
 export function FloatingNav() {
   const [scrolled, setScrolled] = useState(false);
@@ -33,9 +33,7 @@ export function FloatingNav() {
           whileHover={{ scale: 1.05 }}
           transition={{ type: "spring", stiffness: 400, damping: 10 }}
         >
-          <div className="bg-gradient-to-r from-purple-500 to-blue-500 p-1.5 rounded-full">
-            <Moon size={18} className="text-black" />
-          </div>
+          <img src="/apple-touch-icon.png" alt="REM Logo" className="h-8 w-8" />
           <span className="text-lg font-medium tracking-tight">Rem</span>
         </motion.div>
 
