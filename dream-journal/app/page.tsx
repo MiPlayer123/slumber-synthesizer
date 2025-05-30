@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { ArrowRight, Moon } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import DreamScene from "@/components/dream-scene";
@@ -93,9 +93,11 @@ export default function Home() {
             <div className="flex flex-col h-full p-6">
               <div className="flex justify-between items-center mb-10">
                 <div className="flex items-center gap-2">
-                  <div className="bg-gradient-to-r from-purple-500 to-blue-500 p-1.5 rounded-full">
-                    <Moon size={18} className="text-black" />
-                  </div>
+                  <img
+                    src="/apple-touch-icon.png"
+                    alt="REM Logo"
+                    className="h-8 w-8"
+                  />
                   <span className="text-lg font-medium tracking-tight">
                     Rem
                   </span>
@@ -489,9 +491,11 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="bg-gradient-to-r from-purple-500 to-blue-500 p-1.5 rounded-full">
-                  <Moon size={16} className="text-black" />
-                </div>
+                <img
+                  src="/apple-touch-icon.png"
+                  alt="REM Logo"
+                  className="h-8 w-8"
+                />
                 <span className="text-lg font-medium tracking-tight">Rem</span>
               </div>
               <p className="text-sm text-white/50">
