@@ -134,7 +134,7 @@ export const useFriendsDreams = (
           )
         `,
         )
-        .eq("visibility", "public")
+        .in("visibility", ["public", "friends_only"])
         .in("user_id", friendIds) // Filter by friend IDs
         .order("created_at", { ascending: false })
         .range(from, to);
