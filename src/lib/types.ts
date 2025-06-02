@@ -14,7 +14,7 @@ export type DreamEmotion =
   | "sadness"
   | "neutral";
 
-export type DreamVisibility = "private" | "friends" | "public";
+export type DreamVisibility = "private" | "friends_only" | "public";
 
 export interface Profile {
   id: string;

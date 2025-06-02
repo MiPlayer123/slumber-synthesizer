@@ -64,7 +64,7 @@ const visibilityOptions: {
     description: "Only you can see this dream",
   },
   {
-    value: "friends",
+    value: "friends_only",
     label: "Friends Only",
     icon: Users,
     description: "Only your friends can see this dream",
@@ -178,7 +178,7 @@ export function EditDreamForm({
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
               <Select
@@ -220,38 +220,38 @@ export function EditDreamForm({
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="visibility">Who can see this dream?</Label>
-            <Select
-              value={updatedDream.visibility}
-              onValueChange={(value: DreamVisibility) =>
-                setUpdatedDream({ ...updatedDream, visibility: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select visibility" />
-              </SelectTrigger>
-              <SelectContent>
-                {visibilityOptions.map((option) => {
-                  const IconComponent = option.icon;
-                  return (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div className="flex items-center gap-2">
-                        <IconComponent className="h-4 w-4" />
-                        <div className="flex flex-col">
-                          <span>{option.label}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {option.description}
-                          </span>
+            <div className="space-y-2">
+              <Label htmlFor="visibility">Who can see this?</Label>
+              <Select
+                value={updatedDream.visibility}
+                onValueChange={(value: DreamVisibility) =>
+                  setUpdatedDream({ ...updatedDream, visibility: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select visibility" />
+                </SelectTrigger>
+                <SelectContent>
+                  {visibilityOptions.map((option) => {
+                    const IconComponent = option.icon;
+                    return (
+                      <SelectItem key={option.value} value={option.value}>
+                        <div className="flex items-center gap-2">
+                          <IconComponent className="h-4 w-4" />
+                          <div className="flex flex-col">
+                            <span className="text-sm">{option.label}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {option.description}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2">

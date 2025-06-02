@@ -596,7 +596,7 @@ export const Profile = () => {
                           >
                             {dream.visibility === "public"
                               ? "Public"
-                              : dream.visibility === "friends"
+                              : dream.visibility === "friends_only"
                                 ? "Friends"
                                 : "Private"}
                           </Badge>

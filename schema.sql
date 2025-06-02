@@ -312,7 +312,7 @@ CREATE TABLE IF NOT EXISTS "public"."dreams" (
     "dream_date" "date",
     "dream_type" "public"."dream_type",
     "visibility" "text" DEFAULT 'private'::"text" NOT NULL,
-    CONSTRAINT "dreams_visibility_check" CHECK (("visibility" = ANY (ARRAY['private'::"text", 'friends'::"text", 'public'::"text"])))
+    CONSTRAINT "dreams_visibility_check" CHECK (("visibility" = ANY (ARRAY['private'::"text", 'friends_only'::"text", 'public'::"text"])))
 );
 
 
