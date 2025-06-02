@@ -134,7 +134,7 @@ export const useFriendsDreams = (
           )
         `,
         )
-        .eq("is_public", true)
+        .in("visibility", ["public", "friends_only"])
         .in("user_id", friendIds) // Filter by friend IDs
         .order("created_at", { ascending: false })
         .range(from, to);
@@ -282,7 +282,7 @@ export const usePublicDreams = (pageSize: number = 20) => {
           )
         `,
         )
-        .eq("is_public", true)
+        .eq("visibility", "public")
         .order("created_at", { ascending: false })
         .range(from, to);
 
@@ -345,7 +345,7 @@ export const useCommunityDreams = (pageSize: number = 10) => {
           )
         `,
         )
-        .eq("is_public", true)
+        .eq("visibility", "public")
         .order("created_at", { ascending: false })
         .range(from, to);
 

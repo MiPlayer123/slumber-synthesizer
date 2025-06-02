@@ -158,7 +158,7 @@ const Journal = () => {
         description: dream.description,
         category: dream.category,
         emotion: dream.emotion,
-        is_public: dream.is_public,
+        visibility: dream.visibility,
         user_id: user.id,
       };
 
@@ -192,7 +192,7 @@ const Journal = () => {
         has_image: !!file,
         category: newDream.category,
         emotion: newDream.emotion,
-        is_public: newDream.is_public,
+        visibility: newDream.visibility,
       });
 
       // Optionally force a refetch of the first page to ensure immediate visibility

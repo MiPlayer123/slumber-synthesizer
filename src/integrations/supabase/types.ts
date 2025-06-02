@@ -137,10 +137,13 @@ export type Database = {
           enhanced_description: string | null;
           id: string;
           image_url: string | null;
-          is_public: boolean;
+          visibility: string;
           title: string;
           updated_at: string;
           user_id: string;
+          view_count: number;
+          likes_count: number;
+          dream_date: string | null;
         };
         Insert: {
           category?: Database["public"]["Enums"]["dream_category"];
@@ -150,10 +153,13 @@ export type Database = {
           enhanced_description?: string | null;
           id?: string;
           image_url?: string | null;
-          is_public?: boolean;
+          visibility?: string;
           title: string;
           updated_at?: string;
           user_id: string;
+          view_count?: number;
+          likes_count?: number;
+          dream_date?: string | null;
         };
         Update: {
           category?: Database["public"]["Enums"]["dream_category"];
@@ -163,10 +169,13 @@ export type Database = {
           enhanced_description?: string | null;
           id?: string;
           image_url?: string | null;
-          is_public?: boolean;
+          visibility?: string;
           title?: string;
           updated_at?: string;
           user_id?: string;
+          view_count?: number;
+          likes_count?: number;
+          dream_date?: string | null;
         };
         Relationships: [
           {
