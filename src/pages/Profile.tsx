@@ -261,8 +261,8 @@ export const Profile = () => {
   const getDreamsByFilter = () => {
     if (activeTab === "all") return dreams;
     if (activeTab === "public")
-      return dreams.filter((dream) => dream.is_public);
-    return dreams.filter((dream) => !dream.is_public);
+      return dreams.filter((dream) => dream.visibility === "public");
+    return dreams.filter((dream) => dream.visibility !== "public");
   };
 
   const handleEditDream = (dreamId: string) => {
@@ -497,15 +497,19 @@ export const Profile = () => {
                   <span className="font-medium">{dreams.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Public Dreams</span>
-                  <span className="font-medium">
-                    {dreams.filter((d) => d.is_public).length}
+                  <span className="text-2xl font-bold">
+                    {dreams.filter((d) => d.visibility === "public").length}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    Public Dreams
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Private Dreams</span>
-                  <span className="font-medium">
-                    {dreams.filter((d) => !d.is_public).length}
+                  <span className="text-2xl font-bold">
+                    {dreams.filter((d) => d.visibility !== "public").length}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    Private Dreams
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -582,9 +586,19 @@ export const Profile = () => {
                         {/* Privacy badge */}
                         <div className="absolute top-2 right-2">
                           <Badge
-                            variant={dream.is_public ? "default" : "secondary"}
+                            key={dream.id}
+                            variant={
+                              dream.visibility === "public"
+                                ? "default"
+                                : "secondary"
+                            }
+                            className="cursor-pointer"
                           >
-                            {dream.is_public ? "Public" : "Private"}
+                            {dream.visibility === "public"
+                              ? "Public"
+                              : dream.visibility === "friends"
+                                ? "Friends"
+                                : "Private"}
                           </Badge>
                         </div>
                       </div>

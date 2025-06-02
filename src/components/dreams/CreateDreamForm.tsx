@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { DreamCategory, DreamEmotion } from "@/lib/types";
+import { DreamCategory, DreamEmotion, DreamVisibility } from "@/lib/types";
 import {
   Select,
   SelectContent,
@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { VoiceRecorder } from "@/components/audio/VoiceRecorder";
-import { Mic, Loader2 } from "lucide-react";
+import { Mic, Loader2, Lock, Users, Globe } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 
@@ -50,6 +50,32 @@ const dreamEmotions: DreamEmotion[] = [
   "sadness",
 ];
 
+const visibilityOptions: {
+  value: DreamVisibility;
+  label: string;
+  icon: any;
+  description: string;
+}[] = [
+  {
+    value: "private",
+    label: "Private",
+    icon: Lock,
+    description: "Only you can see this dream",
+  },
+  {
+    value: "friends",
+    label: "Friends Only",
+    icon: Users,
+    description: "Only your friends can see this dream",
+  },
+  {
+    value: "public",
+    label: "Public",
+    icon: Globe,
+    description: "Everyone can see this dream",
+  },
+];
+
 export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
   const { toast } = useToast();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -58,7 +84,7 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
     description: "",
     category: "normal" as DreamCategory,
     emotion: "neutral" as DreamEmotion,
-    is_public: true,
+    visibility: "public" as DreamVisibility,
   });
 
   const [inputMethod, setInputMethod] = useState<"text" | "voice">("text");
@@ -236,15 +262,36 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="is_public"
-              checked={newDream.is_public}
-              onCheckedChange={(checked) =>
-                setNewDream({ ...newDream, is_public: checked })
+          <div className="space-y-2">
+            <Label htmlFor="visibility">Who can see this dream?</Label>
+            <Select
+              value={newDream.visibility}
+              onValueChange={(value: DreamVisibility) =>
+                setNewDream({ ...newDream, visibility: value })
               }
-            />
-            <Label htmlFor="is_public">Make this dream public</Label>
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select visibility" />
+              </SelectTrigger>
+              <SelectContent>
+                {visibilityOptions.map((option) => {
+                  const IconComponent = option.icon;
+                  return (
+                    <SelectItem key={option.value} value={option.value}>
+                      <div className="flex items-center gap-2">
+                        <IconComponent className="h-4 w-4" />
+                        <div className="flex flex-col">
+                          <span>{option.label}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {option.description}
+                          </span>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

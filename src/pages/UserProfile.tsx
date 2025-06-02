@@ -222,7 +222,7 @@ export const UserProfile = () => {
           .from("dreams")
           .select("*")
           .eq("user_id", userId)
-          .eq("is_public", true)
+          .eq("visibility", "public")
           .order("created_at", { ascending: false });
 
         if (error) throw error;
@@ -249,7 +249,7 @@ export const UserProfile = () => {
         .from("dreams")
         .select("*", { count: "exact", head: true })
         .eq("user_id", userId)
-        .eq("is_public", true);
+        .eq("visibility", "public");
 
       if (countError) throw countError;
 
@@ -258,7 +258,7 @@ export const UserProfile = () => {
         .from("dreams")
         .select("category")
         .eq("user_id", userId)
-        .eq("is_public", true);
+        .eq("visibility", "public");
 
       if (categoriesError) throw categoriesError;
 
@@ -266,7 +266,7 @@ export const UserProfile = () => {
         .from("dreams")
         .select("emotion")
         .eq("user_id", userId)
-        .eq("is_public", true);
+        .eq("visibility", "public");
 
       if (emotionsError) throw emotionsError;
 

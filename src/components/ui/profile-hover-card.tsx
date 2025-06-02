@@ -49,7 +49,7 @@ export function ProfileHoverCard({
             .from("dreams")
             .select("*", { count: "exact", head: true })
             .eq("user_id", profileData.id)
-            .eq("is_public", true);
+            .eq("visibility", "public");
 
           if (countError) throw countError;
 

@@ -332,7 +332,7 @@ const Settings = () => {
           "description",
           "category",
           "emotion",
-          "is_public",
+          "visibility",
           "created_at",
         ];
         const dreamRows = dreams.map((d) =>

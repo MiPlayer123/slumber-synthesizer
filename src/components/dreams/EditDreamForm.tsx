@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Dream } from "@/lib/types";
-import { DreamCategory, DreamEmotion } from "@/lib/types";
+import { DreamCategory, DreamEmotion, DreamVisibility } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,9 +19,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
 
-import { Loader2 } from "lucide-react";
+import { Loader2, Lock, Users, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type EditDreamFormProps = {
@@ -52,6 +51,32 @@ const dreamEmotions: DreamEmotion[] = [
   "sadness",
 ];
 
+const visibilityOptions: {
+  value: DreamVisibility;
+  label: string;
+  icon: any;
+  description: string;
+}[] = [
+  {
+    value: "private",
+    label: "Private",
+    icon: Lock,
+    description: "Only you can see this dream",
+  },
+  {
+    value: "friends",
+    label: "Friends Only",
+    icon: Users,
+    description: "Only your friends can see this dream",
+  },
+  {
+    value: "public",
+    label: "Public",
+    icon: Globe,
+    description: "Everyone can see this dream",
+  },
+];
+
 export function EditDreamForm({
   dream,
   onSubmit,
@@ -64,7 +89,7 @@ export function EditDreamForm({
     description: dream.description,
     category: dream.category,
     emotion: dream.emotion,
-    is_public: dream.is_public,
+    visibility: dream.visibility,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -197,15 +222,36 @@ export function EditDreamForm({
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="is_public"
-              checked={updatedDream.is_public}
-              onCheckedChange={(checked) =>
-                setUpdatedDream({ ...updatedDream, is_public: checked })
+          <div className="space-y-2">
+            <Label htmlFor="visibility">Who can see this dream?</Label>
+            <Select
+              value={updatedDream.visibility}
+              onValueChange={(value: DreamVisibility) =>
+                setUpdatedDream({ ...updatedDream, visibility: value })
               }
-            />
-            <Label htmlFor="is_public">Make this dream public</Label>
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select visibility" />
+              </SelectTrigger>
+              <SelectContent>
+                {visibilityOptions.map((option) => {
+                  const IconComponent = option.icon;
+                  return (
+                    <SelectItem key={option.value} value={option.value}>
+                      <div className="flex items-center gap-2">
+                        <IconComponent className="h-4 w-4" />
+                        <div className="flex flex-col">
+                          <span>{option.label}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {option.description}
+                          </span>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
