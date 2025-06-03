@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 
 # Sitemap files
-Sitemap: https://rem-sleep.app/sitemap.xml
+Sitemap: https://lucidrem.com/sitemap.xml
