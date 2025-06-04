@@ -5,11 +5,15 @@
       "destination": "https://api.lucidrem.com/functions/v1/:path*"
     },
     {
+      "source": "/api/og/:path*",
+      "destination": "/api/og/:path*"
+    },
+    {
       "source": "/api/:path*",
       "destination": "/api/:path*"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ],
