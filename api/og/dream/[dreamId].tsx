@@ -31,30 +31,69 @@ function truncateText(text: string, maxLength = 150): string {
 export default async function handler(request: Request) {
   const url = new URL(request.url);
   const pathParts = url.pathname.split("/");
-  const dreamId = pathParts[pathParts.length - 1]; // Extracts the value of [dreamId] from the path
+  const dreamId = pathParts[pathParts.length - 1];
 
   if (!dreamId) {
     return new Response("Dream ID is required", { status: 400 });
   }
 
   try {
-    // Fetch dream data and author data from Supabase REST API
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const response = await fetch(
-      `${supabaseUrl}/rest/v1/dreams?id=eq.${dreamId}&select=title,description,image_url,user_id,profiles(username,avatar_url,full_name)`,
-      {
-        headers: {
-          apikey: supabaseAnonKey,
-          Authorization: `Bearer ${supabaseAnonKey}`,
-        },
-      },
+    const supabaseUrl = process.env.VITE_SUPABASE_URL!; // Ensure this env var name is correct for your setup
+    const serviceKey = process.env.SUPABASE_SERVICE_KEY!; // <<< USE SERVICE KEY HERE
+    // const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY!; // Keep if SITE_URL or other parts need it, but not for this fetch
+
+    console.log(`[OG Dream ${dreamId}] Initiating fetch with service role.`);
+    console.log(
+      `[OG Dream ${dreamId}] Supabase URL: ${supabaseUrl ? supabaseUrl.substring(0, 30) + "..." : "NOT SET"}`,
     );
-    const dreams = await response.json();
-    const dream = dreams[0];
+
+    const fetchUrl = `${supabaseUrl}/rest/v1/dreams?id=eq.${dreamId}&select=title,description,image_url,user_id,profiles(username,avatar_url,full_name)`;
+    console.log(`[OG Dream ${dreamId}] Fetching URL: ${fetchUrl}`);
+
+    const response = await fetch(fetchUrl, {
+      headers: {
+        apikey: serviceKey, // <<< USE SERVICE KEY
+        Authorization: `Bearer ${serviceKey}`, // <<< USE SERVICE KEY
+      },
+    });
+
+    console.log(
+      `[OG Dream ${dreamId}] Supabase response status: ${response.status}`,
+    );
+    const responseText = await response.text();
+    console.log(
+      `[OG Dream ${dreamId}] Supabase raw response text: ${responseText}`,
+    );
+
+    let dreamsArray;
+    if (response.ok && responseText) {
+      try {
+        dreamsArray = JSON.parse(responseText);
+      } catch (e) {
+        console.error(`[OG Dream ${dreamId}] JSON parsing error:`, e);
+        console.error(
+          `[OG Dream ${dreamId}] Response text that failed parsing: ${responseText}`,
+        );
+        return new Response("Failed to parse data from Supabase", {
+          status: 500,
+        });
+      }
+    } else if (!response.ok) {
+      console.error(
+        `[OG Dream ${dreamId}] Supabase fetch failed. Status: ${response.status}, Body: ${responseText}`,
+      );
+    }
+
+    const dream = dreamsArray && dreamsArray.length > 0 ? dreamsArray[0] : null;
+    console.log(
+      `[OG Dream ${dreamId}] Parsed dream object: ${JSON.stringify(dream)}`,
+    );
 
     if (!dream) {
-      return new Response(`Dream not found for id ${dreamId}`, { status: 404 });
+      return new Response(
+        `Dream not found for id ${dreamId} (using service role)`,
+        { status: 404 },
+      );
     }
 
     // Safely access profile data, whether it's an object or an array from the join
@@ -219,11 +258,13 @@ export default async function handler(request: Request) {
       },
     );
   } catch (e: any) {
-    console.error(
+    console.error(`[OG Dream ${dreamId}] Error in handler: ${e.message}`);
+    console.error(e.stack);
+    return new Response(
       `Error generating OG image for dream ${dreamId}: ${e.message}`,
+      {
+        status: 500,
+      },
     );
-    return new Response(`Failed to generate image: ${e.message}`, {
-      status: 500,
-    });
   }
 }
