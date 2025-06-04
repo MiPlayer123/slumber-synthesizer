@@ -1,15 +1,8 @@
-import * as React from "react";
 import { ImageResponse } from "@vercel/og";
-import { createClient } from "@supabase/supabase-js";
 
 export const config = {
   runtime: "edge",
 };
-
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Function to fetch font data
 async function getFontData(fontUrl: string): Promise<ArrayBuffer> {
@@ -50,27 +43,23 @@ export default async function handler(request: Request) {
   }
 
   try {
-    // Fetch dream data and author data from Supabase
-    const { data: dream, error: dreamError } = await supabase
-      .from("dreams")
-      .select(
-        `
-        title,
-        description,
-        image_url,
-        user_id,
-        profiles ( username, avatar_url, full_name )
-      `,
-      )
-      .eq("id", dreamId)
-      .single();
+    // Fetch dream data and author data from Supabase REST API
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/dreams?id=eq.${dreamId}&select=title,description,image_url,user_id,profiles(username,avatar_url,full_name)`,
+      {
+        headers: {
+          apikey: supabaseAnonKey,
+          Authorization: `Bearer ${supabaseAnonKey}`,
+        },
+      },
+    );
+    const dreams = await response.json();
+    const dream = dreams[0];
 
-    if (dreamError || !dream) {
-      console.error("Error fetching dream:", dreamError);
-      return new Response(
-        `Dream not found for id ${dreamId}: ${dreamError?.message || "No dream data"}`,
-        { status: 404 },
-      );
+    if (!dream) {
+      return new Response(`Dream not found for id ${dreamId}`, { status: 404 });
     }
 
     // Safely access profile data, whether it's an object or an array from the join

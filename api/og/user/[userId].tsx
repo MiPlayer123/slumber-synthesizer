@@ -1,15 +1,8 @@
-import * as React from "react";
 import { ImageResponse } from "@vercel/og";
-import { createClient } from "@supabase/supabase-js";
 
 export const config = {
   runtime: "edge",
 };
-
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Function to fetch font data
 async function getFontData(fontUrl: string): Promise<ArrayBuffer> {
@@ -39,19 +32,25 @@ export default async function handler(request: Request) {
   }
 
   try {
-    // Fetch user data from Supabase
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("username, full_name, avatar_url")
-      .eq("id", userId)
-      .single();
+    // Fetch user data from Supabase REST API
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=username,full_name,avatar_url`,
+      {
+        headers: {
+          apikey: supabaseAnonKey,
+          Authorization: `Bearer ${supabaseAnonKey}`,
+        },
+      },
+    );
+    const profiles = await response.json();
+    const profile = profiles[0];
 
-    if (profileError || !profile) {
-      console.error("Error fetching profile:", profileError);
-      return new Response(
-        `Profile not found for user ${userId}: ${profileError?.message || "No profile data"}`,
-        { status: 404 },
-      );
+    if (!profile) {
+      return new Response(`Profile not found for user ${userId}`, {
+        status: 404,
+      });
     }
 
     // Load fonts
