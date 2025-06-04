@@ -4,16 +4,11 @@ export const config = {
   runtime: "edge",
 };
 
+const SITE_URL = process.env.VITE_SITE_URL || "https://www.lucidrem.com";
+
 // Function to fetch font data
 async function getFontData(fontUrl: string): Promise<ArrayBuffer> {
-  const response = await fetch(
-    new URL(
-      fontUrl,
-      process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : "http://localhost:5173",
-    ),
-  );
+  const response = await fetch(new URL(fontUrl, SITE_URL));
   if (!response.ok) {
     throw new Error(
       `Failed to fetch font: ${response.statusText} from ${fontUrl}`,
@@ -59,18 +54,11 @@ export default async function handler(request: Request) {
 
     const logoUrl = new URL(
       "/images/e6477f41-9e85-41b4-b60f-8c257c3fca4e_1748211619250.png",
-      process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : "http://localhost:5173",
+      SITE_URL,
     ).toString();
     const avatarSrc =
       profile.avatar_url ||
-      new URL(
-        "/images/default-avatar.png",
-        process.env.VERCEL_URL
-          ? `https://${process.env.VERCEL_URL}`
-          : "http://localhost:5173",
-      ).toString(); // Fallback to a default avatar if none
+      new URL("/images/default-avatar.png", SITE_URL).toString(); // Fallback to a default avatar if none
 
     return new ImageResponse(
       (
