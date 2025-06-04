@@ -53,3 +53,12 @@ export interface DreamAnalysis {
   created_at: string;
   updated_at: string;
 }
+
+export interface Comment {
+  id: string;
+  dream_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  profiles?: Pick<Profile, "id" | "username" | "avatar_url" | "full_name">; // Details of the commenter
+}

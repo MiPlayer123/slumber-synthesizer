@@ -169,8 +169,8 @@ export default function FriendsFeed() {
 
   const handleProfileNavigation = (username?: string) => {
     if (username) {
-      setSelectedDream(null); // Close dialog
-      navigate(`/profile/${username}`);
+      setSelectedDream(null);
+      navigate(`/profile/${username}/app`);
     }
   };
 

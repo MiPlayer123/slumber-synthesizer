@@ -266,7 +266,7 @@ export const Profile = () => {
   };
 
   const handleEditDream = (dreamId: string) => {
-    navigate(`/dream/${dreamId}`);
+    navigate(`/dream/${dreamId}/app`);
   };
 
   const handleDeleteDream = async (dreamId: string) => {
@@ -307,7 +307,7 @@ export const Profile = () => {
       return;
     }
 
-    navigate(`/dream/${dreamId}?analyze=true`);
+    navigate(`/dream/${dreamId}/app?analyze=true`);
   };
 
   if (loading && !profile) {
@@ -606,7 +606,7 @@ export const Profile = () => {
                       <CardContent className="pt-4">
                         <div className="flex justify-between items-start mb-2">
                           <Link
-                            to={`/dream/${dream.id}`}
+                            to={`/dream/${dream.id}/app`}
                             className="hover:underline"
                           >
                             <h3 className="font-semibold text-lg line-clamp-1">

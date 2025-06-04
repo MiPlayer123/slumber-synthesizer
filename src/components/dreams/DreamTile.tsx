@@ -43,7 +43,7 @@ export const DreamTile: React.FC<DreamTileProps> = ({
   const handleProfileClick = (e: React.MouseEvent, username?: string) => {
     e.stopPropagation();
     if (username) {
-      navigate(`/profile/${username}`);
+      navigate(`/profile/${username}/app`);
     }
   };
 

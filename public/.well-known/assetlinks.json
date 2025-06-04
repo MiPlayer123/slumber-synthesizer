@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.lucidrem.app",
+      "sha256_cert_fingerprints": [
+        "B3:C2:40:58:AE:C9:FF:E1:AC:9A:DF:56:42:C1:DD:0A:FB:AB:6D:FB:2F:73:AC:62:8D:5D:A8:50:BE:87:F0:43"
+      ]
+    }
+  }
+]
