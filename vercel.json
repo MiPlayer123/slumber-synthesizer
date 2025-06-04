@@ -4,7 +4,14 @@
       "source": "/api/functions/v1/:path*",
       "destination": "https://api.lucidrem.com/functions/v1/:path*"
     },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ],
   "redirects": [
     {
