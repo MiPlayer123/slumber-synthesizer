@@ -397,7 +397,7 @@ function DreamCard({ dream }: DreamCardProps) {
 
   const handleCommentClick = () => {
     // Navigate to dream detail with the comments hash
-    navigate(`/dream/${dream.id}#comments`);
+    navigate(`/dream/${dream.id}/app#comments`);
   };
 
   const handleShareDream = () => {
@@ -428,7 +428,7 @@ function DreamCard({ dream }: DreamCardProps) {
     <Card
       key={dream.id}
       className="overflow-hidden border-none shadow-md dark:shadow-lg dark:shadow-slate-700/50 cursor-pointer"
-      onClick={() => navigate(`/dream/${dream.id}`)}
+      onClick={() => navigate(`/dream/${dream.id}/app`)}
     >
       {/* Card Header with Author Info */}
       <CardHeader className="flex flex-row items-center justify-between p-4 space-y-0">
@@ -438,7 +438,7 @@ function DreamCard({ dream }: DreamCardProps) {
               className="cursor-pointer transition-opacity hover:opacity-70"
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/profile/${dream.profiles.username}`);
+                navigate(`/profile/${dream.profiles.username}/app`);
               }}
             >
               <Avatar className="flex-shrink-0">
@@ -458,7 +458,7 @@ function DreamCard({ dream }: DreamCardProps) {
                 className="cursor-pointer transition-colors hover:text-muted-foreground"
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/profile/${dream.profiles.username}`);
+                  navigate(`/profile/${dream.profiles.username}/app`);
                 }}
               >
                 <CardTitle className="text-base truncate">
@@ -589,7 +589,7 @@ function DreamCard({ dream }: DreamCardProps) {
                     className="text-sm text-muted-foreground hover:underline cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate(`/dream/${dream.id}#comments`);
+                      navigate(`/dream/${dream.id}/app#comments`);
                     }}
                   >
                     View all comments
@@ -609,7 +609,7 @@ function DreamCard({ dream }: DreamCardProps) {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 navigate(
-                                  `/profile/${comment.profiles.username}`,
+                                  `/profile/${comment.profiles.username}/app`,
                                 );
                               }}
                             >
@@ -635,7 +635,7 @@ function DreamCard({ dream }: DreamCardProps) {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     navigate(
-                                      `/profile/${comment.profiles.username}`,
+                                      `/profile/${comment.profiles.username}/app`,
                                     );
                                   }}
                                 >
@@ -657,7 +657,7 @@ function DreamCard({ dream }: DreamCardProps) {
                       className="text-sm text-muted-foreground mt-1 hover:underline"
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/dream/${dream.id}#comments`);
+                        navigate(`/dream/${dream.id}/app#comments`);
                       }}
                     >
                       View all {commentCount} comments
@@ -726,7 +726,7 @@ function FriendDreamCard({ dream }: FriendDreamCardProps) {
     <div className="border rounded-lg overflow-hidden bg-card">
       <div
         className="cursor-pointer"
-        onClick={() => navigate(`/dream/${dream.id}`)}
+        onClick={() => navigate(`/dream/${dream.id}/app`)}
       >
         {dream.image_url && (
           <div className="aspect-video w-full">

@@ -407,7 +407,7 @@ export default function DreamDetail() {
                     className="flex items-center gap-2 transition-opacity hover:opacity-70 cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate(`/profile/${dream.profiles.username}`);
+                      navigate(`/profile/${dream.profiles.username}/app`);
                     }}
                   >
                     <Avatar className="h-8 w-8">
@@ -517,7 +517,7 @@ export default function DreamDetail() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 navigate(
-                                  `/profile/${comment.profiles.username}`,
+                                  `/profile/${comment.profiles.username}/app`,
                                 );
                               }}
                             >
@@ -544,7 +544,7 @@ export default function DreamDetail() {
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       navigate(
-                                        `/profile/${comment.profiles.username}`,
+                                        `/profile/${comment.profiles.username}/app`,
                                       );
                                     }}
                                   >

@@ -448,7 +448,7 @@ export const UserProfile = () => {
       sessionStorage.setItem(`scroll_${username}`, window.scrollY.toString());
 
       // On mobile, navigate directly to the dream detail page
-      navigate(`/dream/${dream.id}`, { state: { fromProfile: true } });
+      navigate(`/dream/${dream.id}/app`, { state: { fromProfile: true } });
     } else {
       // On desktop, show the dialog as before
       setSelectedDream(dream);
@@ -618,7 +618,7 @@ export const UserProfile = () => {
     // Close the dialog first to avoid it persisting
     setSelectedDream(null);
     // Navigate to the profile
-    navigate(`/profile/${username}`);
+    navigate(`/profile/${username}/app`);
   };
 
   if (loading) {

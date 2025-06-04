@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Suspense, lazy, useEffect } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics } from "@vercel/analytics/react";
+import { HelmetProvider } from "react-helmet-async";
 
 // Pages
 import Index from "@/pages/Index";
@@ -40,6 +41,10 @@ const DreamDetail = lazy(() => import("@/pages/DreamDetail"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const FriendsFeed = lazy(() => import("@/pages/FriendsFeed")); // Added FriendsFeed
 const ManageFriendsPage = lazy(() => import("@/pages/ManageFriendsPage")); // Added ManageFriendsPage
+
+// Public sharing pages (not lazy loaded for better SEO)
+import PublicDreamView from "@/pages/PublicDreamView";
+import PublicProfileView from "@/pages/PublicProfileView";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -214,6 +219,11 @@ function AppRoutes() {
       <Route path="/terms" element={<Terms />} />
       <Route path="/support" element={<Navigate to="/" />} />
       <Route path="/blog" element={<Navigate to="/" />} />
+
+      {/* Public sharing routes - accessible without authentication */}
+      <Route path="/dream/:dreamId" element={<PublicDreamView />} />
+      <Route path="/profile/:username" element={<PublicProfileView />} />
+
       <Route
         path="/checkout-complete"
         element={
@@ -275,7 +285,7 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/profile/:username"
+        path="/profile/:username/app"
         element={
           <ProtectedRoute>
             <UserProfile />
@@ -291,7 +301,7 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/dream/:dreamId"
+        path="/dream/:dreamId/app"
         element={
           <ProtectedRoute>
             <Suspense fallback={<LoadingSpinner />}>
@@ -335,13 +345,15 @@ function AppContent() {
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <div className="min-h-screen bg-background font-sans antialiased">
-            <Navigation />
-            <main className="pt-16">
-              <AppRoutes />
-            </main>
-            <Toaster />
-          </div>
+          <HelmetProvider>
+            <div className="min-h-screen bg-background font-sans antialiased">
+              <Navigation />
+              <main className="pt-16">
+                <AppRoutes />
+              </main>
+              <Toaster />
+            </div>
+          </HelmetProvider>
         </AuthProvider>
       </QueryClientProvider>
     </ThemeProvider>

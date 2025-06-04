@@ -68,7 +68,7 @@ export function ProfileHoverCard({
   const handleProfileClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    navigate(`/profile/${username}`);
+    navigate(`/profile/${username}/app`);
     setIsOpen(false);
   };
 

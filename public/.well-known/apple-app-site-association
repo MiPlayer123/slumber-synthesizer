@@ -1,0 +1,17 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMID.com.lucidrem.app",
+        "paths": [
+          "/dream/*",
+          "/profile/*"
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["TEAMID.com.lucidrem.app"]
+  }
+} 
