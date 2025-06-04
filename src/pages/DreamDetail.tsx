@@ -158,13 +158,81 @@ export default function DreamDetail() {
 
   const commentsRef = useRef<HTMLDivElement>(null);
 
-  // Check for analyze parameter and apply free limit check
+  // HELPER FUNCTIONS
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        toast({
+          title: "Link copied",
+          description: "Dream link copied to clipboard!",
+        });
+      })
+      .catch((err) => {
+        console.error("Failed to copy link:", err);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to copy link",
+        });
+      });
+  };
+
+  const handlePublicShare = () => {
+    if (!publicDreamResponse?.dream || !publicDreamResponse.metadata) return;
+    const shareUrl =
+      publicDreamResponse.metadata.shareUrl ||
+      `${window.location.origin}/dream/${dreamId}`;
+    const dreamData = publicDreamResponse.dream;
+    const shareData = {
+      title: dreamData.title || "Shared Dream",
+      text:
+        dreamData.description?.slice(0, 100) + "..." || "Check out this dream!",
+      url: shareUrl,
+    };
+    if (navigator.share && navigator.canShare?.(shareData)) {
+      navigator.share(shareData).catch(() => copyToClipboard(shareUrl));
+    } else {
+      copyToClipboard(shareUrl);
+    }
+  };
+
+  const handleOpenInApp = () => {
+    const appUrl =
+      publicDreamResponse?.metadata?.deepLink || `rem://dream/${dreamId}`;
+    window.location.href = appUrl;
+    setTimeout(() => {
+      toast({
+        title: "App not found",
+        description:
+          "Please install Rem to view this dream with full features.",
+      });
+    }, 2000);
+  };
+
+  const handleLoginRedirect = () => {
+    navigate("/auth", { state: { from: `/dream/${dreamId}` } });
+  };
+
+  const getPublicVisibilityIcon = (visibility?: DreamVisibility) => {
+    switch (visibility) {
+      case "public":
+        return <Globe className="w-4 h-4" />;
+      case "friends_only":
+        return <Users className="w-4 h-4" />;
+      case "private":
+        return <Lock className="w-4 h-4" />;
+      default:
+        return <Globe className="w-4 h-4" />;
+    }
+  };
+
+  // Effect for analyze parameter
   useEffect(() => {
+    if (isPublicView) return;
     const searchParams = new URLSearchParams(location.search);
     const shouldAnalyze = searchParams.get("analyze") === "true";
-
     if (shouldAnalyze && dreamId && user) {
-      // ALWAYS check if user has reached analysis limit, even if they try to bypass UI restrictions
       if (hasReachedLimit("analysis")) {
         toast({
           variant: "destructive",
@@ -172,28 +240,34 @@ export default function DreamDetail() {
           description:
             "You've reached your free dream analysis limit this week. Upgrade to premium for unlimited analyses.",
         });
-
-        // Remove the analyze parameter from the URL without navigating
-        const newUrl = window.location.pathname;
+        const newUrl = location.pathname;
         window.history.replaceState({}, "", newUrl);
         return;
       }
-
-      // If limit not reached, navigate to journal page with state for analysis
       navigate("/journal", {
-        state: {
-          fromDreamDetail: true,
-          analyzeDreamId: dreamId,
-        },
-        replace: true, // Replace instead of push to avoid back button issues
+        state: { fromDreamDetail: true, analyzeDreamId: dreamId },
+        replace: true,
       });
     }
-  }, [location.search, dreamId, hasReachedLimit, toast, navigate, user]);
+  }, [
+    location.search,
+    dreamId,
+    hasReachedLimit,
+    toast,
+    navigate,
+    user,
+    isPublicView,
+    location.pathname,
+  ]);
 
+  // MODIFIED: Effect for fetching APP-VIEW dream data
   useEffect(() => {
-    async function fetchDream() {
-      if (!dreamId) return;
-
+    if (isPublicView || !dreamId) {
+      if (!isPublicView) setLoading(false);
+      return;
+    }
+    async function fetchAppData() {
+      setLoading(true);
       try {
         const { data, error } = await supabase
           .from("dreams")
@@ -211,20 +285,73 @@ export default function DreamDetail() {
           setDream(dreamWithProfiles);
         }
       } catch (error) {
-        console.error("Error fetching dream:", error);
+        console.error("Error fetching app dream:", error);
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to load dream details",
+          description: "Failed to load dream details for app view",
         });
       } finally {
         setLoading(false);
       }
     }
+    fetchAppData();
+  }, [dreamId, toast, isPublicView]);
 
-    fetchDream();
-  }, [dreamId, toast]);
+  // NEW: Effect for fetching PUBLIC dream data
+  useEffect(() => {
+    if (!isPublicView || !dreamId) {
+      if (isPublicView) setIsLoadingPublicDream(false);
+      return;
+    }
+    async function fetchPublicDreamData() {
+      setIsLoadingPublicDream(true);
+      setPublicViewError(null);
+      setPublicDreamResponse(null);
+      setPublicPrivacyInfo({});
+      try {
+        const { data, error: functionError } = await supabase.functions.invoke(
+          `get-public-dream/${dreamId}`,
+          {
+            headers: user
+              ? {
+                  Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+                }
+              : undefined,
+          },
+        );
+        if (functionError) throw functionError;
+        const response = data as PublicDreamResponse;
+        if (response.error) {
+          setPublicViewError(response.error);
+          setPublicPrivacyInfo({
+            visibility: response.visibility,
+            requiresAuth: response.requiresAuth,
+            requiresFriendship: response.requiresFriendship,
+          });
+          setPublicDreamResponse(response);
+        } else if (!response.dream || !response.metadata) {
+          setPublicViewError("Dream data is incomplete or not found.");
+          setPublicPrivacyInfo({ visibility: "private" });
+        } else {
+          setPublicDreamResponse(response);
+        }
+      } catch (err: any) {
+        console.error("Error fetching public dream:", err);
+        setPublicViewError(
+          err.message || "Failed to load dream. Please try again.",
+        );
+        if (!publicPrivacyInfo.visibility) {
+          setPublicPrivacyInfo({ visibility: "private" });
+        }
+      } finally {
+        setIsLoadingPublicDream(false);
+      }
+    }
+    fetchPublicDreamData();
+  }, [dreamId, user, isPublicView, location.key]);
 
+  // MODIFIED: Effect for fetching APP-VIEW comments
   const fetchComments = useCallback(async () => {
     if (isPublicView || !dreamId) return;
     setIsLoadingComments(true);
@@ -249,8 +376,53 @@ export default function DreamDetail() {
   }, [dreamId, toast, isPublicView]);
 
   useEffect(() => {
-    if (!isPublicView && dreamId && !loading) fetchComments();
+    if (!isPublicView && dreamId && !loading) {
+      fetchComments();
+    }
   }, [dreamId, loading, fetchComments, isPublicView]);
+
+  // NEW: Effect for fetching PUBLIC comments
+  useEffect(() => {
+    async function fetchPublicCommentsAndUpdateState() {
+      if (
+        !isPublicView ||
+        !dreamId ||
+        !publicDreamResponse?.dream ||
+        !publicDreamResponse?.metadata?.canView
+      ) {
+        if (isPublicView) setIsLoadingPublicComments(false);
+        setPublicComments([]);
+        return;
+      }
+      setIsLoadingPublicComments(true);
+      try {
+        const { data, error } = await supabase
+          .from("comments")
+          .select("*, profiles (username, avatar_url, full_name)")
+          .eq("dream_id", dreamId)
+          .order("created_at", { ascending: true });
+        if (error) throw error;
+        setPublicComments(data || []);
+      } catch (err) {
+        console.error("Error fetching public comments:", err);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Could not load comments for this dream.",
+        });
+        setPublicComments([]);
+      } finally {
+        setIsLoadingPublicComments(false);
+      }
+    }
+    if (
+      isPublicView &&
+      publicDreamResponse?.dream &&
+      publicDreamResponse?.metadata?.canView
+    ) {
+      fetchPublicCommentsAndUpdateState();
+    }
+  }, [dreamId, isPublicView, publicDreamResponse, user, toast]);
 
   const handlePostComment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -461,14 +633,13 @@ export default function DreamDetail() {
   };
 
   // --- OG Meta Tag Constants ---
-  // These will be populated based on the view (public/app) and data availability
   let ogTitle = "Rem";
   let ogDescription =
     "Explore dreams on Rem, the AI powered social dream journal.";
-  let ogImageUrl = `${import.meta.env.VITE_APP_URL || window.location.origin}/preview_image.png`; // Default OG image
+  let ogImageUrl = `${import.meta.env.VITE_APP_URL || window.location.origin}/preview_image.png`;
   let pageUrl = import.meta.env.VITE_APP_URL || window.location.origin;
   let canonicalUrl = pageUrl;
-  let shouldIndexPage = true; // Default to allow indexing
+  let shouldIndexPage = true;
 
   // --- Public View Logic ---
   if (isPublicView) {
@@ -813,7 +984,7 @@ export default function DreamDetail() {
   // --- App View Logic (Authenticated) ---
   else if (!isPublicView) {
     if (loading) {
-      // This is the `loading` state for the app view's `dream`
+      // This is the \`loading\` state for the app view's \`dream\`
       ogTitle = "Loading Dream... | Rem Journal";
       shouldIndexPage = false;
       return (
