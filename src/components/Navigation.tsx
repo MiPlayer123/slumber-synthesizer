@@ -176,15 +176,9 @@ export const Navigation = () => {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link to="/profile">
+                    <Link to={`/profile/${user?.user_metadata?.username}/app`}>
                       <UserIcon className="mr-2 h-4 w-4" />
                       <span>My Profile</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to={`/profile/${user.user_metadata?.username}`}>
-                      <Users className="mr-2 h-4 w-4" />
-                      <span>View Profile</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>

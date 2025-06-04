@@ -21,6 +21,7 @@ import {
   Lock,
   ExternalLink,
   Download,
+  Pencil,
 } from "lucide-react";
 import { Dream as BaseDream, Profile as ProfileType } from "@/lib/types";
 
@@ -180,6 +181,7 @@ export const UserProfile = () => {
   const { user } = useAuth();
 
   const isPublicView = !location.pathname.includes("/app");
+  const isOwnProfile = user?.user_metadata?.username === username;
 
   const [loading, setLoading] = useState(true);
   const [dreamsLoading, setDreamsLoading] = useState(true);
@@ -1150,9 +1152,17 @@ export const UserProfile = () => {
           <ArrowLeft className="h-4 w-4 mr-2" /> Back
         </Button>
 
-        <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-10">
-          {profile.username}'s Profile
-        </h1>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4 md:mb-10">
+          <h1 className="text-2xl md:text-3xl font-bold">
+            {profile.username}'s Profile
+          </h1>
+          {!isPublicView && isOwnProfile && (
+            <Button variant="outline" onClick={() => navigate("/settings")}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit Profile
+            </Button>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-8">
           <div className="lg:col-span-4 space-y-4 md:space-y-6">

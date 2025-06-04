@@ -248,50 +248,42 @@ export default function DreamDetail() {
   }, [dreamId, user, isPublicView, location.key]); // location.key to refetch on nav
 
   // Effect for fetching PUBLIC comments (runs after public dream data is loaded)
-  const fetchPublicViewComments = useCallback(async () => {
-    if (
-      !isPublicView ||
-      !publicDreamResponse?.dream?.id ||
-      isLoadingPublicComments
-    )
-      return;
-
-    setIsLoadingPublicComments(true);
-    try {
-      const { data, error } = await supabase
-        .from("comments")
-        .select(`*, profiles(username, avatar_url, id, full_name)`) // Ensure profiles are fetched for comments
-        .eq("dream_id", publicDreamResponse.dream.id)
-        .order("created_at", { ascending: true }); // Typically ascending for comment threads
-
-      if (error) throw error;
-      setPublicComments(data || []);
-    } catch (error) {
-      console.error("Error fetching public comments:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load comments for public view",
-      });
-    } finally {
-      setIsLoadingPublicComments(false);
-    }
-  }, [
-    isPublicView,
-    publicDreamResponse?.dream?.id,
-    toast,
-    isLoadingPublicComments,
-  ]);
-
   useEffect(() => {
-    if (
-      isPublicView &&
-      publicDreamResponse?.dream?.id &&
-      !publicDreamResponse.error
-    ) {
-      fetchPublicViewComments();
+    async function fetchPublicCommentsAndUpdateState() {
+      if (!dreamId || !publicDreamResponse?.dream) {
+        if (isPublicView) setIsLoadingPublicComments(false);
+        setPublicComments([]);
+        return;
+      }
+      if (!isPublicView) return;
+
+      setIsLoadingPublicComments(true);
+      try {
+        const { data, error } = await supabase
+          .from("comments")
+          .select("*, profiles (username, avatar_url, full_name)")
+          .eq("dream_id", dreamId)
+          .order("created_at", { ascending: true });
+
+        if (error) throw error;
+        setPublicComments(data || []);
+      } catch (err) {
+        console.error("Error fetching public comments:", err);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Could not load comments for this dream.",
+        });
+        setPublicComments([]);
+      } finally {
+        setIsLoadingPublicComments(false);
+      }
     }
-  }, [publicDreamResponse, isPublicView, fetchPublicViewComments]);
+
+    if (isPublicView && publicDreamResponse?.dream) {
+      fetchPublicCommentsAndUpdateState();
+    }
+  }, [dreamId, isPublicView, publicDreamResponse?.dream?.id, user, toast]);
 
   // Modified effect for fetching app-internal dream data
   useEffect(() => {
@@ -550,37 +542,44 @@ export default function DreamDetail() {
     if (e) e.preventDefault();
     if (
       !user ||
-      !publicDreamResponse?.dream?.id ||
+      !dreamId ||
       !newPublicComment.trim() ||
-      isPostingPublicComment
+      isPostingPublicComment ||
+      !publicDreamResponse?.dream
     )
       return;
 
     setIsPostingPublicComment(true);
     try {
-      const { error } = await supabase.from("comments").insert({
-        dream_id: publicDreamResponse.dream.id,
-        user_id: user.id,
-        content: newPublicComment.trim(),
-        created_at: new Date().toISOString(),
-      });
+      const { data: newCommentData, error } = await supabase
+        .from("comments")
+        .insert({
+          dream_id: dreamId,
+          user_id: user.id,
+          content: newPublicComment.trim(),
+        })
+        .select("*, profiles (username, avatar_url, full_name)")
+        .single();
 
       if (error) throw error;
 
+      if (newCommentData) {
+        setPublicComments((prevComments) => [
+          ...prevComments,
+          newCommentData as Comment,
+        ]);
+      }
       setNewPublicComment("");
-      fetchPublicViewComments(); // Refresh public comments list
-      // No need to invalidate query cache here if fetchPublicViewComments directly updates state from fresh fetch
-
       toast({
         title: "Comment posted",
         description: "Your comment has been added.",
       });
-    } catch (error) {
-      console.error("Error posting public comment:", error);
+    } catch (err) {
+      console.error("Error posting public comment:", err);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to post comment. Please try again.",
+        description: "Failed to post comment.",
       });
     } finally {
       setIsPostingPublicComment(false);

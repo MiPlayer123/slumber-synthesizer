@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -99,6 +99,9 @@ const Settings = () => {
   const [isLoadingPassword, setIsLoadingPassword] = useState(false);
   const [isLoadingDataExport, setIsLoadingDataExport] = useState(false);
   const [hasInitiallyRefreshed, setHasInitiallyRefreshed] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const avatarFileRef = useRef<HTMLInputElement>(null);
 
   // Calculate progress percentage for subscription period
   const calculateProgressPercent = (endDate: string) => {
@@ -219,6 +222,85 @@ const Settings = () => {
       });
     } finally {
       setIsLoadingProfile(false);
+    }
+  };
+
+  const handleAvatarUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    if (!event.target.files || event.target.files.length === 0) {
+      return;
+    }
+
+    const file = event.target.files[0];
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${user?.id}_${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    setUploadingAvatar(true);
+
+    try {
+      // Upload image to Supabase storage
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL of the uploaded image
+      const { data: urlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      if (!urlData?.publicUrl) {
+        throw new Error("Could not get public URL for avatar.");
+      }
+      const newAvatarUrl = urlData.publicUrl;
+
+      // Update user metadata (auth.users table) - THIS IS ESSENTIAL
+      const { error: userUpdateError } = await supabase.auth.updateUser({
+        data: { avatar_url: newAvatarUrl },
+      });
+
+      if (userUpdateError) {
+        throw userUpdateError;
+      }
+
+      // Update profiles table
+      if (user?.id) {
+        const { error: profileUpdateError } = await supabase
+          .from("profiles")
+          .update({ avatar_url: newAvatarUrl })
+          .eq("id", user.id);
+
+        if (profileUpdateError) {
+          throw profileUpdateError;
+        }
+      }
+
+      // The user object in useAuth should update automatically via onAuthStateChange
+      // after supabase.auth.updateUser completes. The AvatarImage key prop will also help re-render.
+
+      toast({
+        title: "Avatar Updated",
+        description: "Your avatar has been successfully updated.",
+      });
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description:
+          error instanceof Error ? error.message : "Failed to upload avatar.",
+      });
+    } finally {
+      setUploadingAvatar(false);
+      // Reset file input value to allow re-uploading the same file if needed
+      if (avatarFileRef.current) {
+        avatarFileRef.current.value = "";
+      }
     }
   };
 
@@ -852,6 +934,7 @@ const Settings = () => {
                               alt={
                                 user.user_metadata?.name || user.email || "User"
                               }
+                              key={user.user_metadata.avatar_url}
                             />
                           ) : (
                             <AvatarFallback className="text-lg">
@@ -859,7 +942,23 @@ const Settings = () => {
                             </AvatarFallback>
                           )}
                         </Avatar>
-                        <Button variant="outline">Change Avatar</Button>
+                        <input
+                          type="file"
+                          ref={avatarFileRef}
+                          onChange={handleAvatarUpload}
+                          accept="image/png, image/jpeg, image/gif"
+                          style={{ display: "none" }}
+                        />
+                        <Button
+                          variant="outline"
+                          onClick={() => avatarFileRef.current?.click()}
+                          disabled={uploadingAvatar}
+                        >
+                          {uploadingAvatar ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : null}
+                          {uploadingAvatar ? "Uploading..." : "Change Avatar"}
+                        </Button>
                       </div>
 
                       <div className="space-y-2">
