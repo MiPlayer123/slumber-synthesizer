@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,31 +10,15 @@ import {
   Share,
   ArrowLeft,
   Loader2,
-  Trash2,
-  MoreVertical,
   Globe,
-  Users,
   Lock,
-  ExternalLink,
   Heart,
   MessageCircle,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { format, formatDistanceToNow } from "date-fns";
-import { DreamLikeButton } from "@/components/dreams/DreamLikeButton";
-import { useQueryClient } from "@tanstack/react-query";
-import { ProfileHoverCard } from "@/components/ui/profile-hover-card";
-import { useDreamCommentCount } from "@/hooks/use-dream-comments";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSubscription } from "@/hooks/use-subscription";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Helmet } from "react-helmet-async";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 
 // Updated Interface for the public dream response to match Edge Function
@@ -61,11 +45,7 @@ interface PublicDreamResponse {
 }
 
 // Placeholder for your custom loading skeleton component
-const DreamDetailLoadingSkeleton = ({
-  isPublicView,
-}: {
-  isPublicView?: boolean;
-}) => (
+const DreamDetailLoadingSkeleton = () => (
   <div className="min-h-screen flex items-center justify-center">
     <Loader2 className="h-12 w-12 animate-spin text-primary" />
     <p className="ml-4">Loading dream details...</p>
@@ -121,24 +101,14 @@ export default function DreamDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const { hasReachedLimit } = useSubscription();
 
   const isPublicView = !location.pathname.includes("/app");
   const fromProfile = location.state?.fromProfile === true;
-  const { hasReachedLimit } = useSubscription();
-  const { commentCount: appViewCommentCount } = useDreamCommentCount(
-    dreamId || "",
-  );
 
   // App view state
   const [dream, setDream] = useState<Dream | null>(null);
   const [loading, setLoading] = useState(isPublicView ? false : true);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [isLoadingComments, setIsLoadingComments] = useState(false);
-  const [newComment, setNewComment] = useState("");
-  const [isPostingComment, setIsPostingComment] = useState(false);
-  const [isDeletingComment, setIsDeletingComment] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   // Public view state
   const [publicDreamResponse, setPublicDreamResponse] =
@@ -155,8 +125,6 @@ export default function DreamDetail() {
   const [isLoadingPublicComments, setIsLoadingPublicComments] = useState(false);
   const [newPublicComment, setNewPublicComment] = useState("");
   const [isPostingPublicComment, setIsPostingPublicComment] = useState(false);
-
-  const commentsRef = useRef<HTMLDivElement>(null);
 
   // HELPER FUNCTIONS
   const copyToClipboard = (text: string) => {
@@ -212,19 +180,6 @@ export default function DreamDetail() {
 
   const handleLoginRedirect = () => {
     navigate("/auth", { state: { from: `/dream/${dreamId}` } });
-  };
-
-  const getPublicVisibilityIcon = (visibility?: DreamVisibility) => {
-    switch (visibility) {
-      case "public":
-        return <Globe className="w-4 h-4" />;
-      case "friends_only":
-        return <Users className="w-4 h-4" />;
-      case "private":
-        return <Lock className="w-4 h-4" />;
-      default:
-        return <Globe className="w-4 h-4" />;
-    }
   };
 
   // Effect for analyze parameter
@@ -349,37 +304,7 @@ export default function DreamDetail() {
       }
     }
     fetchPublicDreamData();
-  }, [dreamId, user, isPublicView, location.key]);
-
-  // MODIFIED: Effect for fetching APP-VIEW comments
-  const fetchComments = useCallback(async () => {
-    if (isPublicView || !dreamId) return;
-    setIsLoadingComments(true);
-    try {
-      const { data, error } = await supabase
-        .from("comments")
-        .select(`*, profiles(username, avatar_url, id, full_name)`)
-        .eq("dream_id", dreamId)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      setComments(data || []);
-    } catch (error) {
-      console.error("Error fetching app comments:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load comments",
-      });
-    } finally {
-      setIsLoadingComments(false);
-    }
-  }, [dreamId, toast, isPublicView]);
-
-  useEffect(() => {
-    if (!isPublicView && dreamId && !loading) {
-      fetchComments();
-    }
-  }, [dreamId, loading, fetchComments, isPublicView]);
+  }, [dreamId, user, isPublicView, location.key, publicPrivacyInfo.visibility]);
 
   // NEW: Effect for fetching PUBLIC comments
   useEffect(() => {
@@ -423,165 +348,6 @@ export default function DreamDetail() {
       fetchPublicCommentsAndUpdateState();
     }
   }, [dreamId, isPublicView, publicDreamResponse, user, toast]);
-
-  const handlePostComment = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!user || !dreamId || !newComment.trim() || isPostingComment) return;
-
-    setIsPostingComment(true);
-
-    try {
-      const { error } = await supabase.from("comments").insert({
-        dream_id: dreamId,
-        user_id: user.id,
-        content: newComment.trim(),
-        created_at: new Date().toISOString(),
-      });
-
-      if (error) throw error;
-
-      setNewComment("");
-      fetchComments();
-
-      // Invalidate comment count query
-      queryClient.invalidateQueries({
-        queryKey: ["dream-comments-count", dreamId],
-      });
-
-      toast({
-        title: "Comment posted",
-        description: "Your comment has been added to this dream",
-      });
-    } catch (error) {
-      console.error("Error posting comment:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to post comment",
-      });
-    } finally {
-      setIsPostingComment(false);
-    }
-  };
-
-  const handleDeleteComment = async (commentId: string) => {
-    if (!user || !dreamId || isDeletingComment) return;
-
-    setIsDeletingComment(true);
-
-    try {
-      const { error } = await supabase
-        .from("comments")
-        .delete()
-        .eq("id", commentId)
-        .eq("user_id", user.id); // Ensure the comment belongs to the current user
-
-      if (error) throw error;
-
-      // Remove comment from local state
-      setComments((prev) => prev.filter((comment) => comment.id !== commentId));
-
-      // Invalidate comment count query
-      queryClient.invalidateQueries({
-        queryKey: ["dream-comments-count", dreamId],
-      });
-
-      toast({
-        title: "Comment deleted",
-        description: "Your comment has been removed",
-      });
-    } catch (error) {
-      console.error("Error deleting comment:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to delete comment",
-      });
-    } finally {
-      setIsDeletingComment(false);
-    }
-  };
-
-  const handleDeleteDream = async () => {
-    if (!user || !dreamId || isDeleting) return;
-
-    if (
-      !confirm(
-        "Are you sure you want to delete this dream? This action cannot be undone.",
-      )
-    ) {
-      return;
-    }
-
-    setIsDeleting(true);
-
-    try {
-      // First delete all comments
-      const { error: commentsError } = await supabase
-        .from("comments")
-        .delete()
-        .eq("dream_id", dreamId);
-
-      if (commentsError) throw commentsError;
-
-      // Then delete the dream itself
-      const { error } = await supabase
-        .from("dreams")
-        .delete()
-        .eq("id", dreamId)
-        .eq("user_id", user.id); // Ensure the dream belongs to the current user
-
-      if (error) throw error;
-
-      toast({
-        title: "Dream deleted",
-        description: "Your dream has been successfully deleted",
-      });
-
-      // Redirect to home page or dreams page
-      navigate("/");
-    } catch (error) {
-      console.error("Error deleting dream:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to delete dream",
-      });
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  // Definition for existingHandleShareDream (for App View)
-  const existingHandleShareDream = () => {
-    const currentDreamForShare = isPublicView
-      ? publicDreamResponse?.dream
-      : dream; // This uses component state
-    if (!currentDreamForShare) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Dream data not available for sharing.",
-      });
-      return;
-    }
-    // Use app-specific URL for sharing if different, or public URL as fallback/default
-    const shareUrl = `${window.location.origin}/dream/${currentDreamForShare.id}`;
-    const title = currentDreamForShare.title || "Shared Dream";
-    const text = currentDreamForShare.description
-      ? currentDreamForShare.description.slice(0, 100) + "..."
-      : "Check out this dream!";
-
-    if (navigator.share) {
-      navigator.share({ title, text, url: shareUrl }).catch((error) => {
-        console.error("Error sharing dream:", error);
-        copyToClipboard(shareUrl); // Fallback to copy
-      });
-    } else {
-      copyToClipboard(shareUrl);
-    }
-  };
 
   // --- NEW: Handler for posting comments in PUBLIC view (if authenticated) ---
   const handlePostPublicComment = async (e?: React.FormEvent) => {
@@ -652,7 +418,7 @@ export default function DreamDetail() {
             <title>{ogTitle}</title>
             <meta name="robots" content="noindex" />
           </Helmet>
-          <DreamDetailLoadingSkeleton isPublicView={true} />
+          <DreamDetailLoadingSkeleton />
         </>
       );
     }
@@ -930,10 +696,7 @@ export default function DreamDetail() {
                         </p>
                       )}
                     {publicComments.length > 0 && (
-                      <ScrollArea
-                        className="pr-2 flex-grow"
-                        style={{ minHeight: "100px" }}
-                      >
+                      <div className="pr-2 flex-grow">
                         <div className="space-y-3">
                           {publicComments.map((comment) => (
                             <div
@@ -970,7 +733,7 @@ export default function DreamDetail() {
                             </div>
                           ))}
                         </div>
-                      </ScrollArea>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -984,7 +747,7 @@ export default function DreamDetail() {
   // --- App View Logic (Authenticated) ---
   else if (!isPublicView) {
     if (loading) {
-      // This is the \`loading\` state for the app view's \`dream\`
+      // This is the `loading` state for the app view's `dream`
       ogTitle = "Loading Dream... | Rem Journal";
       shouldIndexPage = false;
       return (
@@ -993,7 +756,7 @@ export default function DreamDetail() {
             <title>{ogTitle}</title>
             <meta name="robots" content="noindex" />
           </Helmet>
-          <DreamDetailLoadingSkeleton isPublicView={false} />
+          <DreamDetailLoadingSkeleton />
         </>
       );
     }
@@ -1059,7 +822,7 @@ export default function DreamDetail() {
         <title>Loading... | Rem</title>
         <meta name="robots" content="noindex" />
       </Helmet>
-      <DreamDetailLoadingSkeleton isPublicView={isPublicView} />
+      <DreamDetailLoadingSkeleton />
     </>
   );
 }
