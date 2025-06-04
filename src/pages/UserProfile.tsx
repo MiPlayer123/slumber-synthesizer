@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,11 @@ import {
   ThumbsUp,
   ArrowUpDown,
   X,
+  Globe,
+  Users,
+  Lock,
+  ExternalLink,
+  Download,
 } from "lucide-react";
 import { Dream as BaseDream, Profile as ProfileType } from "@/lib/types";
 
@@ -33,6 +38,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { DreamLikeButton } from "@/components/dreams/DreamLikeButton";
+import { Helmet } from "react-helmet-async";
 
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -44,21 +50,136 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UserPlus, CheckCircle, Clock as ClockIcon } from "lucide-react"; // Renamed Clock to ClockIcon to avoid conflict
-import { toast as sonnerToast } from "sonner"; // Using sonner for toasts as per existing useToast hook likely uses it or similar
+import { UserPlus, CheckCircle, Clock as ClockIcon } from "lucide-react";
+import { toast as sonnerToast } from "sonner";
 
-// Extend the Dream type to include our additional properties
 interface ExtendedDream extends BaseDream {
   likeCount?: number;
   commentCount?: number;
 }
 
+interface PublicProfileResponse {
+  profile?: ProfileType & { public_dream_count?: number };
+  error?: string;
+  visibility?: string;
+  requiresAuth?: boolean;
+  requiresFriendship?: boolean;
+}
+
+// Moved DreamListItemProps and DreamListItem to before UserProfile
+interface DreamListItemProps {
+  dream: ExtendedDream;
+  onClick: () => void;
+  refreshLikes: (dreamId?: string) => void;
+}
+
+const DreamListItem: React.FC<DreamListItemProps> = ({
+  dream,
+  onClick,
+  refreshLikes,
+}) => {
+  const {
+    likesCount,
+    hasLiked,
+    toggleLike,
+    isLoading: isLikeLoading,
+  } = useDreamLikes(dream.id, () => refreshLikes(dream.id));
+
+  const { commentCount, isLoading: isCommentCountLoading } =
+    useDreamCommentCount(dream.id);
+
+  const handleLikeClick = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    toggleLike();
+  };
+
+  return (
+    <Card
+      className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+      onClick={onClick}
+    >
+      <div className="p-3 md:p-4">
+        <div className="flex flex-col sm:flex-row items-start">
+          {dream.image_url && (
+            <div className="sm:mr-4 flex-shrink-0 w-full sm:w-24 h-32 sm:h-24 rounded-md overflow-hidden mb-3 sm:mb-0">
+              <img
+                src={dream.image_url}
+                alt={dream.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+
+          <div className="flex-1">
+            <h3 className="text-base md:text-lg font-bold mb-1">
+              {dream.title}
+            </h3>
+            <p className="text-xs md:text-sm text-muted-foreground line-clamp-2 mb-2">
+              {dream.description}
+            </p>
+
+            <div className="flex flex-wrap gap-1 mb-3">
+              {dream.category && (
+                <Badge
+                  variant="outline"
+                  className="text-xs px-1.5 py-0 md:px-2 md:py-0.5"
+                >
+                  {dream.category}
+                </Badge>
+              )}
+              {dream.emotion && (
+                <Badge
+                  variant="outline"
+                  className="text-xs px-1.5 py-0 md:px-2 md:py-0.5"
+                >
+                  {dream.emotion}
+                </Badge>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between flex-wrap">
+              <div className="flex items-center gap-2 md:gap-3">
+                <div onClick={(e) => e.stopPropagation()}>
+                  <LikeButton
+                    isLiked={hasLiked}
+                    likesCount={likesCount}
+                    onClick={handleLikeClick}
+                    isLoading={isLikeLoading}
+                    showCount={true}
+                    className="text-sm"
+                  />
+                </div>
+
+                <div onClick={(e) => e.stopPropagation()}>
+                  <CommentButton
+                    commentCount={commentCount}
+                    isLoading={isCommentCountLoading}
+                    onClick={onClick} // Corrected: Pass the onClick prop directly
+                    className="text-sm"
+                  />
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                {format(new Date(dream.created_at), "MMM d, yyyy")}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+};
+
 export const UserProfile = () => {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+
+  const isPublicView = !location.pathname.includes("/app");
 
   const [loading, setLoading] = useState(true);
   const [dreamsLoading, setDreamsLoading] = useState(true);
@@ -92,32 +213,216 @@ export const UserProfile = () => {
   >("newest");
   const [sortedDreams, setSortedDreams] = useState<ExtendedDream[]>([]);
 
-  // Reference to store the scroll position
+  const [publicProfileResponse, setPublicProfileResponse] =
+    useState<PublicProfileResponse | null>(null);
+  const [isLoadingPublicProfile, setIsLoadingPublicProfile] =
+    useState(isPublicView);
+  const [publicViewError, setPublicViewError] = useState<string | null>(null);
+  const [publicPrivacyInfo, setPublicPrivacyInfo] = useState<{
+    visibility?: string;
+    requiresAuth?: boolean;
+    requiresFriendship?: boolean;
+  }>({});
+
   const profileRef = useRef<HTMLDivElement>(null);
 
-  // Restore scroll position when returning from a dream
+  const fetchPublicDreams = useCallback(
+    async (userId: string) => {
+      try {
+        setDreamsLoading(true);
+        const { data, error } = await supabase
+          .from("dreams")
+          .select("*")
+          .eq("user_id", userId)
+          .eq("visibility", "public")
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+        setDreams(data || []);
+      } catch (error) {
+        console.error("Error fetching dreams for app view:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load dreams",
+        });
+      } finally {
+        setDreamsLoading(false);
+      }
+    },
+    [toast],
+  );
+
+  const fetchDreamStats = useCallback(async (userId: string) => {
+    try {
+      const { count: totalCount, error: countError } = await supabase
+        .from("dreams")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("visibility", "public");
+
+      if (countError) throw countError;
+
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from("dreams")
+        .select("category")
+        .eq("user_id", userId)
+        .eq("visibility", "public");
+
+      if (categoriesError) throw categoriesError;
+
+      const { data: emotionsData, error: emotionsError } = await supabase
+        .from("dreams")
+        .select("emotion")
+        .eq("user_id", userId)
+        .eq("visibility", "public");
+
+      if (emotionsError) throw emotionsError;
+
+      const categories: Record<string, number> = {};
+      categoriesData.forEach((dream) => {
+        categories[dream.category] = (categories[dream.category] || 0) + 1;
+      });
+
+      const emotions: Record<string, number> = {};
+      emotionsData.forEach((dream) => {
+        emotions[dream.emotion] = (emotions[dream.emotion] || 0) + 1;
+      });
+
+      setDreamStats({
+        totalCount: totalCount || 0,
+        publicCount: totalCount || 0,
+        categories,
+        emotions,
+      });
+    } catch (error) {
+      console.error("Error fetching dream stats for app view:", error);
+    }
+  }, []);
+
+  // HELPER FUNCTIONS FOR PUBLIC VIEW (similar to DreamDetail)
+  const handlePublicProfileShare = () => {
+    if (!publicProfileResponse?.profile) return;
+    const shareUrl = `${window.location.origin}/profile/${username}`;
+    const profileData = publicProfileResponse.profile;
+    const shareDetails = {
+      title: `${profileData.full_name || profileData.username} (@${profileData.username}) | Rem Profile`,
+      text:
+        profileData.bio?.slice(0, 100) + "..." ||
+        `Check out ${profileData.username}'s profile on Rem!`,
+      url: shareUrl,
+    };
+    if (navigator.share && navigator.canShare?.(shareDetails)) {
+      navigator.share(shareDetails).catch(() => copyToClipboard(shareUrl));
+    } else {
+      copyToClipboard(shareUrl);
+    }
+  };
+
+  const handleOpenProfileInApp = () => {
+    const appUrl = `rem://profile/${username}`;
+    window.location.href = appUrl;
+    // Optional: Fallback toast if app doesn't open, needs careful implementation
+  };
+
+  const handlePublicLoginRedirect = () => {
+    navigate("/auth", { state: { from: `/profile/${username}` } });
+  };
+
+  // Function to copy to clipboard (can be reused or ensure it exists if not already in scope)
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        toast({
+          title: "Link Copied",
+          description: "Profile link copied to clipboard!",
+        });
+      })
+      .catch((err) => {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to copy link.",
+        });
+        console.error("Failed to copy link:", err);
+      });
+  };
+  // END HELPER FUNCTIONS
+
   useEffect(() => {
+    if (!isPublicView || !username) {
+      if (isPublicView) setIsLoadingPublicProfile(false);
+      return;
+    }
+    async function fetchPublicProfile() {
+      setIsLoadingPublicProfile(true);
+      setPublicViewError(null);
+      setPublicProfileResponse(null);
+      try {
+        const { data, error: functionError } = await supabase.functions.invoke(
+          `get-public-profile`,
+          {
+            body: { username },
+            headers: user
+              ? {
+                  Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+                }
+              : undefined,
+          },
+        );
+        if (functionError) {
+          throw new Error(
+            functionError.message || "Error calling profile function.",
+          );
+        }
+        const response = data as PublicProfileResponse;
+        setPublicProfileResponse(response);
+        if (response.error) {
+          setPublicViewError(response.error);
+          setPublicPrivacyInfo({
+            visibility: response.visibility,
+            requiresAuth: response.requiresAuth,
+            requiresFriendship: response.requiresFriendship,
+          });
+        } else if (!response.profile) {
+          setPublicViewError("Profile not found or not accessible.");
+          setPublicPrivacyInfo({ visibility: "private_profile" });
+        }
+      } catch (err: any) {
+        console.error("Error fetching public profile:", err);
+        setPublicViewError(
+          err.message || "Failed to load profile. Please try again.",
+        );
+        setPublicPrivacyInfo({ visibility: "private_profile" });
+      } finally {
+        setIsLoadingPublicProfile(false);
+      }
+    }
+    fetchPublicProfile();
+  }, [username, user, isPublicView, location.key]);
+
+  useEffect(() => {
+    if (isPublicView) return; // Only for app view
     const scrollPosition = sessionStorage.getItem(`scroll_${username}`);
     if (scrollPosition && !loading && !dreamsLoading) {
       setTimeout(() => {
         window.scrollTo(0, parseInt(scrollPosition));
       }, 100);
-      // Clear the stored position after restoration
       sessionStorage.removeItem(`scroll_${username}`);
     }
-  }, [username, loading, dreamsLoading]);
+  }, [username, loading, dreamsLoading, isPublicView]);
 
   useEffect(() => {
-    if (!profile || !user) {
-      setFriendshipStatus("loading");
+    if (isPublicView || !profile || !user) {
+      // Ensure profile and user are loaded for app view
+      if (!isPublicView) setFriendshipStatus("loading"); // Set to loading only if in app view and conditions not met
       return;
     }
-
     if (profile.id === user.id) {
       setFriendshipStatus("self");
       return;
     }
-
     const fetchFriendshipStatus = async () => {
       setFriendshipStatus("loading");
       try {
@@ -127,7 +432,7 @@ export const UserProfile = () => {
           .or(
             `and(user_id.eq.${user.id},friend_user_id.eq.${profile.id}),and(user_id.eq.${profile.id},friend_user_id.eq.${user.id})`,
           )
-          .maybeSingle(); // Use maybeSingle if you expect 0 or 1 row
+          .maybeSingle();
 
         if (error) throw error;
 
@@ -145,193 +450,101 @@ export const UserProfile = () => {
       } catch (err) {
         console.error("Error fetching friendship status:", err);
         sonnerToast.error("Failed to load friendship status.");
-        setFriendshipStatus("not_friends"); // Fallback status
+        setFriendshipStatus("not_friends");
       }
     };
-
     fetchFriendshipStatus();
-  }, [profile, user]);
+  }, [profile, user, isPublicView]);
 
-  const handleAddFriend = async () => {
-    if (!user || !profile) return;
-    setIsFriendshipActionLoading(true);
-    try {
-      const { error } = await supabase.from("friendship").insert({
-        user_id: user.id,
-        friend_user_id: profile.id,
-        status: "pending",
-      });
-      if (error) throw error;
-      setFriendshipStatus("pending_sent");
-      sonnerToast.success(`Friend request sent to ${profile.username}`);
-    } catch (err) {
-      console.error("Error sending friend request:", err);
-      sonnerToast.error("Failed to send friend request. Please try again.");
-    } finally {
-      setIsFriendshipActionLoading(false);
-    }
-  };
-
-  const handleAcceptFriendRequest = async () => {
-    if (!user || !profile) return;
-    setIsFriendshipActionLoading(true);
-    try {
-      const { error } = await supabase
-        .from("friendship")
-        .update({ status: "accepted" })
-        .eq("user_id", profile.id) // The other user sent the request
-        .eq("friend_user_id", user.id); // To the current user
-      if (error) throw error;
-      setFriendshipStatus("friends");
-      sonnerToast.success(`You are now friends with ${profile.username}`);
-    } catch (err) {
-      console.error("Error accepting friend request:", err);
-      sonnerToast.error("Failed to accept friend request. Please try again.");
-    } finally {
-      setIsFriendshipActionLoading(false);
-    }
-  };
-
-  const handleRemoveFriend = async () => {
-    if (!user || !profile) return;
-    setIsFriendshipActionLoading(true);
-    try {
-      const { error } = await supabase
-        .from("friendship")
-        .delete()
-        .or(
-          `and(user_id.eq.${user.id},friend_user_id.eq.${profile.id}),and(user_id.eq.${profile.id},friend_user_id.eq.${user.id})`,
-        );
-      if (error) throw error;
-      setFriendshipStatus("not_friends");
-      sonnerToast.success(`You are no longer friends with ${profile.username}`);
-    } catch (err) {
-      console.error("Error removing friend:", err);
-      sonnerToast.error("Failed to remove friend. Please try again.");
-    } finally {
-      setIsFriendshipActionLoading(false);
-    }
-  };
-
-  // Fetch public dreams from the user
-  const fetchPublicDreams = useCallback(
-    async (userId: string) => {
-      try {
-        setDreamsLoading(true);
-        const { data, error } = await supabase
-          .from("dreams")
-          .select("*")
-          .eq("user_id", userId)
-          .eq("visibility", "public")
-          .order("created_at", { ascending: false });
-
-        if (error) throw error;
-        setDreams(data || []);
-      } catch (error) {
-        console.error("Error fetching dreams:", error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to load dreams",
-        });
-      } finally {
-        setDreamsLoading(false);
-      }
-    },
-    [toast],
-  );
-
-  // Fetch dream statistics
-  const fetchDreamStats = useCallback(async (userId: string) => {
-    try {
-      // Count total dreams (only public ones for other users' profiles)
-      const { count: totalCount, error: countError } = await supabase
-        .from("dreams")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .eq("visibility", "public");
-
-      if (countError) throw countError;
-
-      // Get categories and emotions distribution (only from public dreams)
-      const { data: categoriesData, error: categoriesError } = await supabase
-        .from("dreams")
-        .select("category")
-        .eq("user_id", userId)
-        .eq("visibility", "public");
-
-      if (categoriesError) throw categoriesError;
-
-      const { data: emotionsData, error: emotionsError } = await supabase
-        .from("dreams")
-        .select("emotion")
-        .eq("user_id", userId)
-        .eq("visibility", "public");
-
-      if (emotionsError) throw emotionsError;
-
-      // Process categories and emotions
-      const categories: Record<string, number> = {};
-      categoriesData.forEach((dream) => {
-        categories[dream.category] = (categories[dream.category] || 0) + 1;
-      });
-
-      const emotions: Record<string, number> = {};
-      emotionsData.forEach((dream) => {
-        emotions[dream.emotion] = (emotions[dream.emotion] || 0) + 1;
-      });
-
-      setDreamStats({
-        totalCount: totalCount || 0,
-        publicCount: totalCount || 0, // For public profiles, we only show public dreams count
-        categories,
-        emotions,
-      });
-    } catch (error) {
-      console.error("Error fetching dream stats:", error);
-    }
-  }, []);
-
-  // Fetch user profile by username
   useEffect(() => {
-    const fetchProfile = async () => {
-      if (!username) return;
+    if (isPublicView || !username) {
+      setLoading(false); // Ensure loading stops if not applicable
+      setDreamsLoading(false);
+      return;
+    }
 
+    const fetchAppData = async () => {
       try {
         setLoading(true);
+        setDreamsLoading(true); // For dreams part of app view
 
-        // Get the profile by username
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("*")
           .eq("username", username)
           .single();
 
-        if (profileError) {
-          throw profileError;
-        }
+        if (profileError) throw profileError;
 
         if (profileData) {
-          setProfile(profileData);
-          await fetchPublicDreams(profileData.id);
-          await fetchDreamStats(profileData.id);
+          setProfile(profileData); // This is for app view
+          // The existing fetchPublicDreams and fetchDreamStats are tied to profile.id
+          // and should reflect the app's view of this user (public or friends-only based on friendship)
+          // These might need adjustments if they *only* fetched public for other users.
+          // For now, assuming they fetch what the current `user` can see of `profileData.id`.
+          await fetchPublicDreams(profileData.id); // Re-evaluate this for app context if needed
+          await fetchDreamStats(profileData.id); // Re-evaluate this for app context if needed
+        } else {
+          setProfile(null); // No profile found for app view
         }
       } catch (error) {
-        console.error("Error fetching profile:", error);
+        console.error("Error fetching app profile data:", error);
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to load profile information",
+          description: "Failed to load profile for app view",
         });
+        setProfile(null);
       } finally {
         setLoading(false);
+        // dreamsLoading is set within fetchPublicDreams
       }
     };
 
-    fetchProfile();
-  }, [username, toast, fetchPublicDreams, fetchDreamStats]);
+    fetchAppData();
+  }, [username, toast, fetchPublicDreams, fetchDreamStats, isPublicView]); // Dependencies for app data fetching
 
-  // Add comment fetching functionality
+  useEffect(() => {
+    if (isPublicView || !dreams.length) {
+      if (!isPublicView) setSortedDreams([]); // Clear for app view if no dreams
+      return;
+    }
+    let sorted = [...dreams];
+    switch (sortOption) {
+      case "newest":
+        sorted = sorted.sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        );
+        break;
+      case "oldest":
+        sorted = sorted.sort(
+          (a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+        );
+        break;
+      case "most-liked":
+        fetchDreamLikeCounts(sorted).then((dreamsWithLikes) => {
+          setSortedDreams(
+            dreamsWithLikes.sort(
+              (a, b) => (b.likeCount || 0) - (a.likeCount || 0),
+            ),
+          );
+        });
+        return;
+      case "most-commented":
+        fetchDreamCommentCounts(sorted).then((dreamsWithComments) => {
+          setSortedDreams(
+            dreamsWithComments.sort(
+              (a, b) => (b.commentCount || 0) - (a.commentCount || 0),
+            ),
+          );
+        });
+        return;
+    }
+    setSortedDreams(sorted);
+  }, [dreams, sortOption, isPublicView]);
+
   const fetchComments = async (dreamId: string) => {
     if (!dreamId) return;
 
@@ -364,7 +577,6 @@ export const UserProfile = () => {
     }
   };
 
-  // Add comment posting functionality
   const handlePostComment = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -386,7 +598,6 @@ export const UserProfile = () => {
       setNewComment("");
       fetchComments(selectedDream.id);
 
-      // Invalidate comment count query to update UI immediately
       queryClient.invalidateQueries({
         queryKey: ["dream-comments-count", selectedDream.id],
       });
@@ -407,7 +618,6 @@ export const UserProfile = () => {
     }
   };
 
-  // Handle sharing dream
   const handleShareDream = (dreamId: string) => {
     const shareUrl = `${window.location.origin}/dream/${dreamId}`;
 
@@ -419,7 +629,6 @@ export const UserProfile = () => {
     });
   };
 
-  // Handle refreshing likes
   const refreshLikes = (dreamId?: string) => {
     if (dreamId) {
       queryClient.invalidateQueries({
@@ -430,7 +639,6 @@ export const UserProfile = () => {
     }
   };
 
-  // Handle dialog open/close
   const handleDialogOpenChange = (open: boolean) => {
     if (!open) {
       setSelectedDream(null);
@@ -438,19 +646,14 @@ export const UserProfile = () => {
     }
   };
 
-  // When a dream is clicked
   const handleDreamClick = (dream: ExtendedDream) => {
-    // Check if on mobile device (screen width <= 768px)
     const isMobile = window.innerWidth <= 768;
 
     if (isMobile) {
-      // Store current scroll position before navigating
       sessionStorage.setItem(`scroll_${username}`, window.scrollY.toString());
 
-      // On mobile, navigate directly to the dream detail page
       navigate(`/dream/${dream.id}/app`, { state: { fromProfile: true } });
     } else {
-      // On desktop, show the dialog as before
       setSelectedDream(dream);
       if (dream && dream.id) {
         fetchComments(dream.id);
@@ -458,54 +661,6 @@ export const UserProfile = () => {
     }
   };
 
-  // Apply sorting whenever dreams or sort option changes
-  useEffect(() => {
-    if (!dreams.length) {
-      setSortedDreams([]);
-      return;
-    }
-
-    let sorted = [...dreams];
-
-    switch (sortOption) {
-      case "newest":
-        sorted = sorted.sort(
-          (a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-        );
-        break;
-      case "oldest":
-        sorted = sorted.sort(
-          (a, b) =>
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-        );
-        break;
-      case "most-liked":
-        // We'll need to fetch like counts for each dream
-        fetchDreamLikeCounts(sorted).then((dreamsWithLikes) => {
-          setSortedDreams(
-            dreamsWithLikes.sort(
-              (a, b) => (b.likeCount || 0) - (a.likeCount || 0),
-            ),
-          );
-        });
-        return; // Early return as we're handling sorting asynchronously
-      case "most-commented":
-        // We'll need to fetch comment counts for each dream
-        fetchDreamCommentCounts(sorted).then((dreamsWithComments) => {
-          setSortedDreams(
-            dreamsWithComments.sort(
-              (a, b) => (b.commentCount || 0) - (a.commentCount || 0),
-            ),
-          );
-        });
-        return; // Early return as we're handling sorting asynchronously
-    }
-
-    setSortedDreams(sorted);
-  }, [dreams, sortOption]);
-
-  // Function to fetch like counts for dreams
   const fetchDreamLikeCounts = async (dreamsList: ExtendedDream[]) => {
     if (!dreamsList.length) return dreamsList;
 
@@ -536,7 +691,6 @@ export const UserProfile = () => {
     return dreamsWithLikes;
   };
 
-  // Function to fetch comment counts for dreams
   const fetchDreamCommentCounts = async (dreamsList: ExtendedDream[]) => {
     if (!dreamsList.length) return dreamsList;
 
@@ -567,7 +721,6 @@ export const UserProfile = () => {
     return dreamsWithComments;
   };
 
-  // Update the SortSelect component to be more mobile-friendly
   const SortSelect = () => {
     return (
       <div className="flex items-center flex-wrap gap-2">
@@ -613,15 +766,328 @@ export const UserProfile = () => {
     );
   };
 
-  // Add a navigate handler function to properly close the dialog and navigate
   const handleProfileNavigation = (username: string) => {
-    // Close the dialog first to avoid it persisting
     setSelectedDream(null);
-    // Navigate to the profile
     navigate(`/profile/${username}/app`);
   };
 
+  // RE-INSERTING FRIENDSHIP HANDLERS HERE
+  const handleAddFriend = async () => {
+    if (!user || !profile || isPublicView) return;
+    setIsFriendshipActionLoading(true);
+    try {
+      const { error } = await supabase.from("friendship").insert({
+        user_id: user.id,
+        friend_user_id: profile.id,
+        status: "pending",
+      });
+      if (error) throw error;
+      setFriendshipStatus("pending_sent");
+      sonnerToast.success(`Friend request sent to ${profile.username}`);
+    } catch (err) {
+      console.error("Error sending friend request:", err);
+      sonnerToast.error("Failed to send friend request. Please try again.");
+    } finally {
+      setIsFriendshipActionLoading(false);
+    }
+  };
+
+  const handleAcceptFriendRequest = async () => {
+    if (!user || !profile || isPublicView) return;
+    setIsFriendshipActionLoading(true);
+    try {
+      const { error } = await supabase
+        .from("friendship")
+        .update({ status: "accepted" })
+        .eq("user_id", profile.id) // The other user sent the request
+        .eq("friend_user_id", user.id); // To the current user
+      if (error) throw error;
+      setFriendshipStatus("friends");
+      sonnerToast.success(`You are now friends with ${profile.username}`);
+    } catch (err) {
+      console.error("Error accepting friend request:", err);
+      sonnerToast.error("Failed to accept friend request. Please try again.");
+    } finally {
+      setIsFriendshipActionLoading(false);
+    }
+  };
+
+  const handleRemoveFriend = async () => {
+    if (!user || !profile || isPublicView) return;
+    if (!confirm("Are you sure you want to remove this friend?")) return;
+    setIsFriendshipActionLoading(true);
+    try {
+      const { error } = await supabase
+        .from("friendship")
+        .delete()
+        .or(
+          `and(user_id.eq.${user.id},friend_user_id.eq.${profile.id}),and(user_id.eq.${profile.id},friend_user_id.eq.${user.id})`,
+        );
+      if (error) throw error;
+      setFriendshipStatus("not_friends");
+      sonnerToast.success(`You are no longer friends with ${profile.username}`);
+    } catch (err) {
+      console.error("Error removing friend:", err);
+      sonnerToast.error("Failed to remove friend. Please try again.");
+    } finally {
+      setIsFriendshipActionLoading(false);
+    }
+  };
+  // END FRIENDSHIP HANDLERS
+
+  // --- RENDER LOGIC ---
+  if (isPublicView) {
+    if (isLoadingPublicProfile) {
+      return (
+        <>
+          <Helmet>
+            <title>Loading Profile... | Rem</title>
+          </Helmet>
+          <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50">
+            <Loader2 className="h-12 w-12 animate-spin text-purple-600" />
+          </div>
+        </>
+      );
+    }
+
+    const pubProfileData = publicProfileResponse?.profile;
+
+    if (publicViewError || !pubProfileData) {
+      // A helper for public visibility icons, similar to DreamDetail
+      const getPublicProfileVisibilityIcon = (visibility?: string) => {
+        switch (visibility) {
+          case "friends_only_profile":
+            return <Users className="w-5 h-5 text-blue-600" />;
+          case "private_profile":
+            return <Lock className="w-5 h-5 text-gray-600" />;
+          default:
+            return <Globe className="w-5 h-5 text-red-600" />; // For general errors or not found
+        }
+      };
+      return (
+        <>
+          <Helmet>
+            <title>
+              {publicPrivacyInfo.visibility === "private_profile"
+                ? "Private Profile"
+                : publicPrivacyInfo.visibility === "friends_only_profile"
+                  ? "Friends Only Profile"
+                  : "Profile Not Found"}{" "}
+              | Rem
+            </title>
+            <meta
+              name="description"
+              content={
+                publicViewError ||
+                "This profile could not be found or is not accessible."
+              }
+            />
+          </Helmet>
+          <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 p-4">
+            <Card className="w-full max-w-md text-center">
+              <CardHeader>
+                <div className="mx-auto mb-4 p-3 bg-gray-100 rounded-full w-fit">
+                  {getPublicProfileVisibilityIcon(publicPrivacyInfo.visibility)}
+                </div>
+                <h1 className="text-xl font-semibold text-gray-900">
+                  {publicPrivacyInfo.visibility === "private_profile"
+                    ? "Private Profile"
+                    : publicPrivacyInfo.visibility === "friends_only_profile"
+                      ? "Friends Only Profile"
+                      : "Profile Not Found"}
+                </h1>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-gray-600">{publicViewError}</p>
+                {publicPrivacyInfo.requiresAuth && (
+                  <Button
+                    onClick={handlePublicLoginRedirect}
+                    className="w-full"
+                  >
+                    Login to View
+                  </Button>
+                )}
+                <div className="space-y-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleOpenProfileInApp}
+                    className="w-full"
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Open in Rem App
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate("/")}
+                    className="w-full"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Rem
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      );
+    }
+
+    // Public Profile Display
+    return (
+      <>
+        <Helmet>
+          <title>
+            {pubProfileData.full_name || pubProfileData.username} (@
+            {pubProfileData.username}) | Rem Profile
+          </title>
+          <meta
+            name="description"
+            content={
+              pubProfileData.bio?.slice(0, 160) + "..." ||
+              `${pubProfileData.username}'s profile on Rem.`
+            }
+          />
+          <meta
+            property="og:title"
+            content={`${pubProfileData.full_name || pubProfileData.username} (@${pubProfileData.username}) | Rem Profile`}
+          />
+          <meta
+            property="og:description"
+            content={
+              pubProfileData.bio ||
+              `${pubProfileData.username} on Rem - AI Dream Journal`
+            }
+          />
+          <meta
+            property="og:image"
+            content={
+              pubProfileData.avatar_url ||
+              "https://lucidrem.com/default_avatar.png"
+            }
+          />
+          <meta
+            property="og:url"
+            content={`${window.location.origin}/profile/${username}`}
+          />
+          <meta property="og:type" content="profile" />
+          <meta name="twitter:card" content="summary" />
+        </Helmet>
+        <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
+          <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+            <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+              <Button
+                variant="ghost"
+                onClick={() => navigate("/")}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Rem
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleOpenProfileInApp}
+                  className="hidden sm:flex"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Open in App
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePublicProfileShare}
+                >
+                  <Share className="w-4 h-4 mr-2" />
+                  Share
+                </Button>
+              </div>
+            </div>
+          </div>
+          <div className="max-w-xl mx-auto px-4 py-8 md:py-12">
+            <Card className="overflow-hidden shadow-lg">
+              <CardContent className="p-6 md:p-8 text-center">
+                <Avatar className="w-24 h-24 md:w-32 md:h-32 mx-auto mb-4 border-4 border-white shadow-md">
+                  <AvatarImage
+                    src={pubProfileData.avatar_url || undefined}
+                    alt={pubProfileData.username}
+                  />
+                  <AvatarFallback className="text-4xl">
+                    {pubProfileData.username?.[0]?.toUpperCase() || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+                  {pubProfileData.full_name || pubProfileData.username}
+                </h1>
+                <p className="text-md text-gray-600 mb-1">
+                  @{pubProfileData.username}
+                </p>
+                {pubProfileData.bio && (
+                  <p className="text-sm text-gray-700 my-4 leading-relaxed">
+                    {pubProfileData.bio}
+                  </p>
+                )}
+                <div className="flex items-center justify-center gap-4 text-sm text-gray-600 my-4">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-4 h-4" /> Joined{" "}
+                    {format(new Date(pubProfileData.created_at), "MMMM yyyy")}
+                  </div>
+                  {pubProfileData.public_dream_count !== undefined && (
+                    <div className="flex items-center gap-1">
+                      <MessageSquare className="w-4 h-4" />{" "}
+                      {pubProfileData.public_dream_count} Public Dreams
+                    </div>
+                  )}
+                </div>
+                {pubProfileData.website && (
+                  <div className="flex items-center justify-center gap-1 text-sm text-primary hover:underline mb-6">
+                    <LinkIcon className="h-4 w-4" />
+                    <a
+                      href={
+                        pubProfileData.website.startsWith("http")
+                          ? pubProfileData.website
+                          : `https://${pubProfileData.website}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {pubProfileData.website}
+                    </a>
+                  </div>
+                )}
+                <div className="mt-6 p-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg border border-purple-200 text-center">
+                  <h3 className="font-semibold text-gray-900 mb-2">
+                    Explore more on Rem
+                  </h3>
+                  <p className="text-gray-600 text-sm mb-4">
+                    Discover dreams, connect with users, and record your own
+                    journey.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                    <Button
+                      onClick={handleOpenProfileInApp}
+                      className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Get the App
+                    </Button>
+                    <Button variant="outline" onClick={() => navigate("/")}>
+                      Learn More
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // --- APP VIEW (Existing Logic) ---
+  // Ensure all existing loading states (loading, dreamsLoading) and data (profile, dreams) are used here.
   if (loading) {
+    // This is the app-view loading state
     return (
       <div className="container mx-auto px-4 py-12 flex justify-center items-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -630,6 +1096,7 @@ export const UserProfile = () => {
   }
 
   if (!profile) {
+    // This is the app-view profile state
     return (
       <div className="container mx-auto px-4 py-12">
         <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
@@ -637,14 +1104,22 @@ export const UserProfile = () => {
         </Button>
         <Card>
           <CardContent className="pt-6">
-            <h2 className="text-xl font-bold mb-4">User Not Found</h2>
-            <p>The user profile you are looking for does not exist.</p>
+            <h2 className="text-xl font-bold mb-4">
+              User Not Found (App View)
+            </h2>
+            <p>
+              The user profile you are looking for does not exist in the app
+              context.
+            </p>
           </CardContent>
         </Card>
       </div>
     );
   }
 
+  // Return existing JSX for app view.
+  // Make sure all handlers like handleAddFriend, handleDreamClick, etc., are correctly defined and scoped.
+  // The SortSelect, DreamListItem components are part of this existing JSX.
   return (
     <div className="container mx-auto px-4 py-6 md:py-12" ref={profileRef}>
       <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
@@ -656,7 +1131,6 @@ export const UserProfile = () => {
       </h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-8">
-        {/* Profile Information - Left Side */}
         <div className="lg:col-span-4 space-y-4 md:space-y-6">
           <Card>
             <CardHeader className="pb-2 md:pb-4">
@@ -680,7 +1154,6 @@ export const UserProfile = () => {
                 </div>
 
                 <h2 className="text-xl font-bold mb-2">{profile.username}</h2>
-                {/* Friendship Button */}
                 {friendshipStatus !== "self" &&
                   friendshipStatus !== "loading" && (
                     <div className="mt-2 mb-4">
@@ -719,7 +1192,6 @@ export const UserProfile = () => {
                         >
                           <CheckCircle className="mr-2 h-4 w-4" />
                           Friends
-                          {/* Consider adding a dropdown for Remove Friend here */}
                         </Button>
                       )}
                       {isFriendshipActionLoading && (
@@ -770,7 +1242,6 @@ export const UserProfile = () => {
             </CardContent>
           </Card>
 
-          {/* Dream Stats Card */}
           <Card>
             <CardHeader className="pb-2 md:pb-4">
               <CardTitle>Dream Stats</CardTitle>
@@ -826,7 +1297,6 @@ export const UserProfile = () => {
           </Card>
         </div>
 
-        {/* Dreams - Right Side */}
         <div className="lg:col-span-8">
           <Card>
             <CardHeader className="pb-2 md:pb-4">
@@ -861,20 +1331,17 @@ export const UserProfile = () => {
         </div>
       </div>
 
-      {/* Dream Detail Dialog - Updated to match DreamWall layout with improved animation */}
       <Dialog open={!!selectedDream} onOpenChange={handleDialogOpenChange}>
         <DialogContent
           className="max-w-5xl p-0 overflow-hidden bg-background transition-all duration-300 will-change-transform will-change-opacity border-none sm:rounded-none md:rounded-lg"
           style={{
             backdropFilter: "blur(8px)",
             WebkitBackdropFilter: "blur(8px)",
-            transform: "translate3d(-50%, -50%, 0)", // Force GPU acceleration
-            // Prevent any white line flashes with a subtle shadow
+            transform: "translate3d(-50%, -50%, 0)",
             boxShadow:
               "0 0 0 1px rgba(0,0,0,0.1), 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)",
           }}
         >
-          {/* Add accessible title and description for screen readers */}
           <DialogTitle className="sr-only">Dream Details</DialogTitle>
           <DialogDescription className="sr-only">
             View dream details and comments
@@ -885,7 +1352,6 @@ export const UserProfile = () => {
               <div
                 className="md:w-3/5 bg-black flex items-center justify-center"
                 style={{
-                  // Ensure smooth rendering of this section
                   willChange: "contents",
                   transform: "translateZ(0)",
                 }}
@@ -924,7 +1390,6 @@ export const UserProfile = () => {
                       <span className="font-medium">{profile?.username}</span>
                     </div>
 
-                    {/* Add mobile-friendly back button */}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -965,7 +1430,6 @@ export const UserProfile = () => {
                     </p>
                   </div>
 
-                  {/* Updated comment section to match DreamWall */}
                   <div className="mt-4 border-t pt-4">
                     <div className="mb-4 space-y-4">
                       {isLoadingComments ? (
@@ -1079,7 +1543,7 @@ export const UserProfile = () => {
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
                         className="flex-1 bg-background text-sm rounded-md border border-input px-3 py-2"
-                        style={{ fontSize: "16px" }} // Prevents iOS zoom on focus
+                        style={{ fontSize: "16px" }}
                       />
                       <Button
                         type="submit"
@@ -1097,111 +1561,5 @@ export const UserProfile = () => {
         </DialogContent>
       </Dialog>
     </div>
-  );
-};
-
-// New component for displaying dreams with like and comment counts
-interface DreamListItemProps {
-  dream: ExtendedDream;
-  onClick: () => void;
-  refreshLikes: (dreamId?: string) => void;
-}
-
-const DreamListItem: React.FC<DreamListItemProps> = ({
-  dream,
-  onClick,
-  refreshLikes,
-}) => {
-  const {
-    likesCount,
-    hasLiked,
-    toggleLike,
-    isLoading: isLikeLoading,
-  } = useDreamLikes(dream.id, () => refreshLikes(dream.id));
-
-  const { commentCount, isLoading: isCommentCountLoading } =
-    useDreamCommentCount(dream.id);
-
-  const handleLikeClick = (e?: React.MouseEvent) => {
-    // Ensure we properly handle both with and without event
-    if (e) e.stopPropagation();
-    toggleLike();
-  };
-
-  return (
-    <Card
-      className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-      onClick={onClick}
-    >
-      <div className="p-3 md:p-4">
-        <div className="flex flex-col sm:flex-row items-start">
-          {dream.image_url && (
-            <div className="sm:mr-4 flex-shrink-0 w-full sm:w-24 h-32 sm:h-24 rounded-md overflow-hidden mb-3 sm:mb-0">
-              <img
-                src={dream.image_url}
-                alt={dream.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-
-          <div className="flex-1">
-            <h3 className="text-base md:text-lg font-bold mb-1">
-              {dream.title}
-            </h3>
-            <p className="text-xs md:text-sm text-muted-foreground line-clamp-2 mb-2">
-              {dream.description}
-            </p>
-
-            <div className="flex flex-wrap gap-1 mb-3">
-              {dream.category && (
-                <Badge
-                  variant="outline"
-                  className="text-xs px-1.5 py-0 md:px-2 md:py-0.5"
-                >
-                  {dream.category}
-                </Badge>
-              )}
-              {dream.emotion && (
-                <Badge
-                  variant="outline"
-                  className="text-xs px-1.5 py-0 md:px-2 md:py-0.5"
-                >
-                  {dream.emotion}
-                </Badge>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between flex-wrap">
-              <div className="flex items-center gap-2 md:gap-3">
-                <div onClick={(e) => e.stopPropagation()}>
-                  <LikeButton
-                    isLiked={hasLiked}
-                    likesCount={likesCount}
-                    onClick={handleLikeClick}
-                    isLoading={isLikeLoading}
-                    showCount={true}
-                    className="text-sm"
-                  />
-                </div>
-
-                <div onClick={(e) => e.stopPropagation()}>
-                  <CommentButton
-                    commentCount={commentCount}
-                    isLoading={isCommentCountLoading}
-                    onClick={(() => onClick()) as any}
-                    className="text-sm"
-                  />
-                </div>
-              </div>
-
-              <p className="text-xs text-muted-foreground">
-                {format(new Date(dream.created_at), "MMM d, yyyy")}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Card>
   );
 };

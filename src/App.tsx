@@ -22,7 +22,6 @@ import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
 import NotFound from "@/pages/NotFound";
 import { Profile } from "@/pages/Profile";
-import { UserProfile } from "@/pages/UserProfile";
 import ResetPassword from "@/pages/ResetPassword";
 import PasswordResetTroubleshoot from "@/pages/PasswordResetTroubleshoot";
 import PasswordResetDebug from "@/pages/PasswordResetDebug";
@@ -37,14 +36,13 @@ const Journal = lazy(() => import("@/pages/Journal"));
 const Community = lazy(() => import("@/pages/Community"));
 const Statistics = lazy(() => import("@/pages/Statistics"));
 const DreamWall = lazy(() => import("@/pages/DreamWall"));
-const DreamDetail = lazy(() => import("@/pages/DreamDetail"));
 const Settings = lazy(() => import("@/pages/Settings"));
-const FriendsFeed = lazy(() => import("@/pages/FriendsFeed")); // Added FriendsFeed
-const ManageFriendsPage = lazy(() => import("@/pages/ManageFriendsPage")); // Added ManageFriendsPage
+const FriendsFeed = lazy(() => import("@/pages/FriendsFeed"));
+const ManageFriendsPage = lazy(() => import("@/pages/ManageFriendsPage"));
 
-// Public sharing pages (not lazy loaded for better SEO)
-import PublicDreamView from "@/pages/PublicDreamView";
-import PublicProfileView from "@/pages/PublicProfileView";
+// Direct imports for public routes and their /app counterparts
+import DreamDetail from "@/pages/DreamDetail";
+import { UserProfile } from "@/pages/UserProfile";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -220,9 +218,43 @@ function AppRoutes() {
       <Route path="/support" element={<Navigate to="/" />} />
       <Route path="/blog" element={<Navigate to="/" />} />
 
-      {/* Public sharing routes - accessible without authentication */}
-      <Route path="/dream/:dreamId" element={<PublicDreamView />} />
-      <Route path="/profile/:username" element={<PublicProfileView />} />
+      {/* Public sharing routes - accessible without authentication, using refactored components */}
+      {/* These now point to the main components which handle public/app views internally */}
+      <Route
+        path="/dream/:dreamId"
+        element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <DreamDetail />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/profile/:username"
+        element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <UserProfile />
+          </Suspense>
+        }
+      />
+
+      {/* App-specific routes (already protected) */}
+      {/* The /app suffix is handled by the components themselves to determine view type */}
+      <Route
+        path="/dream/:dreamId/app"
+        element={
+          <ProtectedRoute>
+            <DreamDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile/:username/app"
+        element={
+          <ProtectedRoute>
+            <UserProfile />
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         path="/checkout-complete"
@@ -277,36 +309,10 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/profile/:username/app"
-        element={
-          <ProtectedRoute>
-            <UserProfile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/dream-wall"
         element={
           <ProtectedRoute>
             <DreamWall />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/dream/:dreamId/app"
-        element={
-          <ProtectedRoute>
-            <Suspense fallback={<LoadingSpinner />}>
-              <DreamDetail />
-            </Suspense>
           </ProtectedRoute>
         }
       />
