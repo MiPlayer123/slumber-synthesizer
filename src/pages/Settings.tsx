@@ -44,6 +44,7 @@ import {
 import { Link } from "react-router-dom";
 import { useSubscription } from "@/hooks/use-subscription";
 import { PromoCodeInput } from "@/components/subscription/PromoCodeInput";
+import { Helmet } from "react-helmet-async";
 
 const Settings = () => {
   const { user } = useAuth();
@@ -759,790 +760,801 @@ const Settings = () => {
   };
 
   return (
-    <div className="container py-10">
-      <h1 className="text-4xl font-bold mb-6">Settings</h1>
+    <>
+      <Helmet>
+        <title>Rem | Settings</title>
+      </Helmet>
+      <div className="container py-10">
+        <h1 className="text-4xl font-bold mb-6">Settings</h1>
 
-      <div className="flex flex-col md:flex-row gap-6">
-        <div className="w-full md:w-64">
-          <Card>
-            <CardContent className="p-4">
-              <Tabs
-                defaultValue="account"
-                orientation="vertical"
-                value={activeTab}
-                onValueChange={handleTabChange}
-                className="w-full"
-              >
-                <TabsList className="flex flex-col items-start h-auto bg-transparent border-r space-y-1">
-                  <TabsTrigger
-                    value="account"
-                    className="w-full justify-start px-2 data-[state=active]:bg-muted"
-                  >
-                    <User className="mr-2 h-4 w-4" />
-                    Account
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="subscription"
-                    className="w-full justify-start px-2 data-[state=active]:bg-muted"
-                  >
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Subscription
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="notifications"
-                    className="w-full justify-start px-2 text-muted-foreground hover:text-muted-foreground cursor-not-allowed"
-                    disabled
-                  >
-                    <Bell className="mr-2 h-4 w-4" />
-                    Notifications
-                    <span className="ml-2 text-xs bg-secondary text-secondary-foreground rounded-full px-2 py-0.5">
-                      Soon
-                    </span>
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="appearance"
-                    className="w-full justify-start px-2 data-[state=active]:bg-muted"
-                  >
-                    <PaintBucket className="mr-2 h-4 w-4" />
-                    Appearance
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="data"
-                    className="w-full justify-start px-2 data-[state=active]:bg-muted"
-                  >
-                    <Cloud className="mr-2 h-4 w-4" />
-                    Data & Backup
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="help"
-                    className="w-full justify-start px-2 data-[state=active]:bg-muted"
-                  >
-                    <HelpCircle className="mr-2 h-4 w-4" />
-                    Help & Support
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </div>
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className="w-full md:w-64">
+            <Card>
+              <CardContent className="p-4">
+                <Tabs
+                  defaultValue="account"
+                  orientation="vertical"
+                  value={activeTab}
+                  onValueChange={handleTabChange}
+                  className="w-full"
+                >
+                  <TabsList className="flex flex-col items-start h-auto bg-transparent border-r space-y-1">
+                    <TabsTrigger
+                      value="account"
+                      className="w-full justify-start px-2 data-[state=active]:bg-muted"
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      Account
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="subscription"
+                      className="w-full justify-start px-2 data-[state=active]:bg-muted"
+                    >
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Subscription
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="notifications"
+                      className="w-full justify-start px-2 text-muted-foreground hover:text-muted-foreground cursor-not-allowed"
+                      disabled
+                    >
+                      <Bell className="mr-2 h-4 w-4" />
+                      Notifications
+                      <span className="ml-2 text-xs bg-secondary text-secondary-foreground rounded-full px-2 py-0.5">
+                        Soon
+                      </span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="appearance"
+                      className="w-full justify-start px-2 data-[state=active]:bg-muted"
+                    >
+                      <PaintBucket className="mr-2 h-4 w-4" />
+                      Appearance
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="data"
+                      className="w-full justify-start px-2 data-[state=active]:bg-muted"
+                    >
+                      <Cloud className="mr-2 h-4 w-4" />
+                      Data & Backup
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="help"
+                      className="w-full justify-start px-2 data-[state=active]:bg-muted"
+                    >
+                      <HelpCircle className="mr-2 h-4 w-4" />
+                      Help & Support
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </div>
 
-        <div className="flex-1">
-          <Tabs value={activeTab} onValueChange={handleTabChange}>
-            {/* Account Settings */}
-            <TabsContent value="account" className="space-y-4 mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Profile Information</CardTitle>
-                  <CardDescription>
-                    Update your personal information
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleProfileUpdate} className="space-y-4">
-                    <div className="flex items-center space-x-4 mb-6">
-                      <Avatar className="h-20 w-20">
-                        {user?.user_metadata?.avatar_url ? (
-                          <AvatarImage
-                            src={user.user_metadata.avatar_url}
-                            alt={
-                              user.user_metadata?.name || user.email || "User"
-                            }
-                          />
-                        ) : (
-                          <AvatarFallback className="text-lg">
-                            {(user?.email?.charAt(0) || "U").toUpperCase()}
-                          </AvatarFallback>
-                        )}
-                      </Avatar>
-                      <Button variant="outline">Change Avatar</Button>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="username">Username</Label>
-                      <Input
-                        id="username"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="fullName">Full Name</Label>
-                      <Input
-                        id="fullName"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" value={email} disabled />
-                      <p className="text-sm text-muted-foreground">
-                        Your email cannot be changed
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="bio">Bio</Label>
-                      <Input
-                        id="bio"
-                        value={bio}
-                        onChange={(e) => setBio(e.target.value)}
-                        placeholder="Tell others a bit about yourself"
-                      />
-                    </div>
-
-                    <Button type="submit" disabled={isLoadingProfile}>
-                      {isLoadingProfile ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving
-                        </>
-                      ) : (
-                        "Save Changes"
-                      )}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Password</CardTitle>
-                  <CardDescription>Change your password</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handlePasswordChange} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="currentPassword">Current Password</Label>
-                      <Input
-                        id="currentPassword"
-                        type="password"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="newPassword">New Password</Label>
-                      <Input
-                        id="newPassword"
-                        type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">
-                        Confirm New Password
-                      </Label>
-                      <Input
-                        id="confirmPassword"
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                      />
-                    </div>
-
-                    <Button type="submit" disabled={isLoadingPassword}>
-                      {isLoadingPassword ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Updating
-                        </>
-                      ) : (
-                        "Update Password"
-                      )}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Subscription Settings */}
-            <TabsContent value="subscription" className="space-y-4 mt-0">
-              {isLoadingSubscription ? (
+          <div className="flex-1">
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
+              {/* Account Settings */}
+              <TabsContent value="account" className="space-y-4 mt-0">
                 <Card>
-                  <CardContent className="p-8 flex justify-center items-center">
-                    <Loader2 className="h-6 w-6 animate-spin" />
+                  <CardHeader>
+                    <CardTitle>Profile Information</CardTitle>
+                    <CardDescription>
+                      Update your personal information
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleProfileUpdate} className="space-y-4">
+                      <div className="flex items-center space-x-4 mb-6">
+                        <Avatar className="h-20 w-20">
+                          {user?.user_metadata?.avatar_url ? (
+                            <AvatarImage
+                              src={user.user_metadata.avatar_url}
+                              alt={
+                                user.user_metadata?.name || user.email || "User"
+                              }
+                            />
+                          ) : (
+                            <AvatarFallback className="text-lg">
+                              {(user?.email?.charAt(0) || "U").toUpperCase()}
+                            </AvatarFallback>
+                          )}
+                        </Avatar>
+                        <Button variant="outline">Change Avatar</Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="username">Username</Label>
+                        <Input
+                          id="username"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="fullName">Full Name</Label>
+                        <Input
+                          id="fullName"
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input id="email" type="email" value={email} disabled />
+                        <p className="text-sm text-muted-foreground">
+                          Your email cannot be changed
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="bio">Bio</Label>
+                        <Input
+                          id="bio"
+                          value={bio}
+                          onChange={(e) => setBio(e.target.value)}
+                          placeholder="Tell others a bit about yourself"
+                        />
+                      </div>
+
+                      <Button type="submit" disabled={isLoadingProfile}>
+                        {isLoadingProfile ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Saving
+                          </>
+                        ) : (
+                          "Save Changes"
+                        )}
+                      </Button>
+                    </form>
                   </CardContent>
                 </Card>
-              ) : subscription?.status === "active" ? (
-                <Card className="mb-4">
-                  <CardHeader className="flex flex-row items-start gap-4 space-y-0">
-                    <div className="space-y-1 flex-1">
-                      <CardTitle>Premium Subscription</CardTitle>
-                      <CardDescription>
-                        {subscription?.displayStatus === "active"
-                          ? "Your premium subscription is active."
-                          : subscription?.displayStatus === "canceling"
-                            ? "Your subscription will remain active until the end of the billing period."
-                            : "Your subscription is inactive."}
-                      </CardDescription>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Password</CardTitle>
+                    <CardDescription>Change your password</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handlePasswordChange} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="currentPassword">
+                          Current Password
+                        </Label>
+                        <Input
+                          id="currentPassword"
+                          type="password"
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="newPassword">New Password</Label>
+                        <Input
+                          id="newPassword"
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="confirmPassword">
+                          Confirm New Password
+                        </Label>
+                        <Input
+                          id="confirmPassword"
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                        />
+                      </div>
+
+                      <Button type="submit" disabled={isLoadingPassword}>
+                        {isLoadingPassword ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Updating
+                          </>
+                        ) : (
+                          "Update Password"
+                        )}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Subscription Settings */}
+              <TabsContent value="subscription" className="space-y-4 mt-0">
+                {isLoadingSubscription ? (
+                  <Card>
+                    <CardContent className="p-8 flex justify-center items-center">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </CardContent>
+                  </Card>
+                ) : subscription?.status === "active" ? (
+                  <Card className="mb-4">
+                    <CardHeader className="flex flex-row items-start gap-4 space-y-0">
+                      <div className="space-y-1 flex-1">
+                        <CardTitle>Premium Subscription</CardTitle>
+                        <CardDescription>
+                          {subscription?.displayStatus === "active"
+                            ? "Your premium subscription is active."
+                            : subscription?.displayStatus === "canceling"
+                              ? "Your subscription will remain active until the end of the billing period."
+                              : "Your subscription is inactive."}
+                        </CardDescription>
+                      </div>
+                      {subscription?.displayStatus === "active" && (
+                        <Badge className="bg-green-500/20 text-green-700 dark:text-green-400 border border-green-500 hover:bg-green-500/30">
+                          Active
+                        </Badge>
+                      )}
+                      {subscription?.displayStatus === "canceling" && (
+                        <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500 hover:bg-amber-500/30">
+                          Canceling
+                        </Badge>
+                      )}
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            {subscription?.displayStatus === "canceling"
+                              ? "Ends"
+                              : "Renews"}
+                          </span>
+                          <span>
+                            {subscription?.currentPeriodEnd
+                              ? new Date(
+                                  subscription.currentPeriodEnd,
+                                ).toLocaleDateString(undefined, {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                })
+                              : "N/A"}
+                          </span>
+                        </div>
+
+                        <div className="h-2 w-full rounded-full bg-secondary">
+                          <div
+                            className={`h-full rounded-full ${
+                              subscription?.displayStatus === "canceling"
+                                ? "bg-amber-500/70"
+                                : "bg-primary/70"
+                            }`}
+                            style={{
+                              width: subscription?.currentPeriodEnd
+                                ? `${Math.max(5, calculateProgressPercent(subscription.currentPeriodEnd))}%`
+                                : "0%",
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-primary/5 p-4 rounded-lg flex items-center">
+                          <ImageIcon className="h-5 w-5 mr-3 text-primary" />
+                          <div>
+                            <h3 className="font-medium">Image Generation</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Unlimited
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="bg-primary/5 p-4 rounded-lg flex items-center">
+                          <Sparkles className="h-5 w-5 mr-3 text-primary" />
+                          <div>
+                            <h3 className="font-medium">Dream Analysis</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Unlimited
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row justify-center gap-3">
+                        <Button
+                          onClick={handleManageSubscription}
+                          variant="outline"
+                          className="sm:flex-1"
+                          disabled={isRefreshingSubscription}
+                        >
+                          {isRefreshingSubscription ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <CreditCard className="mr-2 h-4 w-4" />
+                              Manage Billing
+                            </>
+                          )}
+                        </Button>
+
+                        {subscription?.displayStatus === "canceling" ? (
+                          <Button
+                            onClick={renewSubscription}
+                            variant="default"
+                            className="sm:flex-1"
+                            disabled={isRefreshingSubscription}
+                          >
+                            {isRefreshingSubscription ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Processing...
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                Renew Subscription
+                              </>
+                            )}
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={cancelSubscription}
+                            variant="destructive"
+                            className="sm:flex-1"
+                            disabled={isRefreshingSubscription}
+                          >
+                            {isRefreshingSubscription ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Processing...
+                              </>
+                            ) : (
+                              <>
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Cancel Subscription
+                              </>
+                            )}
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="border-t pt-4 mt-2">
+                        <h3 className="text-sm font-medium mb-2">
+                          Premium Benefits:
+                        </h3>
+                        <ul className="space-y-2">
+                          <li className="flex items-center text-sm">
+                            <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                            Unlimited dream analysis
+                          </li>
+                          <li className="flex items-center text-sm">
+                            <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                            Unlimited image generation
+                          </li>
+                          <li className="flex items-center text-sm">
+                            <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                            Priority support
+                          </li>
+                        </ul>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    <Card className="mb-4">
+                      <CardHeader>
+                        <CardTitle>Subscription Plans</CardTitle>
+                        <CardDescription>
+                          Upgrade to unlock unlimited dream analysis and image
+                          generation
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Monthly Plan */}
+                          <Card
+                            className={`border-2 cursor-pointer hover:border-primary transition-colors ${selectedPlan === "monthly" ? "border-primary" : "border-muted"}`}
+                            onClick={() => setSelectedPlan("monthly")}
+                          >
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-lg">
+                                Monthly Plan
+                              </CardTitle>
+                              <CardDescription>
+                                Perfect for regular dreamers
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="flex items-baseline mb-4">
+                                <span className="text-3xl font-bold">$6</span>
+                                <span className="text-sm text-muted-foreground ml-1">
+                                  /month
+                                </span>
+                              </div>
+                              <ul className="space-y-2">
+                                <li className="flex items-center text-sm">
+                                  <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                                  Unlimited dream analysis
+                                </li>
+                                <li className="flex items-center text-sm">
+                                  <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                                  Unlimited image generation
+                                </li>
+                                <li className="flex items-center text-sm">
+                                  <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                                  Priority support
+                                </li>
+                              </ul>
+                            </CardContent>
+                          </Card>
+
+                          {/* 6-Month Plan */}
+                          <Card
+                            className={`border-2 cursor-pointer hover:border-primary transition-colors ${selectedPlan === "6-month" ? "border-primary" : "border-muted"}`}
+                            onClick={() => setSelectedPlan("6-month")}
+                          >
+                            <CardHeader className="pb-3">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <CardTitle className="text-lg">
+                                    6-Month Plan
+                                  </CardTitle>
+                                  <CardDescription>Best value</CardDescription>
+                                </div>
+                                <div className="bg-primary/10 text-primary px-2 py-1 rounded-md text-xs font-semibold">
+                                  Save 17%
+                                </div>
+                              </div>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="flex items-baseline mb-4">
+                                <span className="text-3xl font-bold">$30</span>
+                                <span className="text-sm text-muted-foreground ml-1">
+                                  /6 months
+                                </span>
+                              </div>
+                              <ul className="space-y-2">
+                                <li className="flex items-center text-sm">
+                                  <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                                  Unlimited dream analysis
+                                </li>
+                                <li className="flex items-center text-sm">
+                                  <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                                  Unlimited image generation
+                                </li>
+                                <li className="flex items-center text-sm">
+                                  <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                                  Priority support
+                                </li>
+                              </ul>
+                            </CardContent>
+                          </Card>
+                        </div>
+
+                        <PromoCodeInput
+                          onPromoCodeValidated={handlePromoCodeValidated}
+                          disabled={isProcessingPayment}
+                        />
+
+                        <Button
+                          onClick={handleSubscribe}
+                          disabled={isProcessingPayment}
+                          className="w-full"
+                        >
+                          {isProcessingPayment ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Processing
+                            </>
+                          ) : (
+                            <>Subscribe Now</>
+                          )}
+                        </Button>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Free Plan Limits</CardTitle>
+                        <CardDescription>
+                          Your current usage on the free plan
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center mb-1">
+                              <div className="flex items-center">
+                                <ImageIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                                <span className="text-sm font-medium">
+                                  Image Generations
+                                </span>
+                              </div>
+                              <span className="text-sm font-semibold">
+                                {remainingUsage?.imageGenerations ?? 0} / 5
+                                remaining this week
+                              </span>
+                            </div>
+                            <div className="h-2 bg-muted rounded-full overflow-hidden">
+                              <div
+                                className={`h-full bg-primary rounded-full transition-all progress-bar-${Math.round(((remainingUsage?.imageGenerations ?? 0) / 5) * 100)}`}
+                              ></div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center mb-1">
+                              <div className="flex items-center">
+                                <Sparkles className="h-4 w-4 mr-2 text-muted-foreground" />
+                                <span className="text-sm font-medium">
+                                  Dream Analyses
+                                </span>
+                              </div>
+                              <span className="text-sm font-semibold">
+                                {remainingUsage?.dreamAnalyses ?? 0} / 7
+                                remaining this week
+                              </span>
+                            </div>
+                            <div className="h-2 bg-muted rounded-full overflow-hidden">
+                              <div
+                                className={`h-full bg-primary rounded-full transition-all progress-bar-${Math.round(((remainingUsage?.dreamAnalyses ?? 0) / 7) * 100)}`}
+                              ></div>
+                            </div>
+                          </div>
+
+                          <div className="bg-muted/50 p-4 rounded-lg">
+                            <p className="text-sm text-muted-foreground">
+                              Free plan limits reset every Sunday at midnight
+                              UTC.
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
+              </TabsContent>
+
+              {/* Notifications Settings - Disabled but shown for future reference */}
+              <TabsContent value="notifications" className="space-y-4 mt-0">
+                <Card className="opacity-70 pointer-events-none">
+                  <CardHeader>
+                    <CardTitle>Notification Preferences</CardTitle>
+                    <CardDescription>
+                      Choose what notifications you receive
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between pb-4 border-b">
+                      <div>
+                        <h3 className="text-lg font-medium">
+                          Email Notifications
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Receive email notifications about your account and
+                          dreams
+                        </p>
+                      </div>
+                      <Switch
+                        checked={emailNotifications}
+                        onCheckedChange={setEmailNotifications}
+                      />
                     </div>
-                    {subscription?.displayStatus === "active" && (
-                      <Badge className="bg-green-500/20 text-green-700 dark:text-green-400 border border-green-500 hover:bg-green-500/30">
-                        Active
-                      </Badge>
-                    )}
-                    {subscription?.displayStatus === "canceling" && (
-                      <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500 hover:bg-amber-500/30">
-                        Canceling
-                      </Badge>
-                    )}
+
+                    <div className="flex items-center justify-between pb-4 border-b">
+                      <div>
+                        <h3 className="text-lg font-medium">
+                          Push Notifications
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Receive push notifications on your devices
+                        </p>
+                      </div>
+                      <Switch
+                        checked={pushNotifications}
+                        onCheckedChange={setPushNotifications}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between pb-4 border-b">
+                      <div>
+                        <h3 className="text-lg font-medium">Dream Reminders</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Get reminders to record your dreams in the morning
+                        </p>
+                      </div>
+                      <Switch
+                        checked={dreamReminderNotifications}
+                        onCheckedChange={setDreamReminderNotifications}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium">
+                          Comment Notifications
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Get notified when someone comments on your shared
+                          dreams
+                        </p>
+                      </div>
+                      <Switch
+                        checked={commentNotifications}
+                        onCheckedChange={setCommentNotifications}
+                      />
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button>Save Preferences</Button>
+                  </CardFooter>
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10 rounded-lg">
+                    <div className="bg-background border rounded-lg p-4 text-center shadow-lg">
+                      <h3 className="text-lg font-semibold mb-2">
+                        Coming Soon
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Notification preferences will be available in a future
+                        update.
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </TabsContent>
+
+              {/* Appearance Settings */}
+              <TabsContent value="appearance" className="space-y-4 mt-0">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Theme & Appearance</CardTitle>
+                    <CardDescription>Customize how REM looks</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                      <Label>Theme Mode</Label>
+                      <div className="flex gap-4">
+                        <Button
+                          variant={theme === "light" ? "default" : "outline"}
+                          onClick={() => setTheme("light")}
+                          className="flex-1"
+                        >
+                          <Sun className="mr-2 h-4 w-4" />
+                          Light
+                        </Button>
+                        <Button
+                          variant={theme === "dark" ? "default" : "outline"}
+                          onClick={() => setTheme("dark")}
+                          className="flex-1"
+                        >
+                          <Moon className="mr-2 h-4 w-4" />
+                          Dark
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Data & Backup Settings */}
+              <TabsContent value="data" className="space-y-4 mt-0">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Data & Backup</CardTitle>
+                    <CardDescription>
+                      Manage your data and backups
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          {subscription?.displayStatus === "canceling"
-                            ? "Ends"
-                            : "Renews"}
-                        </span>
-                        <span>
-                          {subscription?.currentPeriodEnd
-                            ? new Date(
-                                subscription.currentPeriodEnd,
-                              ).toLocaleDateString(undefined, {
-                                year: "numeric",
-                                month: "short",
-                                day: "numeric",
-                              })
-                            : "N/A"}
-                        </span>
-                      </div>
-
-                      <div className="h-2 w-full rounded-full bg-secondary">
-                        <div
-                          className={`h-full rounded-full ${
-                            subscription?.displayStatus === "canceling"
-                              ? "bg-amber-500/70"
-                              : "bg-primary/70"
-                          }`}
-                          style={{
-                            width: subscription?.currentPeriodEnd
-                              ? `${Math.max(5, calculateProgressPercent(subscription.currentPeriodEnd))}%`
-                              : "0%",
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-primary/5 p-4 rounded-lg flex items-center">
-                        <ImageIcon className="h-5 w-5 mr-3 text-primary" />
-                        <div>
-                          <h3 className="font-medium">Image Generation</h3>
-                          <p className="text-sm text-muted-foreground">
-                            Unlimited
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="bg-primary/5 p-4 rounded-lg flex items-center">
-                        <Sparkles className="h-5 w-5 mr-3 text-primary" />
-                        <div>
-                          <h3 className="font-medium">Dream Analysis</h3>
-                          <p className="text-sm text-muted-foreground">
-                            Unlimited
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row justify-center gap-3">
-                      <Button
-                        onClick={handleManageSubscription}
-                        variant="outline"
-                        className="sm:flex-1"
-                        disabled={isRefreshingSubscription}
+                      <Label htmlFor="export">Export Format</Label>
+                      <Select
+                        value={exportFormat}
+                        onValueChange={setExportFormat}
                       >
-                        {isRefreshingSubscription ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            <CreditCard className="mr-2 h-4 w-4" />
-                            Manage Billing
-                          </>
-                        )}
-                      </Button>
-
-                      {subscription?.displayStatus === "canceling" ? (
-                        <Button
-                          onClick={renewSubscription}
-                          variant="default"
-                          className="sm:flex-1"
-                          disabled={isRefreshingSubscription}
-                        >
-                          {isRefreshingSubscription ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Processing...
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                              Renew Subscription
-                            </>
-                          )}
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={cancelSubscription}
-                          variant="destructive"
-                          className="sm:flex-1"
-                          disabled={isRefreshingSubscription}
-                        >
-                          {isRefreshingSubscription ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Processing...
-                            </>
-                          ) : (
-                            <>
-                              <XCircle className="mr-2 h-4 w-4" />
-                              Cancel Subscription
-                            </>
-                          )}
-                        </Button>
-                      )}
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="json">JSON</SelectItem>
+                          <SelectItem value="csv">CSV</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
-                    <div className="border-t pt-4 mt-2">
-                      <h3 className="text-sm font-medium mb-2">
-                        Premium Benefits:
-                      </h3>
-                      <ul className="space-y-2">
-                        <li className="flex items-center text-sm">
-                          <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                          Unlimited dream analysis
-                        </li>
-                        <li className="flex items-center text-sm">
-                          <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                          Unlimited image generation
-                        </li>
-                        <li className="flex items-center text-sm">
-                          <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                          Priority support
-                        </li>
-                      </ul>
+                    <Button
+                      onClick={handleDataExport}
+                      disabled={isLoadingDataExport}
+                      className="w-full"
+                    >
+                      {isLoadingDataExport ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Exporting Data
+                        </>
+                      ) : (
+                        "Export Dreams Data"
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Help & Support */}
+              <TabsContent value="help" className="space-y-4 mt-0">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Help & Support</CardTitle>
+                    <CardDescription>
+                      Find help and support resources
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-4">
+                      <Link to="/privacy">
+                        <Button
+                          variant="outline"
+                          className="justify-start h-auto py-4 px-6 w-full"
+                        >
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium flex items-center">
+                              Privacy Policy
+                              <ExternalLink className="ml-2 h-3 w-3" />
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              Read our privacy policy
+                            </span>
+                          </div>
+                        </Button>
+                      </Link>
+
+                      <Link to="/terms">
+                        <Button
+                          variant="outline"
+                          className="justify-start h-auto py-4 px-6 w-full"
+                        >
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium flex items-center">
+                              Terms of Service
+                              <ExternalLink className="ml-2 h-3 w-3" />
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              Read our terms of service
+                            </span>
+                          </div>
+                        </Button>
+                      </Link>
+
+                      <a
+                        href="https://forms.gle/aMFrfqbqiMMBSEKr9"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button
+                          variant="outline"
+                          className="justify-start h-auto py-4 px-6 w-full"
+                        >
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium flex items-center">
+                              Contact Support
+                              <ExternalLink className="ml-2 h-3 w-3" />
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              Get help from our support team
+                            </span>
+                          </div>
+                        </Button>
+                      </a>
                     </div>
                   </CardContent>
                 </Card>
-              ) : (
-                <>
-                  <Card className="mb-4">
-                    <CardHeader>
-                      <CardTitle>Subscription Plans</CardTitle>
-                      <CardDescription>
-                        Upgrade to unlock unlimited dream analysis and image
-                        generation
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Monthly Plan */}
-                        <Card
-                          className={`border-2 cursor-pointer hover:border-primary transition-colors ${selectedPlan === "monthly" ? "border-primary" : "border-muted"}`}
-                          onClick={() => setSelectedPlan("monthly")}
-                        >
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-lg">
-                              Monthly Plan
-                            </CardTitle>
-                            <CardDescription>
-                              Perfect for regular dreamers
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="flex items-baseline mb-4">
-                              <span className="text-3xl font-bold">$6</span>
-                              <span className="text-sm text-muted-foreground ml-1">
-                                /month
-                              </span>
-                            </div>
-                            <ul className="space-y-2">
-                              <li className="flex items-center text-sm">
-                                <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                Unlimited dream analysis
-                              </li>
-                              <li className="flex items-center text-sm">
-                                <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                Unlimited image generation
-                              </li>
-                              <li className="flex items-center text-sm">
-                                <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                Priority support
-                              </li>
-                            </ul>
-                          </CardContent>
-                        </Card>
-
-                        {/* 6-Month Plan */}
-                        <Card
-                          className={`border-2 cursor-pointer hover:border-primary transition-colors ${selectedPlan === "6-month" ? "border-primary" : "border-muted"}`}
-                          onClick={() => setSelectedPlan("6-month")}
-                        >
-                          <CardHeader className="pb-3">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <CardTitle className="text-lg">
-                                  6-Month Plan
-                                </CardTitle>
-                                <CardDescription>Best value</CardDescription>
-                              </div>
-                              <div className="bg-primary/10 text-primary px-2 py-1 rounded-md text-xs font-semibold">
-                                Save 17%
-                              </div>
-                            </div>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="flex items-baseline mb-4">
-                              <span className="text-3xl font-bold">$30</span>
-                              <span className="text-sm text-muted-foreground ml-1">
-                                /6 months
-                              </span>
-                            </div>
-                            <ul className="space-y-2">
-                              <li className="flex items-center text-sm">
-                                <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                Unlimited dream analysis
-                              </li>
-                              <li className="flex items-center text-sm">
-                                <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                Unlimited image generation
-                              </li>
-                              <li className="flex items-center text-sm">
-                                <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                Priority support
-                              </li>
-                            </ul>
-                          </CardContent>
-                        </Card>
-                      </div>
-
-                      <PromoCodeInput
-                        onPromoCodeValidated={handlePromoCodeValidated}
-                        disabled={isProcessingPayment}
-                      />
-
-                      <Button
-                        onClick={handleSubscribe}
-                        disabled={isProcessingPayment}
-                        className="w-full"
-                      >
-                        {isProcessingPayment ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processing
-                          </>
-                        ) : (
-                          <>Subscribe Now</>
-                        )}
-                      </Button>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Free Plan Limits</CardTitle>
-                      <CardDescription>
-                        Your current usage on the free plan
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center mb-1">
-                            <div className="flex items-center">
-                              <ImageIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                              <span className="text-sm font-medium">
-                                Image Generations
-                              </span>
-                            </div>
-                            <span className="text-sm font-semibold">
-                              {remainingUsage?.imageGenerations ?? 0} / 5
-                              remaining this week
-                            </span>
-                          </div>
-                          <div className="h-2 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className={`h-full bg-primary rounded-full transition-all progress-bar-${Math.round(((remainingUsage?.imageGenerations ?? 0) / 5) * 100)}`}
-                            ></div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center mb-1">
-                            <div className="flex items-center">
-                              <Sparkles className="h-4 w-4 mr-2 text-muted-foreground" />
-                              <span className="text-sm font-medium">
-                                Dream Analyses
-                              </span>
-                            </div>
-                            <span className="text-sm font-semibold">
-                              {remainingUsage?.dreamAnalyses ?? 0} / 7 remaining
-                              this week
-                            </span>
-                          </div>
-                          <div className="h-2 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className={`h-full bg-primary rounded-full transition-all progress-bar-${Math.round(((remainingUsage?.dreamAnalyses ?? 0) / 7) * 100)}`}
-                            ></div>
-                          </div>
-                        </div>
-
-                        <div className="bg-muted/50 p-4 rounded-lg">
-                          <p className="text-sm text-muted-foreground">
-                            Free plan limits reset every Sunday at midnight UTC.
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </>
-              )}
-            </TabsContent>
-
-            {/* Notifications Settings - Disabled but shown for future reference */}
-            <TabsContent value="notifications" className="space-y-4 mt-0">
-              <Card className="opacity-70 pointer-events-none">
-                <CardHeader>
-                  <CardTitle>Notification Preferences</CardTitle>
-                  <CardDescription>
-                    Choose what notifications you receive
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between pb-4 border-b">
-                    <div>
-                      <h3 className="text-lg font-medium">
-                        Email Notifications
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        Receive email notifications about your account and
-                        dreams
-                      </p>
-                    </div>
-                    <Switch
-                      checked={emailNotifications}
-                      onCheckedChange={setEmailNotifications}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between pb-4 border-b">
-                    <div>
-                      <h3 className="text-lg font-medium">
-                        Push Notifications
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        Receive push notifications on your devices
-                      </p>
-                    </div>
-                    <Switch
-                      checked={pushNotifications}
-                      onCheckedChange={setPushNotifications}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between pb-4 border-b">
-                    <div>
-                      <h3 className="text-lg font-medium">Dream Reminders</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Get reminders to record your dreams in the morning
-                      </p>
-                    </div>
-                    <Switch
-                      checked={dreamReminderNotifications}
-                      onCheckedChange={setDreamReminderNotifications}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-medium">
-                        Comment Notifications
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        Get notified when someone comments on your shared dreams
-                      </p>
-                    </div>
-                    <Switch
-                      checked={commentNotifications}
-                      onCheckedChange={setCommentNotifications}
-                    />
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button>Save Preferences</Button>
-                </CardFooter>
-                <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10 rounded-lg">
-                  <div className="bg-background border rounded-lg p-4 text-center shadow-lg">
-                    <h3 className="text-lg font-semibold mb-2">Coming Soon</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Notification preferences will be available in a future
-                      update.
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            </TabsContent>
-
-            {/* Appearance Settings */}
-            <TabsContent value="appearance" className="space-y-4 mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Theme & Appearance</CardTitle>
-                  <CardDescription>Customize how REM looks</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <Label>Theme Mode</Label>
-                    <div className="flex gap-4">
-                      <Button
-                        variant={theme === "light" ? "default" : "outline"}
-                        onClick={() => setTheme("light")}
-                        className="flex-1"
-                      >
-                        <Sun className="mr-2 h-4 w-4" />
-                        Light
-                      </Button>
-                      <Button
-                        variant={theme === "dark" ? "default" : "outline"}
-                        onClick={() => setTheme("dark")}
-                        className="flex-1"
-                      >
-                        <Moon className="mr-2 h-4 w-4" />
-                        Dark
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Data & Backup Settings */}
-            <TabsContent value="data" className="space-y-4 mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Data & Backup</CardTitle>
-                  <CardDescription>
-                    Manage your data and backups
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="export">Export Format</Label>
-                    <Select
-                      value={exportFormat}
-                      onValueChange={setExportFormat}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="json">JSON</SelectItem>
-                        <SelectItem value="csv">CSV</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <Button
-                    onClick={handleDataExport}
-                    disabled={isLoadingDataExport}
-                    className="w-full"
-                  >
-                    {isLoadingDataExport ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Exporting Data
-                      </>
-                    ) : (
-                      "Export Dreams Data"
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Help & Support */}
-            <TabsContent value="help" className="space-y-4 mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Help & Support</CardTitle>
-                  <CardDescription>
-                    Find help and support resources
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4">
-                    <Link to="/privacy">
-                      <Button
-                        variant="outline"
-                        className="justify-start h-auto py-4 px-6 w-full"
-                      >
-                        <div className="flex flex-col items-start">
-                          <span className="font-medium flex items-center">
-                            Privacy Policy
-                            <ExternalLink className="ml-2 h-3 w-3" />
-                          </span>
-                          <span className="text-sm text-muted-foreground">
-                            Read our privacy policy
-                          </span>
-                        </div>
-                      </Button>
-                    </Link>
-
-                    <Link to="/terms">
-                      <Button
-                        variant="outline"
-                        className="justify-start h-auto py-4 px-6 w-full"
-                      >
-                        <div className="flex flex-col items-start">
-                          <span className="font-medium flex items-center">
-                            Terms of Service
-                            <ExternalLink className="ml-2 h-3 w-3" />
-                          </span>
-                          <span className="text-sm text-muted-foreground">
-                            Read our terms of service
-                          </span>
-                        </div>
-                      </Button>
-                    </Link>
-
-                    <a
-                      href="https://forms.gle/aMFrfqbqiMMBSEKr9"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Button
-                        variant="outline"
-                        className="justify-start h-auto py-4 px-6 w-full"
-                      >
-                        <div className="flex flex-col items-start">
-                          <span className="font-medium flex items-center">
-                            Contact Support
-                            <ExternalLink className="ml-2 h-3 w-3" />
-                          </span>
-                          <span className="text-sm text-muted-foreground">
-                            Get help from our support team
-                          </span>
-                        </div>
-                      </Button>
-                    </a>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+              </TabsContent>
+            </Tabs>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

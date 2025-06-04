@@ -843,38 +843,25 @@ export const UserProfile = () => {
           <Helmet>
             <title>Loading Profile... | Rem</title>
           </Helmet>
-          <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50">
-            <Loader2 className="h-12 w-12 animate-spin text-purple-600" />
+          <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
           </div>
         </>
       );
     }
 
-    const pubProfileData = publicProfileResponse?.profile;
+    const errorTitle =
+      publicPrivacyInfo.visibility === "private_profile"
+        ? "Private Profile"
+        : publicPrivacyInfo.visibility === "friends_only_profile"
+          ? "Friends Only Profile"
+          : "Profile Not Found";
 
-    if (publicViewError || !pubProfileData) {
-      // A helper for public visibility icons, similar to DreamDetail
-      const getPublicProfileVisibilityIcon = (visibility?: string) => {
-        switch (visibility) {
-          case "friends_only_profile":
-            return <Users className="w-5 h-5 text-blue-600" />;
-          case "private_profile":
-            return <Lock className="w-5 h-5 text-gray-600" />;
-          default:
-            return <Globe className="w-5 h-5 text-red-600" />; // For general errors or not found
-        }
-      };
+    if (publicViewError || !publicProfileResponse?.profile) {
       return (
         <>
           <Helmet>
-            <title>
-              {publicPrivacyInfo.visibility === "private_profile"
-                ? "Private Profile"
-                : publicPrivacyInfo.visibility === "friends_only_profile"
-                  ? "Friends Only Profile"
-                  : "Profile Not Found"}{" "}
-              | Rem
-            </title>
+            <title>{errorTitle} | Rem</title>
             <meta
               name="description"
               content={
@@ -883,22 +870,28 @@ export const UserProfile = () => {
               }
             />
           </Helmet>
-          <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 p-4">
-            <Card className="w-full max-w-md text-center">
+          <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-4">
+            <Card className="w-full max-w-md text-center bg-card text-card-foreground">
               <CardHeader>
                 <div className="mx-auto mb-4 p-3 bg-gray-100 rounded-full w-fit">
-                  {getPublicProfileVisibilityIcon(publicPrivacyInfo.visibility)}
+                  {publicPrivacyInfo.visibility === "private_profile" ? (
+                    <Lock className="w-5 h-5 text-gray-600" />
+                  ) : publicPrivacyInfo.visibility ===
+                    "friends_only_profile" ? (
+                    <Users className="w-5 h-5 text-blue-600" />
+                  ) : (
+                    <Globe className="w-5 h-5 text-red-600" />
+                  )}
                 </div>
-                <h1 className="text-xl font-semibold text-gray-900">
-                  {publicPrivacyInfo.visibility === "private_profile"
-                    ? "Private Profile"
-                    : publicPrivacyInfo.visibility === "friends_only_profile"
-                      ? "Friends Only Profile"
-                      : "Profile Not Found"}
+                <h1 className="text-xl font-semibold text-card-foreground">
+                  {errorTitle}
                 </h1>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-gray-600">{publicViewError}</p>
+                <p className="text-muted-foreground">
+                  {publicViewError ||
+                    "This profile is not available or private."}
+                </p>
                 {publicPrivacyInfo.requiresAuth && (
                   <Button
                     onClick={handlePublicLoginRedirect}
@@ -907,24 +900,24 @@ export const UserProfile = () => {
                     Login to View
                   </Button>
                 )}
-                <div className="space-y-2">
-                  <Button
-                    variant="outline"
-                    onClick={handleOpenProfileInApp}
-                    className="w-full"
-                  >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Open in Rem App
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => navigate("/")}
-                    className="w-full"
-                  >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Rem
-                  </Button>
-                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleOpenProfileInApp}
+                  className="w-full mt-2"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Open in Rem App
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    if (user) navigate(-1);
+                    else navigate("/");
+                  }}
+                  className="w-full mt-2"
+                >
+                  Back
+                </Button>
               </CardContent>
             </Card>
           </div>
@@ -932,634 +925,678 @@ export const UserProfile = () => {
       );
     }
 
-    // Public Profile Display
+    const pubProfile = publicProfileResponse.profile;
+    // Public view JSX with Helmet
     return (
       <>
         <Helmet>
           <title>
-            {pubProfileData.full_name || pubProfileData.username} (@
-            {pubProfileData.username}) | Rem Profile
+            {pubProfile.full_name || pubProfile.username} (@
+            {pubProfile.username}) | Rem Profile
           </title>
           <meta
             name="description"
             content={
-              pubProfileData.bio?.slice(0, 160) + "..." ||
-              `${pubProfileData.username}'s profile on Rem.`
+              pubProfile.bio?.slice(0, 160) + "..." ||
+              `${pubProfile.username}'s profile on Rem.`
             }
           />
           <meta
             property="og:title"
-            content={`${pubProfileData.full_name || pubProfileData.username} (@${pubProfileData.username}) | Rem Profile`}
+            content={`${pubProfile.full_name || pubProfile.username} (@${pubProfile.username}) | Rem Profile`}
           />
           <meta
             property="og:description"
             content={
-              pubProfileData.bio ||
-              `${pubProfileData.username} on Rem - AI Dream Journal`
+              pubProfile.bio ||
+              `${pubProfile.username} on Rem - AI Dream Journal`
             }
           />
           <meta
             property="og:image"
             content={
-              pubProfileData.avatar_url ||
-              "https://lucidrem.com/default_avatar.png"
+              pubProfile.avatar_url || "https://lucidrem.com/default_avatar.png"
             }
           />
           <meta
             property="og:url"
-            content={`${window.location.origin}/profile/${username}`}
+            content={`${window.location.origin}/profile/${pubProfile.username}`}
           />
           <meta property="og:type" content="profile" />
           <meta name="twitter:card" content="summary" />
+          <meta
+            name="twitter:title"
+            content={`${pubProfile.full_name || pubProfile.username} (@${pubProfile.username}) | Rem Profile`}
+          />
+          <meta
+            name="twitter:description"
+            content={pubProfile.bio || `${pubProfile.username} on Rem`}
+          />
+          <meta
+            name="twitter:image"
+            content={
+              pubProfile.avatar_url || "https://lucidrem.com/default_avatar.png"
+            }
+          />
         </Helmet>
         <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
-          <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-            <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="container mx-auto px-4 py-6 md:py-12">
+            <div className="max-w-3xl mx-auto">
               <Button
                 variant="ghost"
-                onClick={() => navigate("/")}
-                className="flex items-center gap-2"
+                onClick={() => {
+                  if (user) navigate(-1);
+                  else navigate("/");
+                }}
+                className="mb-6 flex items-center text-gray-700 hover:text-gray-900"
               >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Rem
+                <ArrowLeft className="h-5 w-5 mr-2" />
+                Back
               </Button>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleOpenProfileInApp}
-                  className="hidden sm:flex"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Open in App
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePublicProfileShare}
-                >
-                  <Share className="w-4 h-4 mr-2" />
-                  Share
-                </Button>
-              </div>
-            </div>
-          </div>
-          <div className="max-w-xl mx-auto px-4 py-8 md:py-12">
-            <Card className="overflow-hidden shadow-lg">
-              <CardContent className="p-6 md:p-8 text-center">
-                <Avatar className="w-24 h-24 md:w-32 md:h-32 mx-auto mb-4 border-4 border-white shadow-md">
-                  <AvatarImage
-                    src={pubProfileData.avatar_url || undefined}
-                    alt={pubProfileData.username}
-                  />
-                  <AvatarFallback className="text-4xl">
-                    {pubProfileData.username?.[0]?.toUpperCase() || "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-                  {pubProfileData.full_name || pubProfileData.username}
-                </h1>
-                <p className="text-md text-gray-600 mb-1">
-                  @{pubProfileData.username}
-                </p>
-                {pubProfileData.bio && (
-                  <p className="text-sm text-gray-700 my-4 leading-relaxed">
-                    {pubProfileData.bio}
+
+              <Card className="bg-white shadow-xl rounded-lg overflow-hidden">
+                <div
+                  className="bg-gray-200 h-32 md:h-40"
+                  style={{
+                    backgroundImage: `url(${(pubProfile as ProfileType & { banner_url?: string }).banner_url || "/placeholder_banner.png"})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
+                />
+                <div className="p-6 md:p-8 text-center -mt-16 md:-mt-20">
+                  <Avatar className="w-24 h-24 md:w-32 md:h-32 mx-auto mb-4 border-4 border-white shadow-md">
+                    <AvatarImage
+                      src={pubProfile.avatar_url || undefined}
+                      alt={pubProfile.username}
+                    />
+                    <AvatarFallback className="text-4xl">
+                      {pubProfile.username?.[0]?.toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+                    {pubProfile.full_name || pubProfile.username}
+                  </h1>
+                  <p className="text-md text-gray-600 mb-1">
+                    @{pubProfile.username}
                   </p>
-                )}
-                <div className="flex items-center justify-center gap-4 text-sm text-gray-600 my-4">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" /> Joined{" "}
-                    {format(new Date(pubProfileData.created_at), "MMMM yyyy")}
-                  </div>
-                  {pubProfileData.public_dream_count !== undefined && (
+                  {pubProfile.bio && (
+                    <p className="text-sm text-gray-700 my-4 leading-relaxed">
+                      {pubProfile.bio}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-center gap-4 text-sm text-gray-600 my-4">
                     <div className="flex items-center gap-1">
-                      <MessageSquare className="w-4 h-4" />{" "}
-                      {pubProfileData.public_dream_count} Public Dreams
+                      <Calendar className="w-4 h-4" /> Joined{" "}
+                      {format(new Date(pubProfile.created_at), "MMMM yyyy")}
+                    </div>
+                    {pubProfile.public_dream_count !== undefined && (
+                      <div className="flex items-center gap-1">
+                        <MessageSquare className="w-4 h-4" />{" "}
+                        {pubProfile.public_dream_count} Public Dreams
+                      </div>
+                    )}
+                  </div>
+                  {pubProfile.website && (
+                    <div className="flex items-center justify-center gap-1 text-sm text-primary hover:underline mb-6">
+                      <LinkIcon className="h-4 w-4" />
+                      <a
+                        href={
+                          pubProfile.website.startsWith("http")
+                            ? pubProfile.website
+                            : `https://${pubProfile.website}`
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {pubProfile.website}
+                      </a>
                     </div>
                   )}
-                </div>
-                {pubProfileData.website && (
-                  <div className="flex items-center justify-center gap-1 text-sm text-primary hover:underline mb-6">
-                    <LinkIcon className="h-4 w-4" />
-                    <a
-                      href={
-                        pubProfileData.website.startsWith("http")
-                          ? pubProfileData.website
-                          : `https://${pubProfileData.website}`
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {pubProfileData.website}
-                    </a>
+                  <div className="flex justify-center space-x-3">
+                    <Button onClick={handlePublicProfileShare}>
+                      <Share className="mr-2 h-4 w-4" /> Share Profile
+                    </Button>
+                    <Button variant="outline" onClick={handleOpenProfileInApp}>
+                      <ExternalLink className="mr-2 h-4 w-4" /> Open in App
+                    </Button>
                   </div>
-                )}
-                <div className="mt-6 p-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg border border-purple-200 text-center">
-                  <h3 className="font-semibold text-gray-900 mb-2">
-                    Explore more on Rem
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-4">
-                    Discover dreams, connect with users, and record your own
-                    journey.
+                </div>
+              </Card>
+
+              <div className="mt-8">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                  Public Dreams ({dreams.length})
+                </h2>
+                {dreamsLoading ? (
+                  <div className="flex justify-center mt-8">
+                    {" "}
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />{" "}
+                  </div>
+                ) : dreams.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-4">
+                    {dreams.map((dream) => (
+                      <DreamListItem
+                        key={dream.id}
+                        dream={dream}
+                        onClick={() => navigate(`/dream/${dream.id}`)}
+                        refreshLikes={() =>
+                          queryClient.invalidateQueries({
+                            queryKey: ["dreamLikes", dream.id],
+                          })
+                        }
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-gray-600 py-4">
+                    This user hasn't shared any dreams publicly yet.
                   </p>
-                  <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                    <Button
-                      onClick={handleOpenProfileInApp}
-                      className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Get the App
-                    </Button>
-                    <Button variant="outline" onClick={() => navigate("/")}>
-                      Learn More
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </>
     );
   }
 
-  // --- APP VIEW (Existing Logic) ---
-  // Ensure all existing loading states (loading, dreamsLoading) and data (profile, dreams) are used here.
+  // --- App View ---
   if (loading) {
-    // This is the app-view loading state
+    // App view loading state
     return (
-      <div className="container mx-auto px-4 py-12 flex justify-center items-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
+      <>
+        <Helmet>
+          <title>Loading Profile... | Rem</title>
+        </Helmet>
+        <div className="container mx-auto py-8 flex justify-center">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </div>
+      </>
     );
   }
 
   if (!profile) {
-    // This is the app-view profile state
+    // App view profile not found
     return (
-      <div className="container mx-auto px-4 py-12">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
-          <ArrowLeft className="h-4 w-4 mr-2" /> Back
-        </Button>
-        <Card>
-          <CardContent className="pt-6">
-            <h2 className="text-xl font-bold mb-4">
-              User Not Found (App View)
-            </h2>
-            <p>
-              The user profile you are looking for does not exist in the app
-              context.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <>
+        <Helmet>
+          <title>Profile Not Found | Rem</title>
+        </Helmet>
+        <div className="container mx-auto py-8 text-center">
+          <p className="text-lg text-muted-foreground">Profile not found.</p>
+          <Button onClick={() => navigate("/")} className="mt-4">
+            Go Home
+          </Button>
+        </div>
+      </>
     );
   }
 
-  // Return existing JSX for app view.
-  // Make sure all handlers like handleAddFriend, handleDreamClick, etc., are correctly defined and scoped.
-  // The SortSelect, DreamListItem components are part of this existing JSX.
+  // App view JSX with Helmet
   return (
-    <div className="container mx-auto px-4 py-6 md:py-12" ref={profileRef}>
-      <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
-        <ArrowLeft className="h-4 w-4 mr-2" /> Back
-      </Button>
-
-      <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-10">
-        {profile.username}'s Profile
-      </h1>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-8">
-        <div className="lg:col-span-4 space-y-4 md:space-y-6">
-          <Card>
-            <CardHeader className="pb-2 md:pb-4">
-              <CardTitle>Profile</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col items-center text-center mb-4 md:mb-6">
-                <div className="mb-3 md:mb-4">
-                  <Avatar className="h-20 w-20 md:h-24 md:w-24">
-                    {profile?.avatar_url ? (
-                      <AvatarImage
-                        src={profile.avatar_url}
-                        alt={profile.username}
-                      />
-                    ) : (
-                      <AvatarFallback>
-                        {profile.username.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
-                </div>
-
-                <h2 className="text-xl font-bold mb-2">{profile.username}</h2>
-                {friendshipStatus !== "self" &&
-                  friendshipStatus !== "loading" && (
-                    <div className="mt-2 mb-4">
-                      {friendshipStatus === "not_friends" && (
-                        <Button
-                          onClick={handleAddFriend}
-                          disabled={isFriendshipActionLoading}
-                          size="sm"
-                        >
-                          <UserPlus className="mr-2 h-4 w-4" />
-                          Add Friend
-                        </Button>
-                      )}
-                      {friendshipStatus === "pending_sent" && (
-                        <Button disabled variant="outline" size="sm">
-                          <ClockIcon className="mr-2 h-4 w-4" />
-                          Request Sent
-                        </Button>
-                      )}
-                      {friendshipStatus === "pending_received" && (
-                        <Button
-                          onClick={handleAcceptFriendRequest}
-                          disabled={isFriendshipActionLoading}
-                          size="sm"
-                        >
-                          <CheckCircle className="mr-2 h-4 w-4" />
-                          Accept Request
-                        </Button>
-                      )}
-                      {friendshipStatus === "friends" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleRemoveFriend}
-                          disabled={isFriendshipActionLoading}
-                        >
-                          <CheckCircle className="mr-2 h-4 w-4" />
-                          Friends
-                        </Button>
-                      )}
-                      {isFriendshipActionLoading && (
-                        <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                      )}
-                    </div>
-                  )}
-              </div>
-
-              <div className="space-y-4 md:space-y-6">
-                {profile.bio && (
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-medium text-muted-foreground">
-                      Bio
-                    </h3>
-                    <p className="text-sm">{profile.bio}</p>
-                  </div>
-                )}
-
-                <div className="space-y-3 md:space-y-4">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>
-                      Joined{" "}
-                      {new Date(profile?.created_at || "").toLocaleDateString()}
-                    </span>
-                  </div>
-
-                  {profile.website && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <LinkIcon className="h-4 w-4 text-muted-foreground" />
-                      <a
-                        href={
-                          profile.website.startsWith("http")
-                            ? profile.website
-                            : `https://${profile.website}`
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline overflow-hidden text-ellipsis break-all"
-                      >
-                        {profile.website}
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2 md:pb-4">
-              <CardTitle>Dream Stats</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Dreams Shared</h3>
-                  <p className="text-2xl font-bold">{dreamStats.publicCount}</p>
-                </div>
-
-                {Object.keys(dreamStats.categories).length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-medium mb-2">Top Categories</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(dreamStats.categories)
-                        .sort((a, b) => b[1] - a[1])
-                        .slice(0, 3)
-                        .map(([category, count]) => (
-                          <span
-                            key={category}
-                            className="px-2 py-1 bg-primary/10 rounded-full text-xs"
-                          >
-                            {category} ({count})
-                          </span>
-                        ))}
-                    </div>
-                  </div>
-                )}
-
-                {Object.keys(dreamStats.emotions).length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-medium mb-2">
-                      Common Emotions
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(dreamStats.emotions)
-                        .sort((a, b) => b[1] - a[1])
-                        .slice(0, 3)
-                        .map(([emotion, count]) => (
-                          <span
-                            key={emotion}
-                            className="px-2 py-1 bg-primary/10 rounded-full text-xs"
-                          >
-                            {emotion} ({count})
-                          </span>
-                        ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="lg:col-span-8">
-          <Card>
-            <CardHeader className="pb-2 md:pb-4">
-              <CardTitle className="flex justify-between items-center flex-wrap gap-2">
-                <span>{profile?.username}'s Dreams</span>
-                {dreams.length > 1 && <SortSelect />}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-2 md:p-4">
-              {dreamsLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                </div>
-              ) : sortedDreams.length > 0 ? (
-                <div className="space-y-4 md:space-y-8">
-                  {sortedDreams.map((dream) => (
-                    <DreamListItem
-                      key={dream.id}
-                      dream={dream}
-                      onClick={() => handleDreamClick(dream)}
-                      refreshLikes={refreshLikes}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center py-8 text-muted-foreground">
-                  This user hasn't shared any public dreams yet.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      <Dialog open={!!selectedDream} onOpenChange={handleDialogOpenChange}>
-        <DialogContent
-          className="max-w-5xl p-0 overflow-hidden bg-background transition-all duration-300 will-change-transform will-change-opacity border-none sm:rounded-none md:rounded-lg"
-          style={{
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-            transform: "translate3d(-50%, -50%, 0)",
-            boxShadow:
-              "0 0 0 1px rgba(0,0,0,0.1), 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)",
+    <>
+      <Helmet>
+        <title>{profile.username || "User Profile"} | Rem</title>
+      </Helmet>
+      <div className="container mx-auto px-4 py-6 md:py-12" ref={profileRef}>
+        <Button
+          variant="ghost"
+          onClick={() => {
+            if (user) navigate(-1);
+            else navigate("/");
           }}
+          className="mb-4"
         >
-          <DialogTitle className="sr-only">Dream Details</DialogTitle>
-          <DialogDescription className="sr-only">
-            View dream details and comments
-          </DialogDescription>
+          <ArrowLeft className="h-4 w-4 mr-2" /> Back
+        </Button>
 
-          {selectedDream && (
-            <div className="flex flex-col md:flex-row h-[90vh] md:h-auto overflow-hidden">
-              <div
-                className="md:w-3/5 bg-black flex items-center justify-center"
-                style={{
-                  willChange: "contents",
-                  transform: "translateZ(0)",
-                }}
-              >
-                {selectedDream.image_url ? (
-                  <img
-                    src={selectedDream.image_url}
-                    alt={selectedDream.title}
-                    className="max-h-[350px] md:max-h-[600px] w-full object-contain"
-                  />
-                ) : (
-                  <div className="w-full h-[350px] md:h-[600px] flex items-center justify-center">
-                    <p className="text-muted-foreground">No image available</p>
-                  </div>
-                )}
-              </div>
+        <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-10">
+          {profile.username}'s Profile
+        </h1>
 
-              <div className="md:w-2/5 flex flex-col h-full max-h-[600px] overflow-hidden">
-                <div className="p-4 border-b">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        {profile?.avatar_url ? (
-                          <AvatarImage
-                            src={profile.avatar_url}
-                            alt={profile.username}
-                          />
-                        ) : (
-                          <AvatarFallback>
-                            {(
-                              profile?.username?.charAt(0) || "U"
-                            ).toUpperCase()}
-                          </AvatarFallback>
-                        )}
-                      </Avatar>
-                      <span className="font-medium">{profile?.username}</span>
-                    </div>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="p-1 h-8 w-8 rounded-full md:hidden"
-                      onClick={() => setSelectedDream(null)}
-                    >
-                      <X className="h-4 w-4" />
-                      <span className="sr-only">Close</span>
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="p-4 overflow-y-auto flex-grow">
-                  <div className="mb-4">
-                    <h1 className="text-xl font-bold mb-2">
-                      {selectedDream.title}
-                    </h1>
-                    <p className="text-muted-foreground mb-4">
-                      {selectedDream.description}
-                    </p>
-
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {selectedDream.category && (
-                        <Badge variant="outline">
-                          {selectedDream.category}
-                        </Badge>
-                      )}
-                      {selectedDream.emotion && (
-                        <Badge variant="outline">{selectedDream.emotion}</Badge>
-                      )}
-                    </div>
-
-                    <p className="text-xs text-muted-foreground">
-                      {format(
-                        new Date(selectedDream.created_at),
-                        "MMMM d, yyyy",
-                      )}
-                    </p>
-                  </div>
-
-                  <div className="mt-4 border-t pt-4">
-                    <div className="mb-4 space-y-4">
-                      {isLoadingComments ? (
-                        <div className="space-y-3">
-                          {[...Array(3)].map((_, i) => (
-                            <div key={i} className="flex gap-2">
-                              <Skeleton className="h-8 w-8 rounded-full" />
-                              <div className="flex-1">
-                                <Skeleton className="h-4 w-1/3 mb-2" />
-                                <Skeleton className="h-3 w-full" />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : comments.length === 0 ? (
-                        <p className="text-muted-foreground text-center py-2">
-                          No comments yet. Be the first to comment!
-                        </p>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-8">
+          <div className="lg:col-span-4 space-y-4 md:space-y-6">
+            <Card>
+              <CardHeader className="pb-2 md:pb-4">
+                <CardTitle>Profile</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col items-center text-center mb-4 md:mb-6">
+                  <div className="mb-3 md:mb-4">
+                    <Avatar className="h-20 w-20 md:h-24 md:w-24">
+                      {profile?.avatar_url ? (
+                        <AvatarImage
+                          src={profile.avatar_url}
+                          alt={profile.username}
+                        />
                       ) : (
-                        <div className="space-y-3">
-                          {comments.map((comment) => (
-                            <div key={comment.id} className="flex gap-2">
-                              {comment.profiles?.username && (
-                                <ProfileHoverCard
-                                  username={comment.profiles.username}
-                                >
-                                  <div
-                                    onClick={() =>
-                                      handleProfileNavigation(
-                                        comment.profiles.username,
-                                      )
-                                    }
-                                    className="cursor-pointer"
-                                  >
-                                    <Avatar className="h-7 w-7 flex-shrink-0 transition-opacity hover:opacity-70">
-                                      <AvatarImage
-                                        src={comment.profiles?.avatar_url || ""}
-                                      />
-                                      <AvatarFallback>
-                                        {comment.profiles?.username?.charAt(
-                                          0,
-                                        ) || "U"}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                  </div>
-                                </ProfileHoverCard>
-                              )}
-                              <div>
-                                <div className="flex items-baseline gap-1">
-                                  {comment.profiles?.username && (
-                                    <ProfileHoverCard
-                                      username={comment.profiles.username}
-                                    >
-                                      <span
-                                        onClick={() =>
-                                          handleProfileNavigation(
-                                            comment.profiles.username,
-                                          )
-                                        }
-                                        className="font-medium text-sm cursor-pointer transition-colors hover:text-muted-foreground"
-                                      >
-                                        {comment.profiles?.username ||
-                                          "Anonymous"}
-                                      </span>
-                                    </ProfileHoverCard>
-                                  )}
-                                  <p className="text-sm">{comment.content}</p>
-                                </div>
-                                <span className="text-xs text-muted-foreground">
-                                  {format(
-                                    new Date(comment.created_at),
-                                    "MMM d",
-                                  )}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                        <AvatarFallback>
+                          {profile.username.charAt(0).toUpperCase()}
+                        </AvatarFallback>
                       )}
-                    </div>
+                    </Avatar>
                   </div>
+
+                  <h2 className="text-xl font-bold mb-2">{profile.username}</h2>
+                  {friendshipStatus !== "self" &&
+                    friendshipStatus !== "loading" && (
+                      <div className="mt-2 mb-4">
+                        {friendshipStatus === "not_friends" && (
+                          <Button
+                            onClick={handleAddFriend}
+                            disabled={isFriendshipActionLoading}
+                            size="sm"
+                          >
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            Add Friend
+                          </Button>
+                        )}
+                        {friendshipStatus === "pending_sent" && (
+                          <Button disabled variant="outline" size="sm">
+                            <ClockIcon className="mr-2 h-4 w-4" />
+                            Request Sent
+                          </Button>
+                        )}
+                        {friendshipStatus === "pending_received" && (
+                          <Button
+                            onClick={handleAcceptFriendRequest}
+                            disabled={isFriendshipActionLoading}
+                            size="sm"
+                          >
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Accept Request
+                          </Button>
+                        )}
+                        {friendshipStatus === "friends" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleRemoveFriend}
+                            disabled={isFriendshipActionLoading}
+                          >
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Friends
+                          </Button>
+                        )}
+                        {isFriendshipActionLoading && (
+                          <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                        )}
+                      </div>
+                    )}
                 </div>
 
-                <div className="p-4 border-t">
-                  <div className="flex items-center space-x-4 mb-2">
-                    {selectedDream && (
-                      <DreamLikeButton
-                        dreamId={selectedDream.id}
-                        onSuccess={() => refreshLikes(selectedDream.id)}
-                      />
-                    )}
+                <div className="space-y-4 md:space-y-6">
+                  {profile.bio && (
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-muted-foreground">
+                        Bio
+                      </h3>
+                      <p className="text-sm">{profile.bio}</p>
+                    </div>
+                  )}
 
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="p-0"
-                      onClick={() => handleShareDream(selectedDream.id)}
-                    >
-                      <Share className="h-6 w-6" />
-                    </Button>
+                  <div className="space-y-3 md:space-y-4">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span>
+                        Joined{" "}
+                        {new Date(
+                          profile?.created_at || "",
+                        ).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    {profile.website && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <LinkIcon className="h-4 w-4 text-muted-foreground" />
+                        <a
+                          href={
+                            profile.website.startsWith("http")
+                              ? profile.website
+                              : `https://${profile.website}`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline overflow-hidden text-ellipsis break-all"
+                        >
+                          {profile.website}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2 md:pb-4">
+                <CardTitle>Dream Stats</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">Dreams Shared</h3>
+                    <p className="text-2xl font-bold">
+                      {dreamStats.publicCount}
+                    </p>
                   </div>
 
-                  {user && (
-                    <form
-                      onSubmit={handlePostComment}
-                      className="flex gap-2 mt-3"
-                    >
-                      <input
-                        type="text"
-                        placeholder="Add a comment..."
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        className="flex-1 bg-background text-sm rounded-md border border-input px-3 py-2"
-                        style={{ fontSize: "16px" }}
-                      />
-                      <Button
-                        type="submit"
-                        disabled={!newComment.trim() || isPostingComment}
-                        size="sm"
-                      >
-                        Post
-                      </Button>
-                    </form>
+                  {Object.keys(dreamStats.categories).length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-medium mb-2">
+                        Top Categories
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(dreamStats.categories)
+                          .sort((a, b) => b[1] - a[1])
+                          .slice(0, 3)
+                          .map(([category, count]) => (
+                            <span
+                              key={category}
+                              className="px-2 py-1 bg-primary/10 rounded-full text-xs"
+                            >
+                              {category} ({count})
+                            </span>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {Object.keys(dreamStats.emotions).length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-medium mb-2">
+                        Common Emotions
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(dreamStats.emotions)
+                          .sort((a, b) => b[1] - a[1])
+                          .slice(0, 3)
+                          .map(([emotion, count]) => (
+                            <span
+                              key={emotion}
+                              className="px-2 py-1 bg-primary/10 rounded-full text-xs"
+                            >
+                              {emotion} ({count})
+                            </span>
+                          ))}
+                      </div>
+                    </div>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="lg:col-span-8">
+            <Card>
+              <CardHeader className="pb-2 md:pb-4">
+                <CardTitle className="flex justify-between items-center flex-wrap gap-2">
+                  <span>{profile?.username}'s Dreams</span>
+                  {dreams.length > 1 && <SortSelect />}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-2 md:p-4">
+                {dreamsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  </div>
+                ) : sortedDreams.length > 0 ? (
+                  <div className="space-y-4 md:space-y-8">
+                    {sortedDreams.map((dream) => (
+                      <DreamListItem
+                        key={dream.id}
+                        dream={dream}
+                        onClick={() => handleDreamClick(dream)}
+                        refreshLikes={refreshLikes}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center py-8 text-muted-foreground">
+                    This user hasn't shared any public dreams yet.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <Dialog open={!!selectedDream} onOpenChange={handleDialogOpenChange}>
+          <DialogContent
+            className="max-w-5xl p-0 overflow-hidden bg-background transition-all duration-300 will-change-transform will-change-opacity border-none sm:rounded-none md:rounded-lg"
+            style={{
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              transform: "translate3d(-50%, -50%, 0)",
+              boxShadow:
+                "0 0 0 1px rgba(0,0,0,0.1), 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)",
+            }}
+          >
+            <DialogTitle className="sr-only">Dream Details</DialogTitle>
+            <DialogDescription className="sr-only">
+              View dream details and comments
+            </DialogDescription>
+
+            {selectedDream && (
+              <div className="flex flex-col md:flex-row h-[90vh] md:h-auto overflow-hidden">
+                <div
+                  className="md:w-3/5 bg-black flex items-center justify-center"
+                  style={{
+                    willChange: "contents",
+                    transform: "translateZ(0)",
+                  }}
+                >
+                  {selectedDream.image_url ? (
+                    <img
+                      src={selectedDream.image_url}
+                      alt={selectedDream.title}
+                      className="max-h-[350px] md:max-h-[600px] w-full object-contain"
+                    />
+                  ) : (
+                    <div className="w-full h-[350px] md:h-[600px] flex items-center justify-center">
+                      <p className="text-muted-foreground">
+                        No image available
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="md:w-2/5 flex flex-col h-full max-h-[600px] overflow-hidden">
+                  <div className="p-4 border-b">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          {profile?.avatar_url ? (
+                            <AvatarImage
+                              src={profile.avatar_url}
+                              alt={profile.username}
+                            />
+                          ) : (
+                            <AvatarFallback>
+                              {(
+                                profile?.username?.charAt(0) || "U"
+                              ).toUpperCase()}
+                            </AvatarFallback>
+                          )}
+                        </Avatar>
+                        <span className="font-medium">{profile?.username}</span>
+                      </div>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="p-1 h-8 w-8 rounded-full md:hidden"
+                        onClick={() => setSelectedDream(null)}
+                      >
+                        <X className="h-4 w-4" />
+                        <span className="sr-only">Close</span>
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="p-4 overflow-y-auto flex-grow">
+                    <div className="mb-4">
+                      <h1 className="text-xl font-bold mb-2">
+                        {selectedDream.title}
+                      </h1>
+                      <p className="text-muted-foreground mb-4">
+                        {selectedDream.description}
+                      </p>
+
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {selectedDream.category && (
+                          <Badge variant="outline">
+                            {selectedDream.category}
+                          </Badge>
+                        )}
+                        {selectedDream.emotion && (
+                          <Badge variant="outline">
+                            {selectedDream.emotion}
+                          </Badge>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-muted-foreground">
+                        {format(
+                          new Date(selectedDream.created_at),
+                          "MMMM d, yyyy",
+                        )}
+                      </p>
+                    </div>
+
+                    <div className="mt-4 border-t pt-4">
+                      <div className="mb-4 space-y-4">
+                        {isLoadingComments ? (
+                          <div className="space-y-3">
+                            {[...Array(3)].map((_, i) => (
+                              <div key={i} className="flex gap-2">
+                                <Skeleton className="h-8 w-8 rounded-full" />
+                                <div className="flex-1">
+                                  <Skeleton className="h-4 w-1/3 mb-2" />
+                                  <Skeleton className="h-3 w-full" />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : comments.length === 0 ? (
+                          <p className="text-muted-foreground text-center py-2">
+                            No comments yet. Be the first to comment!
+                          </p>
+                        ) : (
+                          <div className="space-y-3">
+                            {comments.map((comment) => (
+                              <div key={comment.id} className="flex gap-2">
+                                {comment.profiles?.username && (
+                                  <ProfileHoverCard
+                                    username={comment.profiles.username}
+                                  >
+                                    <div
+                                      onClick={() =>
+                                        handleProfileNavigation(
+                                          comment.profiles.username,
+                                        )
+                                      }
+                                      className="cursor-pointer"
+                                    >
+                                      <Avatar className="h-7 w-7 flex-shrink-0 transition-opacity hover:opacity-70">
+                                        <AvatarImage
+                                          src={
+                                            comment.profiles?.avatar_url || ""
+                                          }
+                                        />
+                                        <AvatarFallback>
+                                          {comment.profiles?.username?.charAt(
+                                            0,
+                                          ) || "U"}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                    </div>
+                                  </ProfileHoverCard>
+                                )}
+                                <div>
+                                  <div className="flex items-baseline gap-1">
+                                    {comment.profiles?.username && (
+                                      <ProfileHoverCard
+                                        username={comment.profiles.username}
+                                      >
+                                        <span
+                                          onClick={() =>
+                                            handleProfileNavigation(
+                                              comment.profiles.username,
+                                            )
+                                          }
+                                          className="font-medium text-sm cursor-pointer transition-colors hover:text-muted-foreground"
+                                        >
+                                          {comment.profiles?.username ||
+                                            "Anonymous"}
+                                        </span>
+                                      </ProfileHoverCard>
+                                    )}
+                                    <p className="text-sm">{comment.content}</p>
+                                  </div>
+                                  <span className="text-xs text-muted-foreground">
+                                    {format(
+                                      new Date(comment.created_at),
+                                      "MMM d",
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 border-t">
+                    <div className="flex items-center space-x-4 mb-2">
+                      {selectedDream && (
+                        <DreamLikeButton
+                          dreamId={selectedDream.id}
+                          onSuccess={() => refreshLikes(selectedDream.id)}
+                        />
+                      )}
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="p-0"
+                        onClick={() => handleShareDream(selectedDream.id)}
+                      >
+                        <Share className="h-6 w-6" />
+                      </Button>
+                    </div>
+
+                    {user && (
+                      <form
+                        onSubmit={handlePostComment}
+                        className="flex gap-2 mt-3"
+                      >
+                        <input
+                          type="text"
+                          placeholder="Add a comment..."
+                          value={newComment}
+                          onChange={(e) => setNewComment(e.target.value)}
+                          className="flex-1 bg-background text-sm rounded-md border border-input px-3 py-2"
+                          style={{ fontSize: "16px" }}
+                        />
+                        <Button
+                          type="submit"
+                          disabled={!newComment.trim() || isPostingComment}
+                          size="sm"
+                        >
+                          Post
+                        </Button>
+                      </form>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    </>
   );
 };

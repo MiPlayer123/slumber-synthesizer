@@ -24,6 +24,8 @@ import { useCommunityDreams, useFriendsDreams } from "@/hooks/use-dreams";
 import { ProfileHoverCard } from "@/components/ui/profile-hover-card";
 
 import { useAuth } from "@/hooks/useAuth";
+import React from "react";
+import { Helmet } from "react-helmet-async";
 
 const Community = () => {
   const { user } = useAuth();
@@ -115,98 +117,37 @@ const Community = () => {
   }, [hasNextFriendsPage, isFetchingNextFriendsPage, fetchNextFriendsPage]);
 
   return (
-    <div className="container max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6 text-purple-600">
-        Dream Community
-      </h1>
+    <>
+      <Helmet>
+        <title>Rem</title>
+      </Helmet>
+      <div className="container max-w-2xl mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-6 text-purple-600">
+          Dream Community
+        </h1>
 
-      <Tabs defaultValue="community" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="community" className="flex items-center gap-2">
-            <Globe className="h-4 w-4" />
-            <span className="hidden sm:inline">Community</span>
-          </TabsTrigger>
-          <TabsTrigger value="friends" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            <span className="hidden sm:inline">Friends</span>
-          </TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="community" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="community" className="flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              <span className="hidden sm:inline">Community</span>
+            </TabsTrigger>
+            <TabsTrigger value="friends" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Friends</span>
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="community">
-          <div className="space-y-8">
-            {isLoading && publicDreams.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Loading dreams...</p>
-              </div>
-            ) : error ? (
-              <div className="text-center py-8 border rounded-lg">
-                <p className="text-destructive">
-                  Failed to load dreams. Please try again.
-                </p>
-                <Button
-                  variant="outline"
-                  className="mt-4"
-                  onClick={() => window.location.reload()}
-                >
-                  Reload
-                </Button>
-              </div>
-            ) : publicDreams?.length === 0 ? (
-              <div className="text-center py-8 border rounded-lg">
-                <p className="text-muted-foreground">No public dreams found.</p>
-              </div>
-            ) : (
-              <>
-                {publicDreams?.map((dream) => (
-                  <DreamCard key={dream.id} dream={dream} />
-                ))}
-
-                {/* Load more indicator for community dreams */}
-                <div ref={loadMoreRef} className="py-4 text-center">
-                  {isFetchingNextPage ? (
-                    <div className="flex items-center justify-center">
-                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                      <span>Loading more dreams...</span>
-                    </div>
-                  ) : hasNextPage ? (
-                    <span className="text-muted-foreground text-sm">
-                      Scroll to load more dreams
-                    </span>
-                  ) : (
-                    publicDreams.length > 5 && (
-                      <span className="text-muted-foreground text-sm">
-                        You've reached the end of dreams
-                      </span>
-                    )
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="friends">
-          {!user ? (
-            <div className="text-center py-8 border rounded-lg">
-              <p className="text-muted-foreground">
-                Please sign in to see your friends' dreams.
-              </p>
-              <Button className="mt-4" onClick={() => navigate("/auth")}>
-                Sign In
-              </Button>
-            </div>
-          ) : (
+          <TabsContent value="community">
             <div className="space-y-8">
-              {isLoadingFriends && friendsDreams.length === 0 ? (
+              {isLoading && publicDreams.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground">
-                    Loading friends' dreams...
-                  </p>
+                  <p className="text-muted-foreground">Loading dreams...</p>
                 </div>
-              ) : friendsError ? (
+              ) : error ? (
                 <div className="text-center py-8 border rounded-lg">
                   <p className="text-destructive">
-                    Failed to load friends' dreams. Please try again.
+                    Failed to load dreams. Please try again.
                   </p>
                   <Button
                     variant="outline"
@@ -216,52 +157,31 @@ const Community = () => {
                     Reload
                   </Button>
                 </div>
-              ) : friendsDreams?.length === 0 ? (
+              ) : publicDreams?.length === 0 ? (
                 <div className="text-center py-8 border rounded-lg">
-                  <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h2 className="text-xl font-semibold mb-2">
-                    No Dreams from Friends Yet
-                  </h2>
-                  <p className="text-muted-foreground mb-4">
-                    It looks like your friends haven't shared any dreams, or you
-                    haven't added any friends yet.
+                  <p className="text-muted-foreground">
+                    No public dreams found.
                   </p>
-                  <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
-                    <Button
-                      onClick={() => navigate("/manage-friends")}
-                      className="bg-purple-600 hover:bg-purple-700"
-                    >
-                      Manage Friends
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => navigate("/community")}
-                    >
-                      Explore Community Dreams
-                    </Button>
-                  </div>
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 gap-6">
-                    {friendsDreams?.map((dream) => (
-                      <FriendDreamCard key={dream.id} dream={dream} />
-                    ))}
-                  </div>
+                  {publicDreams?.map((dream) => (
+                    <DreamCard key={dream.id} dream={dream} />
+                  ))}
 
-                  {/* Load more indicator for friends dreams */}
-                  <div ref={friendsLoadMoreRef} className="py-4 text-center">
-                    {isFetchingNextFriendsPage ? (
+                  {/* Load more indicator for community dreams */}
+                  <div ref={loadMoreRef} className="py-4 text-center">
+                    {isFetchingNextPage ? (
                       <div className="flex items-center justify-center">
                         <Loader2 className="h-5 w-5 animate-spin mr-2" />
                         <span>Loading more dreams...</span>
                       </div>
-                    ) : hasNextFriendsPage ? (
+                    ) : hasNextPage ? (
                       <span className="text-muted-foreground text-sm">
                         Scroll to load more dreams
                       </span>
                     ) : (
-                      friendsDreams.length > 5 && (
+                      publicDreams.length > 5 && (
                         <span className="text-muted-foreground text-sm">
                           You've reached the end of dreams
                         </span>
@@ -271,10 +191,99 @@ const Community = () => {
                 </>
               )}
             </div>
-          )}
-        </TabsContent>
-      </Tabs>
-    </div>
+          </TabsContent>
+
+          <TabsContent value="friends">
+            {!user ? (
+              <div className="text-center py-8 border rounded-lg">
+                <p className="text-muted-foreground">
+                  Please sign in to see your friends' dreams.
+                </p>
+                <Button className="mt-4" onClick={() => navigate("/auth")}>
+                  Sign In
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {isLoadingFriends && friendsDreams.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">
+                      Loading friends' dreams...
+                    </p>
+                  </div>
+                ) : friendsError ? (
+                  <div className="text-center py-8 border rounded-lg">
+                    <p className="text-destructive">
+                      Failed to load friends' dreams. Please try again.
+                    </p>
+                    <Button
+                      variant="outline"
+                      className="mt-4"
+                      onClick={() => window.location.reload()}
+                    >
+                      Reload
+                    </Button>
+                  </div>
+                ) : friendsDreams?.length === 0 ? (
+                  <div className="text-center py-8 border rounded-lg">
+                    <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                    <h2 className="text-xl font-semibold mb-2">
+                      No Dreams from Friends Yet
+                    </h2>
+                    <p className="text-muted-foreground mb-4">
+                      It looks like your friends haven't shared any dreams, or
+                      you haven't added any friends yet.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
+                      <Button
+                        onClick={() => navigate("/manage-friends")}
+                        className="bg-purple-600 hover:bg-purple-700"
+                      >
+                        Manage Friends
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => navigate("/community")}
+                      >
+                        Explore Community Dreams
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 gap-6">
+                      {friendsDreams?.map((dream) => (
+                        <FriendDreamCard key={dream.id} dream={dream} />
+                      ))}
+                    </div>
+
+                    {/* Load more indicator for friends dreams */}
+                    <div ref={friendsLoadMoreRef} className="py-4 text-center">
+                      {isFetchingNextFriendsPage ? (
+                        <div className="flex items-center justify-center">
+                          <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                          <span>Loading more dreams...</span>
+                        </div>
+                      ) : hasNextFriendsPage ? (
+                        <span className="text-muted-foreground text-sm">
+                          Scroll to load more dreams
+                        </span>
+                      ) : (
+                        friendsDreams.length > 5 && (
+                          <span className="text-muted-foreground text-sm">
+                            You've reached the end of dreams
+                          </span>
+                        )
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </>
   );
 };
 

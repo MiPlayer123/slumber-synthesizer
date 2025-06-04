@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { useSubscription } from "@/hooks/use-subscription";
+import { Helmet } from "react-helmet-async";
 
 const Journal = () => {
   const { user, completeGoogleSignUp } = useAuth();
@@ -921,113 +922,118 @@ const Journal = () => {
     : null;
 
   return (
-    <div ref={topRef} className="container py-8 max-w-5xl">
-      <DreamHeader
-        onCreateClick={() => setIsCreating(!isCreating)}
-        isCreating={isCreating}
-      />
+    <>
+      <Helmet>
+        <title>Rem</title>
+      </Helmet>
+      <div ref={topRef} className="container py-8 max-w-5xl">
+        <DreamHeader
+          onCreateClick={() => setIsCreating(!isCreating)}
+          isCreating={isCreating}
+        />
 
-      <FeedbackBanner feedbackUrl="https://forms.gle/aMFrfqbqiMMBSEKr9" />
+        <FeedbackBanner feedbackUrl="https://forms.gle/aMFrfqbqiMMBSEKr9" />
 
-      {isCreating && (
-        <CreateDreamForm
-          onSubmit={(dream, file) => {
-            console.log("Dream form submitted:", dream, file);
-            // Ensure we're not submitting while already in progress
-            if (createDream.isPending) return;
-            createDream.mutate({ dream, file });
+        {isCreating && (
+          <CreateDreamForm
+            onSubmit={(dream, file) => {
+              console.log("Dream form submitted:", dream, file);
+              // Ensure we're not submitting while already in progress
+              if (createDream.isPending) return;
+              createDream.mutate({ dream, file });
+            }}
+          />
+        )}
+
+        {editingDreamId && dreamBeingEdited && (
+          <EditDreamForm
+            dream={dreamBeingEdited}
+            onSubmit={(dreamId, updatedDream, file) => {
+              handleUpdateDream(dreamId, updatedDream, file);
+            }}
+            onCancel={handleCancelEdit}
+          />
+        )}
+
+        <DreamsList
+          dreams={dreams || []}
+          analyses={analyses || []}
+          onAnalyze={handleAnalyzeDream}
+          onEdit={handleEditDream}
+          onDelete={handleDeleteDream}
+          isLoading={isLoadingDreams}
+          generatingImageForDreams={generatingImageForDreams}
+          isFetchingNextPage={isFetchingNextPage}
+          hasNextPage={hasNextPage}
+          fetchNextPage={fetchNextPage}
+          infiniteScroll={true}
+        />
+
+        <AnalyzingDialog
+          isOpen={isAnalyzing}
+          onOpenChange={(open) => setIsAnalyzing(open)}
+        />
+
+        <ConfirmDialog
+          isOpen={deleteDialogOpen}
+          title="Delete Dream"
+          description="Are you sure you want to delete this dream? This action cannot be undone."
+          confirmText="Delete"
+          cancelText="Cancel"
+          onConfirm={confirmDelete}
+          onClose={() => {
+            setDeleteDialogOpen(false);
+            setDreamToDelete(null);
           }}
         />
-      )}
 
-      {editingDreamId && dreamBeingEdited && (
-        <EditDreamForm
-          dream={dreamBeingEdited}
-          onSubmit={(dreamId, updatedDream, file) => {
-            handleUpdateDream(dreamId, updatedDream, file);
-          }}
-          onCancel={handleCancelEdit}
-        />
-      )}
-
-      <DreamsList
-        dreams={dreams || []}
-        analyses={analyses || []}
-        onAnalyze={handleAnalyzeDream}
-        onEdit={handleEditDream}
-        onDelete={handleDeleteDream}
-        isLoading={isLoadingDreams}
-        generatingImageForDreams={generatingImageForDreams}
-        isFetchingNextPage={isFetchingNextPage}
-        hasNextPage={hasNextPage}
-        fetchNextPage={fetchNextPage}
-        infiniteScroll={true}
-      />
-
-      <AnalyzingDialog
-        isOpen={isAnalyzing}
-        onOpenChange={(open) => setIsAnalyzing(open)}
-      />
-
-      <ConfirmDialog
-        isOpen={deleteDialogOpen}
-        title="Delete Dream"
-        description="Are you sure you want to delete this dream? This action cannot be undone."
-        confirmText="Delete"
-        cancelText="Cancel"
-        onConfirm={confirmDelete}
-        onClose={() => {
-          setDeleteDialogOpen(false);
-          setDreamToDelete(null);
-        }}
-      />
-
-      {/* Username Setup Dialog */}
-      <Dialog open={showUsernameDialog} onOpenChange={setShowUsernameDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Set Your Username</DialogTitle>
-            <DialogDescription>
-              Please choose a username before creating your first dream.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="username" className="text-right">
-                Username
-              </Label>
-              <Input
-                id="username"
-                value={newUsername}
-                onChange={(e) => setNewUsername(e.target.value)}
-                className="col-span-3"
-                placeholder="Choose a username"
-              />
-            </div>
-            {usernameError && (
-              <p className="text-sm font-medium text-red-500">
-                {usernameError}
-              </p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button
-              onClick={handleSubmitUsername}
-              disabled={isSubmittingUsername}
-            >
-              {isSubmittingUsername ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Setting Username...
-                </>
-              ) : (
-                "Set Username"
+        {/* Username Setup Dialog */}
+        <Dialog open={showUsernameDialog} onOpenChange={setShowUsernameDialog}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Set Your Username</DialogTitle>
+              <DialogDescription>
+                Please choose a username before creating your first dream.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="username" className="text-right">
+                  Username
+                </Label>
+                <Input
+                  id="username"
+                  value={newUsername}
+                  onChange={(e) => setNewUsername(e.target.value)}
+                  className="col-span-3"
+                  placeholder="Choose a username"
+                />
+              </div>
+              {usernameError && (
+                <p className="text-sm font-medium text-red-500">
+                  {usernameError}
+                </p>
               )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={handleSubmitUsername}
+                disabled={isSubmittingUsername}
+              >
+                {isSubmittingUsername ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Setting Username...
+                  </>
+                ) : (
+                  "Set Username"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </>
   );
 };
 
