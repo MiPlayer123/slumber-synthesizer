@@ -16,7 +16,6 @@ import {
   Users,
   Lock,
   ExternalLink,
-  Download,
   Heart,
   MessageCircle,
 } from "lucide-react";
@@ -35,12 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Helmet } from "react-helmet-async";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardFooter,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 
 // Updated Interface for the public dream response to match Edge Function
@@ -174,18 +168,6 @@ export default function DreamDetail() {
         return <Globe className="w-4 h-4" />;
     }
   };
-  const getPublicVisibilityColor = (visibility?: DreamVisibility) => {
-    switch (visibility) {
-      case "public":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "friends_only":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "private":
-        return "bg-gray-100 text-gray-800 border-gray-200";
-      default:
-        return "bg-green-100 text-green-800 border-green-200";
-    }
-  };
 
   // Effect for fetching public dream data
   useEffect(() => {
@@ -245,6 +227,7 @@ export default function DreamDetail() {
       }
     }
     fetchPublicDream();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dreamId, user, isPublicView, location.key]); // location.key to refetch on nav
 
   // Effect for fetching PUBLIC comments (runs after public dream data is loaded)
@@ -283,7 +266,7 @@ export default function DreamDetail() {
     if (isPublicView && publicDreamResponse?.dream) {
       fetchPublicCommentsAndUpdateState();
     }
-  }, [dreamId, isPublicView, publicDreamResponse?.dream?.id, user, toast]);
+  }, [dreamId, isPublicView, publicDreamResponse?.dream, user, toast]);
 
   // Modified effect for fetching app-internal dream data
   useEffect(() => {

@@ -401,11 +401,6 @@ export default function DreamWall() {
     }
   };
 
-  const handleProfileClick = (e: React.MouseEvent, username: string) => {
-    e.stopPropagation();
-    navigate(`/profile/${username}/app`);
-  };
-
   return (
     <>
       <Helmet>
@@ -759,7 +754,7 @@ export default function DreamWall() {
                             username={selectedDream.profiles.username}
                           >
                             <div
-                              onClick={(e) =>
+                              onClick={() =>
                                 handleProfileNavigation(
                                   selectedDream.profiles.username,
                                 )
@@ -783,7 +778,7 @@ export default function DreamWall() {
                             username={selectedDream.profiles.username}
                           >
                             <span
-                              onClick={(e) =>
+                              onClick={() =>
                                 handleProfileNavigation(
                                   selectedDream.profiles.username,
                                 )
@@ -865,7 +860,7 @@ export default function DreamWall() {
                                     username={comment.profiles.username}
                                   >
                                     <div
-                                      onClick={(e) =>
+                                      onClick={() =>
                                         handleProfileNavigation(
                                           comment.profiles.username,
                                         )
@@ -894,7 +889,7 @@ export default function DreamWall() {
                                         username={comment.profiles.username}
                                       >
                                         <span
-                                          onClick={(e) =>
+                                          onClick={() =>
                                             handleProfileNavigation(
                                               comment.profiles.username,
                                             )

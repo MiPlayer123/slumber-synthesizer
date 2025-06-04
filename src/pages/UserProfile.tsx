@@ -20,7 +20,6 @@ import {
   Users,
   Lock,
   ExternalLink,
-  Download,
   Pencil,
 } from "lucide-react";
 import { Dream as BaseDream, Profile as ProfileType } from "@/lib/types";

@@ -21,7 +21,6 @@ import { HelmetProvider } from "react-helmet-async";
 import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
 import NotFound from "@/pages/NotFound";
-import { Profile } from "@/pages/Profile";
 import ResetPassword from "@/pages/ResetPassword";
 import PasswordResetTroubleshoot from "@/pages/PasswordResetTroubleshoot";
 import PasswordResetDebug from "@/pages/PasswordResetDebug";
