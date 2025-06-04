@@ -389,6 +389,8 @@ export const UserProfile = () => {
         } else if (!response.profile) {
           setPublicViewError("Profile not found or not accessible.");
           setPublicPrivacyInfo({ visibility: "private_profile" });
+        } else {
+          await fetchPublicDreams(response.profile.id);
         }
       } catch (err: any) {
         console.error("Error fetching public profile:", err);
@@ -401,7 +403,7 @@ export const UserProfile = () => {
       }
     }
     fetchPublicProfile();
-  }, [username, user, isPublicView, location.key]);
+  }, [username, user, isPublicView, location.key, fetchPublicDreams]);
 
   useEffect(() => {
     if (isPublicView) return; // Only for app view
@@ -838,11 +840,27 @@ export const UserProfile = () => {
 
   // --- RENDER LOGIC ---
   if (isPublicView) {
-    if (isLoadingPublicProfile) {
+    // OG Meta Defaults for public view, specific values will override these
+    const siteUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+    let ogTitle = "User Profile | Rem";
+    let ogDescription = "View user profiles on Rem.";
+    let ogImageUrl = `${siteUrl}/preview_image.png`; // Default OG image
+    let pageUrl = `${siteUrl}/profile/${encodeURIComponent(username!)}`;
+    let canonicalUrl = pageUrl;
+    let robots = "index, follow";
+
+    if (
+      isLoadingPublicProfile ||
+      (publicProfileResponse?.profile && dreamsLoading)
+    ) {
+      // Added dreamsLoading check for consistency
+      ogTitle = "Loading Profile... | Rem";
+      robots = "noindex";
       return (
         <>
           <Helmet>
-            <title>Loading Profile... | Rem</title>
+            <title>{ogTitle}</title>
+            <meta name="robots" content={robots} />
           </Helmet>
           <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -859,17 +877,23 @@ export const UserProfile = () => {
           : "Profile Not Found";
 
     if (publicViewError || !publicProfileResponse?.profile) {
+      ogTitle = `${errorTitle} | Rem`;
+      ogDescription =
+        publicViewError ||
+        "This profile could not be found or is not accessible.";
+      robots = "noindex";
+      // ogImageUrl remains default for error pages
       return (
         <>
           <Helmet>
-            <title>{errorTitle} | Rem</title>
-            <meta
-              name="description"
-              content={
-                publicViewError ||
-                "This profile could not be found or is not accessible."
-              }
-            />
+            <title>{ogTitle}</title>
+            <meta name="description" content={ogDescription} />
+            <meta property="og:title" content={ogTitle} />
+            <meta property="og:description" content={ogDescription} />
+            <meta property="og:url" content={pageUrl} />
+            <meta property="og:image" content={ogImageUrl} />
+            <link rel="canonical" href={canonicalUrl} />
+            <meta name="robots" content={robots} />
           </Helmet>
           <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-4">
             <Card className="w-full max-w-md text-center bg-card text-card-foreground">
@@ -927,58 +951,42 @@ export const UserProfile = () => {
     }
 
     const pubProfile = publicProfileResponse.profile;
+
+    // Update OG meta variables for successful public profile view
+    ogTitle = `${pubProfile.full_name || pubProfile.username} (@${pubProfile.username}) | Rem Profile`;
+    ogDescription =
+      pubProfile.bio?.slice(0, 160) + "..." ||
+      `${pubProfile.username}'s profile on Rem.`;
+    // Crucially, use pubProfile.id for the dynamic OG image
+    ogImageUrl = `${siteUrl}/api/og/user/${pubProfile.id}`;
+    canonicalUrl = `${siteUrl}/profile/${encodeURIComponent(pubProfile.username!)}`;
+    pageUrl = canonicalUrl;
+    robots = "index, follow";
+
     // Public view JSX with Helmet
     return (
       <>
         <Helmet>
-          <title>
-            {pubProfile.full_name || pubProfile.username} (@
-            {pubProfile.username}) | Rem Profile
-          </title>
-          <meta
-            name="description"
-            content={
-              pubProfile.bio?.slice(0, 160) + "..." ||
-              `${pubProfile.username}'s profile on Rem.`
-            }
-          />
-          <meta
-            property="og:title"
-            content={`${pubProfile.full_name || pubProfile.username} (@${pubProfile.username}) | Rem Profile`}
-          />
-          <meta
-            property="og:description"
-            content={
-              pubProfile.bio ||
-              `${pubProfile.username} on Rem - AI Dream Journal`
-            }
-          />
-          <meta
-            property="og:image"
-            content={
-              pubProfile.avatar_url || "https://lucidrem.com/default_avatar.png"
-            }
-          />
-          <meta
-            property="og:url"
-            content={`${window.location.origin}/profile/${pubProfile.username}`}
-          />
+          <title>{ogTitle}</title>
+          <meta name="description" content={ogDescription} />
+          <link rel="canonical" href={canonicalUrl} />
+          <meta property="og:title" content={ogTitle} />
+          <meta property="og:description" content={ogDescription} />
+          <meta property="og:image" content={ogImageUrl} />{" "}
+          {/* Dynamic OG Image */}
+          <meta property="og:url" content={pageUrl} />
           <meta property="og:type" content="profile" />
-          <meta name="twitter:card" content="summary" />
-          <meta
-            name="twitter:title"
-            content={`${pubProfile.full_name || pubProfile.username} (@${pubProfile.username}) | Rem Profile`}
-          />
-          <meta
-            name="twitter:description"
-            content={pubProfile.bio || `${pubProfile.username} on Rem`}
-          />
-          <meta
-            name="twitter:image"
-            content={
-              pubProfile.avatar_url || "https://lucidrem.com/default_avatar.png"
-            }
-          />
+          <meta property="og:site_name" content="Rem" />
+          {pubProfile.username && (
+            <meta property="profile:username" content={pubProfile.username} />
+          )}
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content={ogTitle} />
+          <meta name="twitter:description" content={ogDescription} />
+          <meta name="twitter:image" content={ogImageUrl} />{" "}
+          {/* Dynamic OG Image for Twitter */}
+          {/* <meta name="twitter:site" content="@YourTwitterHandle" /> */}
+          <meta name="robots" content={robots} />
         </Helmet>
         <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
           <div className="container mx-auto px-4 py-6 md:py-12">
@@ -1103,11 +1111,11 @@ export const UserProfile = () => {
 
   // --- App View ---
   if (loading) {
-    // App view loading state
     return (
       <>
         <Helmet>
-          <title>Loading Profile... | Rem</title>
+          <title>Loading Profile... | Rem Journal</title>
+          <meta name="robots" content="noindex, nofollow" />
         </Helmet>
         <div className="container mx-auto py-8 flex justify-center">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -1117,11 +1125,11 @@ export const UserProfile = () => {
   }
 
   if (!profile) {
-    // App view profile not found
     return (
       <>
         <Helmet>
-          <title>Profile Not Found | Rem</title>
+          <title>Profile Not Found | Rem Journal</title>
+          <meta name="robots" content="noindex, nofollow" />
         </Helmet>
         <div className="container mx-auto py-8 text-center">
           <p className="text-lg text-muted-foreground">Profile not found.</p>
@@ -1133,11 +1141,18 @@ export const UserProfile = () => {
     );
   }
 
-  // App view JSX with Helmet
   return (
     <>
       <Helmet>
-        <title>{profile.username || "User Profile"} | Rem</title>
+        <title>
+          {profile.full_name || profile.username || "User Profile"} | Rem
+          Journal
+        </title>
+        <meta
+          name="description"
+          content={`View ${profile.full_name || profile.username}'s profile and dreams in the Rem app.`}
+        />
+        <meta name="robots" content="noindex, nofollow" />
       </Helmet>
       <div className="container mx-auto px-4 py-6 md:py-12" ref={profileRef}>
         <Button
