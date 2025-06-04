@@ -27,25 +27,62 @@ export default async function handler(request: Request) {
   }
 
   try {
-    // Fetch user data from Supabase REST API
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const response = await fetch(
-      `${supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=username,full_name,avatar_url`,
-      {
-        headers: {
-          apikey: supabaseAnonKey,
-          Authorization: `Bearer ${supabaseAnonKey}`,
-        },
-      },
+    const supabaseUrl = process.env.VITE_SUPABASE_URL!;
+    const serviceKey = process.env.SUPABASE_SERVICE_KEY!;
+
+    console.log(`[OG User ${userId}] Initiating fetch with service role.`);
+    console.log(
+      `[OG User ${userId}] Supabase URL: ${supabaseUrl ? supabaseUrl.substring(0, 30) + "..." : "NOT SET"}`,
     );
-    const profiles = await response.json();
-    const profile = profiles[0];
+
+    const fetchUrl = `${supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=username,full_name,avatar_url`;
+    console.log(`[OG User ${userId}] Fetching URL: ${fetchUrl}`);
+
+    const response = await fetch(fetchUrl, {
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+      },
+    });
+
+    console.log(
+      `[OG User ${userId}] Supabase response status: ${response.status}`,
+    );
+    const responseText = await response.text();
+    console.log(
+      `[OG User ${userId}] Supabase raw response text: ${responseText}`,
+    );
+
+    let profilesArray;
+    if (response.ok && responseText) {
+      try {
+        profilesArray = JSON.parse(responseText);
+      } catch (e) {
+        console.error(`[OG User ${userId}] JSON parsing error:`, e);
+        console.error(
+          `[OG User ${userId}] Response text that failed parsing: ${responseText}`,
+        );
+        return new Response("Failed to parse data from Supabase", {
+          status: 500,
+        });
+      }
+    } else if (!response.ok) {
+      console.error(
+        `[OG User ${userId}] Supabase fetch failed. Status: ${response.status}, Body: ${responseText}`,
+      );
+    }
+
+    const profile =
+      profilesArray && profilesArray.length > 0 ? profilesArray[0] : null;
+    console.log(
+      `[OG User ${userId}] Parsed profile object: ${JSON.stringify(profile)}`,
+    );
 
     if (!profile) {
-      return new Response(`Profile not found for user ${userId}`, {
-        status: 404,
-      });
+      return new Response(
+        `Profile not found for user ${userId} (using service role)`,
+        { status: 404 },
+      );
     }
 
     // Load fonts
@@ -58,7 +95,7 @@ export default async function handler(request: Request) {
     ).toString();
     const avatarSrc =
       profile.avatar_url ||
-      new URL("/images/default-avatar.png", SITE_URL).toString(); // Fallback to a default avatar if none
+      new URL("/images/default-avatar.png", SITE_URL).toString();
 
     return new ImageResponse(
       (
@@ -162,14 +199,16 @@ export default async function handler(request: Request) {
             weight: 700,
           },
         ],
-        // For debugging, you might want to enable this if images/fonts don't load:
-        // debug: true,
       },
     );
   } catch (e: any) {
-    console.error(`Error generating OG image for user ${userId}: ${e.message}`);
-    return new Response(`Failed to generate image: ${e.message}`, {
-      status: 500,
-    });
+    console.error(`[OG User ${userId}] Error in handler: ${e.message}`);
+    console.error(e.stack);
+    return new Response(
+      `Failed to generate image for user ${userId}: ${e.message}`,
+      {
+        status: 500,
+      },
+    );
   }
 }
