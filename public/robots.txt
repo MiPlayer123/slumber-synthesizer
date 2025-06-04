@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
+Allow: /api/og/
 
 # Sitemap files
 Sitemap: https://lucidrem.com/sitemap.xml
