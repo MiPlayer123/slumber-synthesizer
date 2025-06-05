@@ -410,87 +410,10 @@ export default function DreamDetail() {
   let shouldIndexPage = true;
 
   // --- Public View Logic ---
-  /*
+
   if (isPublicView) {
-    if (isLoadingPublicDream) {
-      ogTitle = "Loading Dream... | Rem";
-      shouldIndexPage = false; // Don't index loading pages ideally
-      return (
-        <>
-          <Helmet>
-            <title>{ogTitle}</title>
-            <meta name="robots" content="noindex" />
-          </Helmet>
-          <DreamDetailLoadingSkeleton />
-        </>
-      );
-    }
-  */
-    if (
-      publicViewError ||
-      !publicDreamResponse?.dream ||
-      !publicDreamResponse?.metadata?.canView
-    ) {
-      ogTitle = "Dream Not Accessible | Rem";
-      ogDescription =
-        publicViewError || "This dream is private or could not be found.";
-      shouldIndexPage = false;
-      // Ensure pageUrl uses dreamId if available for consistency, even on error pages
-      if (dreamId) {
-        pageUrl = `${import.meta.env.VITE_APP_URL || window.location.origin}/dream/${encodeURIComponent(dreamId)}`;
-        canonicalUrl = pageUrl;
-      }
-      console.log("OG Meta Debug:", {
-        ogTitle,
-        ogDescription,
-        ogImageUrl,
-        pageUrl,
-        canonicalUrl,
-        shouldIndexPage,
-        dreamId,
-        isPublicView,
-        publicDreamResponse,
-      });
-
-      return (
-        <>
-          <Helmet>
-            <title>{ogTitle}</title>
-            <meta name="description" content={ogDescription} />
-            <meta property="og:title" content={ogTitle} />
-            <meta property="og:description" content={ogDescription} />
-            <meta property="og:url" content={pageUrl} />
-            <meta property="og:image" content={ogImageUrl} />{" "}
-            {/* Default image for error/private */}
-            <link rel="canonical" href={canonicalUrl} />
-            <meta name="robots" content="noindex" />
-          </Helmet>
-          <DreamPrivacyErrorScreen
-            error={publicViewError || "This dream is not accessible."}
-            visibility={
-              publicDreamResponse?.visibility || publicPrivacyInfo.visibility
-            }
-            requiresAuth={
-              publicDreamResponse?.requiresAuth ||
-              publicPrivacyInfo.requiresAuth
-            }
-            requiresFriendship={
-              publicDreamResponse?.requiresFriendship ||
-              publicPrivacyInfo.requiresFriendship
-            }
-            onLogin={handleLoginRedirect}
-            onBack={() =>
-              navigate(
-                fromProfile
-                  ? `/profile/${publicDreamResponse?.author?.username}`
-                  : "/community",
-              )
-            }
-          />
-        </>
-      );
-    }
-
+  }
+  if (publicDreamResponse?.dream && publicDreamResponse?.metadata?.canView) {
     // If public dream is viewable
     const dreamData = publicDreamResponse.dream;
     const authorData = publicDreamResponse.author;
@@ -756,6 +679,72 @@ export default function DreamDetail() {
             </Card>
           </main>
         </div>
+      </>
+    );
+  }
+  if (isLoadingPublicDream) {
+    ogTitle = "Loading Dream... | Rem";
+    shouldIndexPage = false; // Don't index loading pages ideally
+    return (
+      <>
+        <Helmet>
+          <title>{ogTitle}</title>
+          <meta name="robots" content="noindex" />
+        </Helmet>
+        <DreamDetailLoadingSkeleton />
+      </>
+    );
+  }
+
+  if (
+    publicViewError ||
+    !publicDreamResponse?.dream ||
+    !publicDreamResponse?.metadata?.canView
+  ) {
+    ogTitle = "Dream Not Accessible | Rem";
+    ogDescription =
+      publicViewError || "This dream is private or could not be found.";
+    shouldIndexPage = false;
+    // Ensure pageUrl uses dreamId if available for consistency, even on error pages
+    if (dreamId) {
+      pageUrl = `${import.meta.env.VITE_APP_URL || window.location.origin}/dream/${encodeURIComponent(dreamId)}`;
+      canonicalUrl = pageUrl;
+    }
+    console.log("OG Meta Debug:", {
+      ogTitle,
+      ogDescription,
+      ogImageUrl,
+      pageUrl,
+      canonicalUrl,
+      shouldIndexPage,
+      dreamId,
+      isPublicView,
+      publicDreamResponse,
+    });
+
+    return (
+      <>
+        <DreamPrivacyErrorScreen
+          error={publicViewError || "This dream is not accessible."}
+          visibility={
+            publicDreamResponse?.visibility || publicPrivacyInfo.visibility
+          }
+          requiresAuth={
+            publicDreamResponse?.requiresAuth || publicPrivacyInfo.requiresAuth
+          }
+          requiresFriendship={
+            publicDreamResponse?.requiresFriendship ||
+            publicPrivacyInfo.requiresFriendship
+          }
+          onLogin={handleLoginRedirect}
+          onBack={() =>
+            navigate(
+              fromProfile
+                ? `/profile/${publicDreamResponse?.author?.username}`
+                : "/community",
+            )
+          }
+        />
       </>
     );
   }
