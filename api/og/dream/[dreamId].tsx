@@ -6,17 +6,6 @@ export const config = {
 
 const SITE_URL = process.env.VITE_SITE_URL || "https://www.lucidrem.com";
 
-// Function to fetch font data
-async function getFontData(fontUrl: string): Promise<ArrayBuffer> {
-  const response = await fetch(new URL(fontUrl, SITE_URL));
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch font: ${response.statusText} from ${fontUrl}`,
-    );
-  }
-  return response.arrayBuffer();
-}
-
 // Function to truncate text to the first sentence or a character limit
 function truncateText(text: string, maxLength = 150): string {
   if (!text) return "";
@@ -39,15 +28,11 @@ export default async function handler(request: Request) {
 
   try {
     const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-    const serviceKey = process.env.SUPABASE_SERVICE_KEY!;
+    const serviceKey = process.env.VITE_SUPABASE_ANON_KEY!;
 
     console.log(`[OG Dream ${dreamId}] Initiating fetch with service role.`);
-    console.log(
-      `[OG Dream ${dreamId}] Supabase URL: ${supabaseUrl ? supabaseUrl.substring(0, 30) + "..." : "NOT SET"}`,
-    );
 
     const fetchUrl = `${supabaseUrl}/rest/v1/dreams?id=eq.${dreamId}&select=title,description,image_url,user_id,profiles!dreams_user_id_fkey(username,avatar_url,full_name)`;
-    console.log(`[OG Dream ${dreamId}] Fetching URL: ${fetchUrl}`);
 
     const response = await fetch(fetchUrl, {
       headers: {
@@ -56,13 +41,7 @@ export default async function handler(request: Request) {
       },
     });
 
-    console.log(
-      `[OG Dream ${dreamId}] Supabase response status: ${response.status}`,
-    );
     const responseText = await response.text();
-    console.log(
-      `[OG Dream ${dreamId}] Supabase raw response text: ${responseText}`,
-    );
 
     let dreamsArray;
     if (response.ok && responseText) {
@@ -81,12 +60,13 @@ export default async function handler(request: Request) {
       console.error(
         `[OG Dream ${dreamId}] Supabase fetch failed. Status: ${response.status}, Body: ${responseText}`,
       );
+      return new Response(
+        responseText || "Failed to fetch data from Supabase",
+        { status: response.status },
+      );
     }
 
     const dream = dreamsArray && dreamsArray.length > 0 ? dreamsArray[0] : null;
-    console.log(
-      `[OG Dream ${dreamId}] Parsed dream object: ${JSON.stringify(dream)}`,
-    );
 
     if (!dream) {
       return new Response(
@@ -95,7 +75,6 @@ export default async function handler(request: Request) {
       );
     }
 
-    // Safely access profile data, whether it's an object or an array from the join
     const profileDataFromDream = dream.profiles;
     const author = (
       Array.isArray(profileDataFromDream) && profileDataFromDream.length > 0
@@ -107,17 +86,13 @@ export default async function handler(request: Request) {
       full_name: string | null;
     } | null;
 
-    // Load fonts
-    const interRegularFontData = await getFontData("/fonts/Inter-Regular.ttf");
-    const interBoldFontData = await getFontData("/fonts/Inter-Bold.ttf");
-
     const logoUrl = new URL(
       "/images/e6477f41-9e85-41b4-b60f-8c257c3fca4e_1748211619250.png",
       SITE_URL,
     ).toString();
     const dreamImageSrc =
       dream.image_url ||
-      new URL("/images/default-dream-image.png", SITE_URL).toString(); // Fallback image
+      new URL("/images/default-dream-image.png", SITE_URL).toString();
     const authorAvatarSrc =
       author?.avatar_url ||
       new URL("/images/default-avatar.png", SITE_URL).toString();
@@ -132,11 +107,11 @@ export default async function handler(request: Request) {
             width: "100%",
             display: "flex",
             flexDirection: "column",
-            backgroundColor: "#e9e0f8", // Slightly different bg for dreams
+            backgroundColor: "#e9e0f8",
             padding: "40px",
-            fontFamily: "Inter Regular",
+            fontFamily: "sans-serif",
             color: "#1a202c",
-            position: "relative", // For absolute positioning of author info
+            position: "relative",
           }}
         >
           {/* Header with Logo and REM text */}
@@ -193,7 +168,7 @@ export default async function handler(request: Request) {
                 style={{
                   fontSize: "48px",
                   fontWeight: "bold",
-                  fontFamily: "Inter Bold",
+                  fontFamily: "sans-serif",
                   color: "#333",
                   lineHeight: 1.2,
                   marginBottom: "15px",
@@ -240,20 +215,7 @@ export default async function handler(request: Request) {
       {
         width: 1200,
         height: 630,
-        fonts: [
-          {
-            name: "Inter Regular",
-            data: interRegularFontData,
-            style: "normal",
-            weight: 400,
-          },
-          {
-            name: "Inter Bold",
-            data: interBoldFontData,
-            style: "normal",
-            weight: 700,
-          },
-        ],
+        debug: true,
       },
     );
   } catch (e: any) {
