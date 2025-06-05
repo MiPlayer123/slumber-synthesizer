@@ -398,6 +398,8 @@ export default function DreamDetail() {
     }
   };
 
+  console.log("OG Meta Variables:", encodeURIComponent(dreamId!));
+
   // --- OG Meta Tag Constants ---
   let ogTitle = "Rem Dream Shared!";
   let ogDescription =
@@ -437,6 +439,18 @@ export default function DreamDetail() {
         pageUrl = `${import.meta.env.VITE_APP_URL || window.location.origin}/dream/${encodeURIComponent(dreamId)}`;
         canonicalUrl = pageUrl;
       }
+      console.log("OG Meta Debug:", {
+        ogTitle,
+        ogDescription,
+        ogImageUrl,
+        pageUrl,
+        canonicalUrl,
+        shouldIndexPage,
+        dreamId,
+        isPublicView,
+        publicDreamResponse,
+      });
+
       return (
         <>
           <Helmet>
