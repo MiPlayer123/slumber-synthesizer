@@ -1,3 +1,5 @@
+"use client";
+
 import { createContext } from "react";
 
 // Copy the Theme types here

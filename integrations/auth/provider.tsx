@@ -6,9 +6,9 @@ import React, {
   useState,
   useCallback,
 } from "react";
-import { supabase } from "../../src/integrations/supabase/client";
-import { Session, User } from "@supabase/supabase-js";
-import { useToast } from "../../src/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Session, User, AuthChangeEvent } from "@supabase/supabase-js";
+import { useToast } from "@/hooks/use-toast";
 
 interface AuthContextType {
   user: User | null;
@@ -147,15 +147,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const {
           data: { subscription },
-        } = supabase.auth.onAuthStateChange(async (_event, session) => {
-          setSession(session);
-          setUser(session?.user || null);
+        } = supabase.auth.onAuthStateChange(
+          async (_event: AuthChangeEvent, session: Session | null) => {
+            setSession(session);
+            setUser(session?.user || null);
 
-          // If there's a user in the session, ensure they have a profile
-          if (session?.user) {
-            await ensureUserProfile(session.user);
-          }
-        });
+            // If there's a user in the session, ensure they have a profile
+            if (session?.user) {
+              await ensureUserProfile(session.user);
+            }
+          },
+        );
 
         clearTimeout(timeoutId);
         setLoading(false);
