@@ -842,9 +842,9 @@ export const UserProfile = () => {
   if (isPublicView) {
     // OG Meta Defaults for public view, specific values will override these
     const siteUrl = import.meta.env.VITE_APP_URL || window.location.origin;
-    let ogTitle = "User Profile | Rem";
+    let ogTitle = `${encodeURIComponent(username!)} User Profile | Rem`;
     let ogDescription = "View user profiles on Rem.";
-    let ogImageUrl = `${siteUrl}/preview_image.png`; // Default OG image
+    let ogImageUrl = `${siteUrl}/api/og/user/${encodeURIComponent(username!)}`; // Default OG image
     let pageUrl = `${siteUrl}/profile/${encodeURIComponent(username!)}`;
     let canonicalUrl = pageUrl;
     let robots = "index, follow";
@@ -957,8 +957,8 @@ export const UserProfile = () => {
     ogDescription =
       pubProfile.bio?.slice(0, 160) + "..." ||
       `${pubProfile.username}'s profile on Rem.`;
-    // Crucially, use pubProfile.id for the dynamic OG image
-    ogImageUrl = `${siteUrl}/api/og/user/${pubProfile.id}`;
+    // Crucially, use pubProfile.username for the dynamic OG image
+    ogImageUrl = `${siteUrl}/api/og/user/${encodeURIComponent(pubProfile.username!)}`;
     canonicalUrl = `${siteUrl}/profile/${encodeURIComponent(pubProfile.username!)}`;
     pageUrl = canonicalUrl;
     robots = "index, follow";
