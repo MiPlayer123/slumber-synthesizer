@@ -28,16 +28,16 @@ export default async function handler(request: Request) {
 
   try {
     const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-    const serviceKey = process.env.VITE_SUPABASE_ANON_KEY!;
+    const apiKey = process.env.VITE_SUPABASE_ANON_KEY!;
 
-    console.log(`[OG Dream ${dreamId}] Initiating fetch with service role.`);
+    console.log(`[OG Dream ${dreamId}] Initiating fetch with anon key.`);
 
     const fetchUrl = `${supabaseUrl}/rest/v1/dreams?id=eq.${dreamId}&select=title,description,image_url,user_id,profiles!dreams_user_id_fkey(username,avatar_url,full_name)`;
 
     const response = await fetch(fetchUrl, {
       headers: {
-        apikey: serviceKey,
-        Authorization: `Bearer ${serviceKey}`,
+        apikey: apiKey,
+        Authorization: `Bearer ${apiKey}`,
       },
     });
 
@@ -69,10 +69,7 @@ export default async function handler(request: Request) {
     const dream = dreamsArray && dreamsArray.length > 0 ? dreamsArray[0] : null;
 
     if (!dream) {
-      return new Response(
-        `Dream not found for id ${dreamId} (using service role)`,
-        { status: 404 },
-      );
+      return new Response(`Dream not found for id ${dreamId}`, { status: 404 });
     }
 
     const profileDataFromDream = dream.profiles;
@@ -107,10 +104,10 @@ export default async function handler(request: Request) {
             width: "100%",
             display: "flex",
             flexDirection: "column",
-            backgroundColor: "#e9e0f8",
+            backgroundColor: "#FFFFFF",
             padding: "40px",
             fontFamily: "sans-serif",
-            color: "#1a202c",
+            color: "#1A202C",
             position: "relative",
           }}
         >
@@ -151,8 +148,8 @@ export default async function handler(request: Request) {
               style={{
                 borderRadius: "15px",
                 objectFit: "cover",
-                border: "4px solid white",
-                boxShadow: "0 8px 12px -3px rgba(0,0,0,0.1)",
+                border: "4px solid #E9ECEF",
+                boxShadow: "0 8px 12px -3px rgba(0,0,0,0.05)",
               }}
               alt={dream.title || "Dream Image"}
             />
@@ -169,14 +166,16 @@ export default async function handler(request: Request) {
                   fontSize: "48px",
                   fontWeight: "bold",
                   fontFamily: "sans-serif",
-                  color: "#333",
+                  color: "#1A202C",
                   lineHeight: 1.2,
                   marginBottom: "15px",
                 }}
               >
                 {dream.title || "A Dream"}
               </p>
-              <p style={{ fontSize: "28px", color: "#555", lineHeight: 1.5 }}>
+              <p
+                style={{ fontSize: "28px", color: "#4A5568", lineHeight: 1.5 }}
+              >
                 {dreamDescriptionSnippet}
               </p>
             </div>
@@ -197,7 +196,11 @@ export default async function handler(request: Request) {
                 src={authorAvatarSrc}
                 width="50"
                 height="50"
-                style={{ borderRadius: "50%", marginRight: "10px" }}
+                style={{
+                  borderRadius: "50%",
+                  marginRight: "10px",
+                  border: "2px solid #E9ECEF",
+                }}
                 alt={author?.full_name || author?.username || "Author"}
               />
               <span style={{ fontSize: "24px", color: "#4A5568" }}>

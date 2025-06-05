@@ -17,16 +17,16 @@ export default async function handler(request: Request) {
 
   try {
     const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-    const serviceKey = process.env.VITE_SUPABASE_ANON_KEY!;
+    const apiKey = process.env.VITE_SUPABASE_ANON_KEY!;
 
-    console.log(`[OG User ${userId}] Initiating fetch with service role.`);
+    console.log(`[OG User ${userId}] Initiating fetch with anon key.`);
 
     const fetchUrl = `${supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=username,full_name,avatar_url`;
 
     const response = await fetch(fetchUrl, {
       headers: {
-        apikey: serviceKey,
-        Authorization: `Bearer ${serviceKey}`,
+        apikey: apiKey,
+        Authorization: `Bearer ${apiKey}`,
       },
     });
 
@@ -59,10 +59,9 @@ export default async function handler(request: Request) {
       profilesArray && profilesArray.length > 0 ? profilesArray[0] : null;
 
     if (!profile) {
-      return new Response(
-        `Profile not found for user ${userId} (using service role)`,
-        { status: 404 },
-      );
+      return new Response(`Profile not found for user ${userId}`, {
+        status: 404,
+      });
     }
 
     const logoUrl = new URL(
@@ -83,10 +82,10 @@ export default async function handler(request: Request) {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "space-between",
-            backgroundColor: "#f0f4f8",
+            backgroundColor: "#FFFFFF",
             padding: "50px",
             fontFamily: "sans-serif",
-            color: "#1a202c",
+            color: "#1A202C",
           }}
         >
           <div
@@ -122,9 +121,9 @@ export default async function handler(request: Request) {
               height="180"
               style={{
                 borderRadius: "50%",
-                border: "5px solid white",
+                border: "5px solid #E9ECEF",
                 boxShadow:
-                  "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+                  "0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03)",
               }}
               alt={profile.full_name || profile.username || "User"}
             />
@@ -134,12 +133,13 @@ export default async function handler(request: Request) {
                 fontWeight: "bold",
                 marginTop: "25px",
                 fontFamily: "sans-serif",
+                color: "#1A202C",
               }}
             >
               {profile.full_name || "Anonymous User"}
             </p>
             <p
-              style={{ fontSize: "30px", color: "#718096", marginTop: "-10px" }}
+              style={{ fontSize: "30px", color: "#4A5568", marginTop: "-10px" }}
             >
               @{profile.username || "nousername"}
             </p>
