@@ -3,7 +3,7 @@
     "apps": [],
     "details": [
       {
-        "appID": "TEAMID.com.lucidrem.app",
+        "appID": "MJQ4MNNJUR.com.lucidrem.app",
         "paths": [
           "/dream/*",
           "/profile/*"
@@ -12,6 +12,6 @@
     ]
   },
   "webcredentials": {
-    "apps": ["TEAMID.com.lucidrem.app"]
+    "apps": ["MJQ4MNNJUR.com.lucidrem.app"]
   }
 } 
