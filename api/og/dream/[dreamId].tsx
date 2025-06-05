@@ -39,7 +39,7 @@ export default async function handler(request: Request) {
 
   try {
     const supabaseUrl = process.env.VITE_SUPABASE_URL!; // Ensure this env var name is correct for your setup
-    const serviceKey = process.env.SUPABASE_SERVICE_KEY!; // <<< USE SERVICE KEY HERE
+    const serviceKey = process.env.VITE_SUPABASE_ANON_KEY!; // <<< USE SERVICE KEY HERE
     // const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY!; // Keep if SITE_URL or other parts need it, but not for this fetch
 
     console.log(`[OG Dream ${dreamId}] Initiating fetch with service role.`);
