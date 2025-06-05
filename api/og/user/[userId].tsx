@@ -28,7 +28,7 @@ export default async function handler(request: Request) {
 
   try {
     const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-    const serviceKey = process.env.SUPABASE_SERVICE_KEY!;
+    const serviceKey = process.env.VITE_SUPABASE_ANON_KEY!;
 
     console.log(`[OG User ${userId}] Initiating fetch with service role.`);
     console.log(
