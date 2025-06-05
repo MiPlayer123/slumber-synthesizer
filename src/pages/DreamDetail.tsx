@@ -399,10 +399,10 @@ export default function DreamDetail() {
   };
 
   // --- OG Meta Tag Constants ---
-  let ogTitle = "Rem";
+  let ogTitle = "Rem Dream Shared!";
   let ogDescription =
-    "Explore dreams on Rem, the AI powered social dream journal.";
-  let ogImageUrl = `${import.meta.env.VITE_APP_URL || window.location.origin}/preview_image.png`;
+    "View this dream on Rem, the AI powered social dream journal.";
+  let ogImageUrl = `${import.meta.env.VITE_APP_URL}/api/og/user/${encodeURIComponent(dreamId!)}`;
   let pageUrl = import.meta.env.VITE_APP_URL || window.location.origin;
   let canonicalUrl = pageUrl;
   let shouldIndexPage = true;

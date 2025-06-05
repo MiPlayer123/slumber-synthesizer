@@ -9,19 +9,23 @@ const SITE_URL = process.env.VITE_SITE_URL || "https://www.lucidrem.com";
 export default async function handler(request: Request) {
   const url = new URL(request.url);
   const pathParts = url.pathname.split("/");
-  const userId = pathParts[pathParts.length - 1];
+  // /[api]/[og]/[user]/[username] or /[api]/[og]/[user]/[username]/[app]
+  const username =
+    pathParts[pathParts.length - 1] === "app"
+      ? pathParts[pathParts.length - 2]
+      : pathParts[pathParts.length - 1];
 
-  if (!userId) {
-    return new Response("User ID is required", { status: 400 });
+  if (!username) {
+    return new Response("Username is required", { status: 400 });
   }
 
   try {
     const supabaseUrl = process.env.VITE_SUPABASE_URL!;
     const apiKey = process.env.VITE_SUPABASE_ANON_KEY!;
 
-    console.log(`[OG User ${userId}] Initiating fetch with anon key.`);
+    console.log(`[OG User ${username}] Initiating fetch with anon key.`);
 
-    const fetchUrl = `${supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=username,full_name,avatar_url`;
+    const fetchUrl = `${supabaseUrl}/rest/v1/profiles?username=eq.${username}&select=username,full_name,avatar_url`;
 
     const response = await fetch(fetchUrl, {
       headers: {
@@ -37,9 +41,9 @@ export default async function handler(request: Request) {
       try {
         profilesArray = JSON.parse(responseText);
       } catch (e) {
-        console.error(`[OG User ${userId}] JSON parsing error:`, e);
+        console.error(`[OG User ${username}] JSON parsing error:`, e);
         console.error(
-          `[OG User ${userId}] Response text that failed parsing: ${responseText}`,
+          `[OG User ${username}] Response text that failed parsing: ${responseText}`,
         );
         return new Response("Failed to parse data from Supabase", {
           status: 500,
@@ -47,7 +51,7 @@ export default async function handler(request: Request) {
       }
     } else if (!response.ok) {
       console.error(
-        `[OG User ${userId}] Supabase fetch failed. Status: ${response.status}, Body: ${responseText}`,
+        `[OG User ${username}] Supabase fetch failed. Status: ${response.status}, Body: ${responseText}`,
       );
       return new Response(
         responseText || "Failed to fetch data from Supabase",
@@ -59,7 +63,7 @@ export default async function handler(request: Request) {
       profilesArray && profilesArray.length > 0 ? profilesArray[0] : null;
 
     if (!profile) {
-      return new Response(`Profile not found for user ${userId}`, {
+      return new Response(`Profile not found for user ${username}`, {
         status: 404,
       });
     }
@@ -165,10 +169,10 @@ export default async function handler(request: Request) {
       },
     );
   } catch (e: any) {
-    console.error(`[OG User ${userId}] Error in handler: ${e.message}`);
+    console.error(`[OG User ${username}] Error in handler: ${e.message}`);
     console.error(e.stack);
     return new Response(
-      `Failed to generate image for user ${userId}: ${e.message}`,
+      `Failed to generate image for user ${username}: ${e.message}`,
       {
         status: 500,
       },
