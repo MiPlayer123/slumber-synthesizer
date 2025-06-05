@@ -38,22 +38,21 @@ export default async function handler(request: Request) {
   }
 
   try {
-    const supabaseUrl = process.env.VITE_SUPABASE_URL!; // Ensure this env var name is correct for your setup
-    const serviceKey = process.env.VITE_SUPABASE_ANON_KEY!; // <<< USE SERVICE KEY HERE
-    // const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY!; // Keep if SITE_URL or other parts need it, but not for this fetch
+    const supabaseUrl = process.env.VITE_SUPABASE_URL!;
+    const serviceKey = process.env.SUPABASE_SERVICE_KEY!;
 
     console.log(`[OG Dream ${dreamId}] Initiating fetch with service role.`);
     console.log(
       `[OG Dream ${dreamId}] Supabase URL: ${supabaseUrl ? supabaseUrl.substring(0, 30) + "..." : "NOT SET"}`,
     );
 
-    const fetchUrl = `${supabaseUrl}/rest/v1/dreams?id=eq.${dreamId}&select=title,description,image_url,user_id,profiles(username,avatar_url,full_name)`;
+    const fetchUrl = `${supabaseUrl}/rest/v1/dreams?id=eq.${dreamId}&select=title,description,image_url,user_id,profiles!dreams_user_id_fkey(username,avatar_url,full_name)`;
     console.log(`[OG Dream ${dreamId}] Fetching URL: ${fetchUrl}`);
 
     const response = await fetch(fetchUrl, {
       headers: {
-        apikey: serviceKey, // <<< USE SERVICE KEY
-        Authorization: `Bearer ${serviceKey}`, // <<< USE SERVICE KEY
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
       },
     });
 
