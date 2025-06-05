@@ -69,7 +69,7 @@ export default async function handler(request: Request) {
     }
 
     const logoUrl = new URL(
-      "/images/e6477f41-9e85-41b4-b60f-8c257c3fca4e_1748211619250.png",
+      "/favicon_io/android-chrome-192x192.png",
       SITE_URL,
     ).toString();
     const avatarSrc =
