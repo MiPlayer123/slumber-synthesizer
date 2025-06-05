@@ -6,17 +6,6 @@ export const config = {
 
 const SITE_URL = process.env.VITE_SITE_URL || "https://www.lucidrem.com";
 
-// Function to fetch font data
-async function getFontData(fontUrl: string): Promise<ArrayBuffer> {
-  const response = await fetch(new URL(fontUrl, SITE_URL));
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch font: ${response.statusText} from ${fontUrl}`,
-    );
-  }
-  return response.arrayBuffer();
-}
-
 export default async function handler(request: Request) {
   const url = new URL(request.url);
   const pathParts = url.pathname.split("/");
@@ -31,12 +20,8 @@ export default async function handler(request: Request) {
     const serviceKey = process.env.VITE_SUPABASE_ANON_KEY!;
 
     console.log(`[OG User ${userId}] Initiating fetch with service role.`);
-    console.log(
-      `[OG User ${userId}] Supabase URL: ${supabaseUrl ? supabaseUrl.substring(0, 30) + "..." : "NOT SET"}`,
-    );
 
     const fetchUrl = `${supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=username,full_name,avatar_url`;
-    console.log(`[OG User ${userId}] Fetching URL: ${fetchUrl}`);
 
     const response = await fetch(fetchUrl, {
       headers: {
@@ -45,13 +30,7 @@ export default async function handler(request: Request) {
       },
     });
 
-    console.log(
-      `[OG User ${userId}] Supabase response status: ${response.status}`,
-    );
     const responseText = await response.text();
-    console.log(
-      `[OG User ${userId}] Supabase raw response text: ${responseText}`,
-    );
 
     let profilesArray;
     if (response.ok && responseText) {
@@ -70,13 +49,14 @@ export default async function handler(request: Request) {
       console.error(
         `[OG User ${userId}] Supabase fetch failed. Status: ${response.status}, Body: ${responseText}`,
       );
+      return new Response(
+        responseText || "Failed to fetch data from Supabase",
+        { status: response.status },
+      );
     }
 
     const profile =
       profilesArray && profilesArray.length > 0 ? profilesArray[0] : null;
-    console.log(
-      `[OG User ${userId}] Parsed profile object: ${JSON.stringify(profile)}`,
-    );
 
     if (!profile) {
       return new Response(
@@ -84,10 +64,6 @@ export default async function handler(request: Request) {
         { status: 404 },
       );
     }
-
-    // Load fonts
-    const interRegularFontData = await getFontData("/fonts/Inter-Regular.ttf");
-    const interBoldFontData = await getFontData("/fonts/Inter-Bold.ttf");
 
     const logoUrl = new URL(
       "/images/e6477f41-9e85-41b4-b60f-8c257c3fca4e_1748211619250.png",
@@ -109,7 +85,7 @@ export default async function handler(request: Request) {
             justifyContent: "space-between",
             backgroundColor: "#f0f4f8",
             padding: "50px",
-            fontFamily: "Inter Regular",
+            fontFamily: "sans-serif",
             color: "#1a202c",
           }}
         >
@@ -157,7 +133,7 @@ export default async function handler(request: Request) {
                 fontSize: "42px",
                 fontWeight: "bold",
                 marginTop: "25px",
-                fontFamily: "Inter Bold",
+                fontFamily: "sans-serif",
               }}
             >
               {profile.full_name || "Anonymous User"}
@@ -185,20 +161,7 @@ export default async function handler(request: Request) {
       {
         width: 1200,
         height: 630,
-        fonts: [
-          {
-            name: "Inter Regular",
-            data: interRegularFontData,
-            style: "normal",
-            weight: 400,
-          },
-          {
-            name: "Inter Bold",
-            data: interBoldFontData,
-            style: "normal",
-            weight: 700,
-          },
-        ],
+        debug: true,
       },
     );
   } catch (e: any) {
