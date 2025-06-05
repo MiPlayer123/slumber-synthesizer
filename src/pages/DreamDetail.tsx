@@ -410,6 +410,7 @@ export default function DreamDetail() {
   let shouldIndexPage = true;
 
   // --- Public View Logic ---
+  /*
   if (isPublicView) {
     if (isLoadingPublicDream) {
       ogTitle = "Loading Dream... | Rem";
@@ -424,7 +425,7 @@ export default function DreamDetail() {
         </>
       );
     }
-
+  */
     if (
       publicViewError ||
       !publicDreamResponse?.dream ||
