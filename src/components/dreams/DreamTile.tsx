@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ export type DreamTileProps = {
   onDreamClick: () => void;
   onShare: () => void;
   refreshLikes: (dreamId?: string) => void;
+  onProfileClick: (e: React.MouseEvent) => void;
 };
 
 export const DreamTile: React.FC<DreamTileProps> = ({
@@ -27,6 +28,7 @@ export const DreamTile: React.FC<DreamTileProps> = ({
   onDreamClick,
   onShare,
   refreshLikes,
+  onProfileClick,
 }) => {
   const {
     likesCount,
@@ -38,12 +40,12 @@ export const DreamTile: React.FC<DreamTileProps> = ({
   const { commentCount, isLoading: isCommentCountLoading } =
     useDreamCommentCount(dream.id);
 
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const handleProfileClick = (e: React.MouseEvent, username?: string) => {
     e.stopPropagation();
     if (username) {
-      navigate(`/profile/${username}/app`);
+      router.push(`/profile/${username}`);
     }
   };
 
@@ -98,7 +100,7 @@ export const DreamTile: React.FC<DreamTileProps> = ({
           {profile?.username && (
             <ProfileHoverCard username={profile.username}>
               <div
-                onClick={(e) => handleProfileClick(e, profile.username)}
+                onClick={(e) => onProfileClick(e)}
                 className="cursor-pointer"
               >
                 <Avatar className="h-5 w-5 md:h-6 md:w-6 transition-opacity hover:opacity-70">
@@ -114,7 +116,7 @@ export const DreamTile: React.FC<DreamTileProps> = ({
           {profile?.username && (
             <ProfileHoverCard username={profile.username}>
               <span
-                onClick={(e) => handleProfileClick(e, profile.username)}
+                onClick={(e) => onProfileClick(e)}
                 className="text-xs md:text-sm font-medium cursor-pointer transition-colors hover:text-muted-foreground"
               >
                 {profile.username}

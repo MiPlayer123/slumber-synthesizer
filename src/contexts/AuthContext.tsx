@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   supabase,
@@ -613,62 +615,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ensuring setLoading(true) at start and setLoading(false) in finally.
   // Example for completeGoogleSignUp structure:
 
-  const forgotPassword = async (email: string) => {
+  const forgotPassword = async (
+    email: string,
+  ): Promise<{ success: boolean; error: AuthError | Error | null }> => {
+    if (!isValidSupabaseConfig) {
+      const err = new Error("Supabase is not configured.");
+      logAuthError("forgotPassword", err);
+      return { success: false, error: err };
+    }
     setLoading(true);
     setError(null);
     try {
-      // Check if Supabase is properly configured
-      if (!isValidSupabaseConfig()) {
-        console.error(
-          "Supabase client is not properly configured. Missing configuration.",
-        );
-        throw new Error(
-          "Authentication service is not properly configured. Please contact support.",
-        );
-      }
-
-      // Log the attempt for debugging
-      console.log(`Attempting to send password reset email to: ${email}`);
-
-      // Use window.location.host to capture correct host:port combination
-      const baseUrl = `${window.location.protocol}//${window.location.host}`;
-
-      // Set redirectTo directly to the root URL since we're now handling proper redirects in AuthRedirectHandler
-      // This ensures we handle the code parameter correctly in the root path handler
-      const redirectUrl = baseUrl;
-      console.log(`Using redirect URL: ${redirectUrl}`);
-
-      // Add additional options to make the token last longer
-      const { data, error: resetError } =
-        await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: redirectUrl,
-        });
-
-      if (resetError) {
-        console.error("Password reset API error:", resetError);
-        throw resetError;
-      }
-
-      // Log success response
-      console.log("Password reset response:", data);
-
+      const { error: forgotError } = await supabase.auth.resetPasswordForEmail(
+        email,
+        {
+          redirectTo: `${window.location.origin}/reset-password`,
+        },
+      );
+      if (forgotError) throw forgotError;
       toast({
-        title: "Check Your Email",
+        title: "Password Reset Requested",
         description:
-          "Reset link sent! Click it within 1 hour. Check spam folder if not found in inbox.",
+          "If an account with that email exists, a password reset link has been sent.",
       });
       return { success: true, error: null };
-    } catch (error) {
-      console.error("Full password reset error:", error);
-      toast({
-        variant: "destructive",
-        title: "Password Reset Issue",
-        description:
-          error instanceof Error
-            ? error.message
-            : "We encountered a problem sending the reset email. Please try again or contact support if the issue persists.",
-      });
-      return { success: false, error: logAuthError("forgotPassword", error) };
+    } catch (err) {
+      const error = logAuthError("forgotPassword", err);
+      return { success: false, error };
     } finally {
       if (isMountedRef.current) setLoading(false);
     }

@@ -1,25 +1,26 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { ThemeContext, ThemeContextType } from "./ThemeContextDefinition"; // Import from new file
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<ThemeContextType["theme"]>(() => {
-    // First check if user has previously selected a theme
+  const [theme, setTheme] = useState<ThemeContextType["theme"]>("light");
+
+  useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme === "dark" || savedTheme === "light") {
-      return savedTheme;
+      setTheme(savedTheme);
+    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      setTheme("dark");
     }
+  }, []);
 
-    // If no saved preference, check system preference
-    if (
-      window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches
-    ) {
-      return "dark";
-    }
-
-    // Default to light if no preference detected
-    return "light";
-  });
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove("light", "dark");
+    root.classList.add(theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
 
   // Listen for changes in system color scheme preference
   useEffect(() => {
@@ -32,19 +33,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    // Add event listener
     mediaQuery.addEventListener("change", handleChange);
 
-    // Cleanup
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
-
-  useEffect(() => {
-    const root = window.document.documentElement;
-    root.classList.remove("light", "dark");
-    root.classList.add(theme);
-    localStorage.setItem("theme", theme);
-  }, [theme]);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>
