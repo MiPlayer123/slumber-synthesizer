@@ -16,7 +16,6 @@ import { Brain, BarChart, Sparkles, Share2 } from "lucide-react";
 import { Navigation } from "@/components/Navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
 import {
   getDeviceType,
   getMobileDownloadUrl,
@@ -25,9 +24,8 @@ import {
 
 export default function Index() {
   const heroRef = useRef<HTMLDivElement>(null);
-  const { signInWithGoogle, loading } = useAuth();
+  const { loading } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [deviceType, setDeviceType] = useState<DeviceType>("web");
 
   // Detect device type on mount
@@ -53,24 +51,6 @@ export default function Index() {
     // Store sign-up preference in sessionStorage so Auth page knows to show sign-up form
     sessionStorage.setItem("auth-mode", "signup");
     navigate("/auth");
-  };
-
-  // Handle "Sign Up with Google" - trigger Google OAuth directly
-  const handleGoogleSignUp = async () => {
-    try {
-      await signInWithGoogle();
-      toast({
-        title: "Redirecting to Google",
-        description: "You'll be redirected to Google for authentication.",
-      });
-    } catch (error) {
-      console.error("Google sign-up error:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to initiate Google sign-up. Please try again.",
-      });
-    }
   };
 
   return (
