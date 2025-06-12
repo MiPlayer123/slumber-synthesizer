@@ -18,7 +18,7 @@ export function AppStoreBadges({ className = "" }: AppStoreBadgesProps) {
       <div className="flex gap-3">
         {/* App Store Badge */}
         <a
-          href="https://apps.apple.com/app/rem-dream-journal/id123456789"
+          href="https://apps.apple.com/us/app/rem-ai-social-dream-journal/id6746865938"
           target="_blank"
           rel="noopener noreferrer"
           className="transition-transform hover:scale-105"

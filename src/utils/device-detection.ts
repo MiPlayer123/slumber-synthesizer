@@ -28,8 +28,7 @@ export function getDeviceType(): DeviceType {
 export function getMobileDownloadUrl(deviceType: DeviceType): string {
   switch (deviceType) {
     case "ios":
-      // TODO: Replace with actual App Store URL when available
-      return "https://apps.apple.com/app/rem-dream-journal/id123456789";
+      return "https://apps.apple.com/us/app/rem-ai-social-dream-journal/id6746865938";
     case "android":
       // TODO: Replace with actual Google Play URL when available
       return "https://play.google.com/store/apps/details?id=com.rem.dreamjournal";
