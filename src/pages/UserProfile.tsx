@@ -182,6 +182,13 @@ export const UserProfile = () => {
   const isPublicView = !location.pathname.includes("/app");
   const isOwnProfile = user?.user_metadata?.username === username;
 
+  // Redirect authenticated users from public view to app view
+  useEffect(() => {
+    if (user && isPublicView && username) {
+      navigate(`/profile/${username}/app`, { replace: true });
+    }
+  }, [user, isPublicView, username, navigate]);
+
   const [loading, setLoading] = useState(true);
   const [dreamsLoading, setDreamsLoading] = useState(true);
   const [profile, setProfile] = useState<ProfileType | null>(null);
