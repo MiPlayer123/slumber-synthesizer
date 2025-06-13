@@ -46,10 +46,9 @@ export function AppStoreBadges({ className = "" }: AppStoreBadgesProps) {
 
         {/* Google Play Badge */}
         <a
-          href="https://play.google.com/store/apps/details?id=com.rem.dreamjournal"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="transition-transform hover:scale-105"
+          href="javascript:void(0);"
+          onClick={() => alert("Coming soon!")}
+          className="transition-transform hover:scale-105 cursor-not-allowed"
         >
           <div className="bg-black rounded-lg px-4 py-2 border border-white/20 hover:border-white/40 transition-all">
             <div className="flex items-center gap-2">
