@@ -54,7 +54,11 @@ const Privacy = () => {
             <ul className="list-disc list-inside space-y-2 ml-4">
               <li>
                 <span className="font-medium">Account Information:</span> Email
-                address, password, and profile information.
+                address, password, and profile information. We collect your
+                email address to create and manage your account, and for sending
+                essential communications related to our service. We do not use
+                your email address for any other purposes, such as marketing,
+                without your explicit consent.
               </li>
               <li>
                 <span className="font-medium">Dream Content:</span> The dream
