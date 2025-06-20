@@ -436,7 +436,7 @@ export default function Index() {
                 </div>
 
                 {/* App Store Badges */}
-                <AppStoreBadges />
+                <AppStoreBadges centerAlign />
               </div>
 
               {/* Trust indicators */}
