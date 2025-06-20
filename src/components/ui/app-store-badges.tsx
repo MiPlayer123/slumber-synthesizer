@@ -12,7 +12,7 @@ export function AppStoreBadges({ className = "" }: AppStoreBadgesProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay: 0.8 }}
-      className={`flex flex-col items-center justify-center lg:items-start lg:justify-start gap-3 ${className}`}
+      className={`flex flex-col items-center justify-center gap-3 ${className}`}
     >
       <span className="text-sm text-white/60">Available on:</span>
       <div className="flex gap-3">
