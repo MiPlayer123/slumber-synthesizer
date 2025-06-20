@@ -4,15 +4,21 @@ import { motion } from "framer-motion";
 
 interface AppStoreBadgesProps {
   className?: string;
+  centerAlign?: boolean;
 }
 
-export function AppStoreBadges({ className = "" }: AppStoreBadgesProps) {
+export function AppStoreBadges({
+  className = "",
+  centerAlign = false,
+}: AppStoreBadgesProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay: 0.8 }}
-      className={`flex flex-col items-center justify-center gap-3 ${className}`}
+      className={`flex flex-col items-center justify-center ${
+        centerAlign ? "" : "lg:items-start lg:justify-start"
+      } gap-3 ${className}`}
     >
       <span className="text-sm text-white/60">Available on:</span>
       <div className="flex gap-3">
