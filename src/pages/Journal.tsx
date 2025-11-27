@@ -154,16 +154,20 @@ const Journal = () => {
       }
 
       // Prepare the dream data with appropriate fields
+      // Ensure visibility is always explicitly set (never rely on database default)
+      const visibility = dream.visibility || "public";
+      
       const dreamData = {
         title: dream.title,
         description: dream.description,
         category: dream.category,
         emotion: dream.emotion,
-        visibility: dream.visibility,
+        visibility: visibility,
         user_id: user.id,
       };
 
       console.log("Creating dream with data:", dreamData);
+      console.log("Visibility explicitly set to:", visibility);
 
       try {
         const { data, error } = await supabase
