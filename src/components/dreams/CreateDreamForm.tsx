@@ -158,7 +158,7 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
               id="title"
               value={newDream.title}
               onChange={(e) =>
-                setNewDream({ ...newDream, title: e.target.value })
+                setNewDream((prev) => ({ ...prev, title: e.target.value }))
               }
               required
               placeholder="Enter a title for your dream"
@@ -186,7 +186,7 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
                   id="description"
                   value={newDream.description}
                   onChange={(e) =>
-                    setNewDream({ ...newDream, description: e.target.value })
+                    setNewDream((prev) => ({ ...prev, description: e.target.value }))
                   }
                   required
                   rows={8}
@@ -206,7 +206,7 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
                   id="description-voice"
                   value={newDream.description}
                   onChange={(e) =>
-                    setNewDream({ ...newDream, description: e.target.value })
+                    setNewDream((prev) => ({ ...prev, description: e.target.value }))
                   }
                   required
                   rows={8}
@@ -223,7 +223,7 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
               <Select
                 value={newDream.category}
                 onValueChange={(value: DreamCategory) =>
-                  setNewDream({ ...newDream, category: value })
+                  setNewDream((prev) => ({ ...prev, category: value }))
                 }
               >
                 <SelectTrigger>
@@ -244,7 +244,7 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
               <Select
                 value={newDream.emotion}
                 onValueChange={(value: DreamEmotion) =>
-                  setNewDream({ ...newDream, emotion: value })
+                  setNewDream((prev) => ({ ...prev, emotion: value }))
                 }
               >
                 <SelectTrigger>
@@ -265,7 +265,7 @@ export function CreateDreamForm({ onSubmit }: CreateDreamFormProps) {
               <Select
                 value={newDream.visibility}
                 onValueChange={(value: DreamVisibility) =>
-                  setNewDream({ ...newDream, visibility: value })
+                  setNewDream((prev) => ({ ...prev, visibility: value }))
                 }
               >
                 <SelectTrigger>

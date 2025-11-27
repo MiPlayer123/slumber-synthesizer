@@ -154,7 +154,7 @@ export function EditDreamForm({
               id="title"
               value={updatedDream.title}
               onChange={(e) =>
-                setUpdatedDream({ ...updatedDream, title: e.target.value })
+                setUpdatedDream((prev) => ({ ...prev, title: e.target.value }))
               }
               required
               placeholder="Enter a title for your dream"
@@ -167,10 +167,10 @@ export function EditDreamForm({
               id="description"
               value={updatedDream.description}
               onChange={(e) =>
-                setUpdatedDream({
-                  ...updatedDream,
+                setUpdatedDream((prev) => ({
+                  ...prev,
                   description: e.target.value,
-                })
+                }))
               }
               required
               rows={8}
@@ -184,7 +184,7 @@ export function EditDreamForm({
               <Select
                 value={updatedDream.category}
                 onValueChange={(value: DreamCategory) =>
-                  setUpdatedDream({ ...updatedDream, category: value })
+                  setUpdatedDream((prev) => ({ ...prev, category: value }))
                 }
               >
                 <SelectTrigger>
@@ -205,7 +205,7 @@ export function EditDreamForm({
               <Select
                 value={updatedDream.emotion}
                 onValueChange={(value: DreamEmotion) =>
-                  setUpdatedDream({ ...updatedDream, emotion: value })
+                  setUpdatedDream((prev) => ({ ...prev, emotion: value }))
                 }
               >
                 <SelectTrigger>
@@ -226,7 +226,7 @@ export function EditDreamForm({
               <Select
                 value={updatedDream.visibility}
                 onValueChange={(value: DreamVisibility) =>
-                  setUpdatedDream({ ...updatedDream, visibility: value })
+                  setUpdatedDream((prev) => ({ ...prev, visibility: value }))
                 }
               >
                 <SelectTrigger>
